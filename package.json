@@ -1,0 +1,30 @@
+{
+  "name": "data-hub-client",
+  "version": "0.0.1-0",
+  "description": "JavaScript data hub client",
+  "license": "BSD-3-Clause",
+  "main": "index.js",
+  "dependencies": {
+    "@stablelib/chacha20poly1305": "^0.10.2",
+    "axios": "^0.18.0",
+    "base64url-universal": "^1.0.0"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/digitalbazaar/data-hub-client"
+  },
+  "keywords": [
+    "data hub",
+    "datahub"
+  ],
+  "author": {
+    "name": "Digital Bazaar, Inc.",
+    "email": "support@digitalbazaar.com",
+    "url": "https://digitalbazaar.com"
+  },
+  "bugs": {
+    "url": "https://github.com/digitalbazaar/data-hub-client/issues"
+  },
+  "homepage": "https://github.com/digitalbazaar/data-hub-client",
+  "browser": "browser.js"
+}
