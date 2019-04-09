@@ -4,10 +4,17 @@
   "description": "JavaScript data hub client",
   "license": "BSD-3-Clause",
   "main": "index.js",
+  "scripts": {
+    "lint": "eslint ."
+  },
   "dependencies": {
     "@stablelib/chacha20poly1305": "^0.10.2",
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0"
+  },
+  "devDependencies": {
+    "eslint": "^5.16.0",
+    "eslint-config-digitalbazaar": "^2.0.0"
   },
   "repository": {
     "type": "git",
