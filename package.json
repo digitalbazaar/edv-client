@@ -5,16 +5,56 @@
   "license": "BSD-3-Clause",
   "main": "index.js",
   "scripts": {
+    "test": "npm run test-node",
+    "test-node": "cross-env NODE_ENV=test mocha -r esm --preserve-symlinks -t 30000 -A -R ${REPORTER:-spec} tests/*.spec.js",
+    "test-karma": "karma start",
+    "coverage": "cross-env NODE_ENV=test nyc --reporter=lcov --reporter=text-summary npm run test-node",
+    "coverage-report": "nyc report",
     "lint": "eslint ."
   },
+  "files": [
+    "Cipher.js",
+    "DataHubClient.js",
+    "DataHubService.js",
+    "IndexHelper.js",
+    "algorithms/*.js",
+    "index.js",
+    "main.js"
+  ],
   "dependencies": {
     "@stablelib/chacha20poly1305": "^0.10.2",
     "axios": "^0.18.0",
-    "base64url-universal": "^1.0.0"
+    "base64url-universal": "^1.0.0",
+    "esm": "^3.2.22"
   },
   "devDependencies": {
+    "@babel/core": "^7.4.3",
+    "@babel/plugin-transform-modules-commonjs": "^7.4.3",
+    "@babel/plugin-transform-runtime": "^7.4.3",
+    "@babel/preset-env": "^7.4.3",
+    "@babel/runtime": "^7.4.3",
+    "babel-loader": "^8.0.5",
+    "bedrock-web-kms": "^2.0.0",
+    "bedrock-web-mock-data-hub-storage": "^2.0.0",
+    "bedrock-web-mock-kms-http": "^2.0.1",
+    "chai": "^4.2.0",
+    "chai-bytes": "^0.1.2",
+    "cross-env": "^5.2.0",
     "eslint": "^5.16.0",
-    "eslint-config-digitalbazaar": "^2.0.0"
+    "eslint-config-digitalbazaar": "^2.0.0",
+    "karma": "^4.0.1",
+    "karma-babel-preprocessor": "^8.0.0",
+    "karma-chai": "^0.1.0",
+    "karma-chrome-launcher": "^2.2.0",
+    "karma-mocha": "^1.3.0",
+    "karma-mocha-reporter": "^2.2.5",
+    "karma-sourcemap-loader": "^0.3.7",
+    "karma-webpack": "^3.0.5",
+    "mocha": "^6.1.2",
+    "mocha-lcov-reporter": "^1.3.0",
+    "nyc": "^13.3.0",
+    "pretender": "^2.1.1",
+    "webpack": "^4.29.6"
   },
   "repository": {
     "type": "git",
@@ -27,11 +67,25 @@
   "author": {
     "name": "Digital Bazaar, Inc.",
     "email": "support@digitalbazaar.com",
-    "url": "https://digitalbazaar.com"
+    "url": "https://digitalbazaar.com/"
   },
   "bugs": {
     "url": "https://github.com/digitalbazaar/data-hub-client/issues"
   },
   "homepage": "https://github.com/digitalbazaar/data-hub-client",
-  "browser": "browser.js"
+  "module": "main.js",
+  "browser": {
+  },
+  "engines": {
+    "node": "^8.6.0"
+  },
+  "nyc": {
+    "exclude": [
+      "tests"
+    ],
+    "reporter": [
+      "html",
+      "text-summary"
+    ]
+  }
 }
