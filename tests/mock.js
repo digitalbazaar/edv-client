@@ -5,6 +5,7 @@ import Pretender from 'pretender';
 import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
 import {MockKmsService} from 'bedrock-web-mock-kms-http';
+import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
 // FIXME use mock test data
 //import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
 
@@ -51,23 +52,23 @@ mock.init = async () => {
 
     // account master key for using KMS
     const secret = 'bcrypt of password';
-    // FIXME use mock data
-    //const kmsService = new KmsService();
-    //mock.keys.master = await AccountMasterKey.fromSecret(
-    //  {secret, accountId, kmsService, kmsPlugin: 'mock'});
+    const kmsService = new KmsService();
+    mock.keys.master = await AccountMasterKey.fromSecret(
+      {secret, accountId, kmsService, kmsPlugin: 'mock'});
 
-    //// create KEK and HMAC keys for creating data hubs
-    //mock.keys.kek = await mock.keys.master.generateKey({type: 'kek'});
-    //mock.keys.hmac = await mock.keys.master.generateKey({type: 'hmac'});
-    mock.keys.kek = null; // FIXME
-    mock.keys.hmac = null; // FIXME
+    // create KEK and HMAC keys for creating data hubs
+    mock.keys.kek = await mock.keys.master.generateKey({type: 'kek'});
+    mock.keys.hmac = await mock.keys.master.generateKey({type: 'hmac'});
   }
 };
 
 mock.createDataHub = async (
   {controller = mock.accountId, primary = false} = {}) => {
+  console.log('createDataHub 1');
   const dhs = new DataHubService();
+  console.log('createDataHub 2');
   const {kek, hmac} = mock.keys;
+  console.log('createDataHub 3', mock.keys);
   let config = {
     sequence: 0,
     controller,
@@ -78,5 +79,6 @@ mock.createDataHub = async (
     config.primary = true;
   }
   config = await dhs.create({config});
+  console.log('createDataHub end');
   return new DataHubClient({config, kek, hmac});
 };

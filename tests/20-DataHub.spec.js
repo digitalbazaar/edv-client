@@ -9,7 +9,7 @@ describe('DataHub', () => {
     await mock.init();
   });
   after(async () => {
-    mock.server.shutdown();
+    await mock.server.shutdown();
   });
 
   it('should create a data hub', async () => {

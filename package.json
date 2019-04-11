@@ -7,7 +7,7 @@
   "scripts": {
     "test": "npm run test-node",
     "test-node": "cross-env NODE_ENV=test mocha -r esm --preserve-symlinks -t 30000 -A -R ${REPORTER:-spec} tests/*.spec.js",
-    "test-karma": "karma start",
+    "test-karma": "karma start karma.conf.js",
     "coverage": "cross-env NODE_ENV=test nyc --reporter=lcov --reporter=text-summary npm run test-node",
     "coverage-report": "nyc report",
     "lint": "eslint ."
@@ -39,6 +39,7 @@
     "bedrock-web-mock-kms-http": "^2.0.1",
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
+    "core-js": "^3.0.1",
     "cross-env": "^5.2.0",
     "eslint": "^5.16.0",
     "eslint-config-digitalbazaar": "^2.0.0",
@@ -74,8 +75,7 @@
   },
   "homepage": "https://github.com/digitalbazaar/data-hub-client",
   "module": "main.js",
-  "browser": {
-  },
+  "browser": {},
   "engines": {
     "node": "^8.6.0"
   },
