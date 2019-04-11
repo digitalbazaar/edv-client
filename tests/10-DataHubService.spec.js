@@ -1,9 +1,8 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-//import {DataHubService} from 'data-hub-client';
 import {DataHubService} from '..';
-import {mock} from './mock.js';
+import mock from './mock.js';
 
 describe('DataHubService', () => {
   before(async () => {
@@ -70,10 +69,23 @@ describe('DataHubService', () => {
   });
 
   it('should get primary data hub storage', async () => {
-    // Note: depends on previous test that created primary data hub
-    // could alternatively change `before/after` to `beforeEach/afterEach`
-    // to enable creating multiple primary data hubs
     const dhs = new DataHubService();
+    const {kek, hmac} = mock.keys;
+    // note: Tests should run in isolation however this will return 409
+    // DuplicateError when running in a suite.
+    try {
+      await dhs.create({
+        config: {
+          sequence: 0,
+          controller: mock.accountId,
+          kek: {id: kek.id, algorithm: kek.algorithm},
+          hmac: {id: hmac.id, algorithm: hmac.algorithm},
+          primary: true
+        }
+      });
+    } catch(e) {
+      // do nothing we just need to ensure that primary datahub was created.
+    }
     const config = await dhs.getPrimary({controller: mock.accountId});
     config.should.be.an('object');
     config.id.should.be.a('string');

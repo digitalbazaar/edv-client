@@ -13,11 +13,8 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      './tests/test-karma.js',
-      {
-        pattern: 'tests/*.spec.js',
-        watched: false, served: true, included: true
-      }
+      'tests/test-karma.js',
+      'tests/*.spec.js',
     ],
 
     // list of files to exclude
@@ -26,7 +23,7 @@ module.exports = function(config) {
     // preprocess matching files before serving them to the browser
     // preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
     preprocessors: {
-      'tests/*.js': ['webpack', 'babel', 'sourcemap']
+      'tests/*.js': ['webpack', 'babel', 'sourcemap'],
     },
 
     webpack: {
@@ -56,8 +53,8 @@ module.exports = function(config) {
       },
       node: {
         Buffer: false,
-        process: false,
-        crypto: false,
+        process: true,
+        crypto: true,
         setImmediate: false
       }
     },

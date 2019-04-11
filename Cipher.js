@@ -197,6 +197,7 @@ export class Cipher {
       throw new Error('No matching recipient found for KEK.');
     }
     const {encrypted_key: wrappedKey} = recipient;
+
     if(typeof wrappedKey !== 'string') {
       throw new Error('Invalid or missing "encrypted_key".');
     }
