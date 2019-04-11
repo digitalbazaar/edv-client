@@ -54,7 +54,7 @@ module.exports = function(config) {
       node: {
         Buffer: false,
         process: true,
-        crypto: false,
+        crypto: true,
         setImmediate: false
       }
     },

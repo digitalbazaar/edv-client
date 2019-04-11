@@ -64,11 +64,8 @@ mock.init = async () => {
 
 mock.createDataHub = async (
   {controller = mock.accountId, primary = false} = {}) => {
-  console.log('createDataHub 1');
   const dhs = new DataHubService();
-  console.log('createDataHub 2');
   const {kek, hmac} = mock.keys;
-  console.log('createDataHub 3', mock.keys);
   let config = {
     sequence: 0,
     controller,
@@ -79,6 +76,5 @@ mock.createDataHub = async (
     config.primary = true;
   }
   config = await dhs.create({config});
-  console.log('createDataHub end');
   return new DataHubClient({config, kek, hmac});
 };
