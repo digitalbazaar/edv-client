@@ -6,6 +6,8 @@ import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
 import {MockKmsService} from 'bedrock-web-mock-kms-http';
 import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
+import {getMockKey} from './generateTestKey';
+
 // FIXME use mock test data
 //import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
 
@@ -51,13 +53,11 @@ mock.init = async () => {
     mock.keys = {};
 
     // account master key for using KMS
-    const secret = 'bcrypt of password';
-    const kmsService = new KmsService();
-    mock.keys.master = await AccountMasterKey.fromSecret(
-      {secret, accountId, kmsService, kmsPlugin: 'mock'});
+    mock.keys.master = await getMockKey({kmsService: mock.kms});
     // create KEK and HMAC keys for creating data hubs
     mock.keys.kek = await mock.keys.master.generateKey({type: 'kek'});
     mock.keys.hmac = await mock.keys.master.generateKey({type: 'hmac'});
+    console.log('hmac', mock.keys.hmac);
   }
 };
 
