@@ -55,7 +55,6 @@ mock.init = async () => {
     const kmsService = new KmsService();
     mock.keys.master = await AccountMasterKey.fromSecret(
       {secret, accountId, kmsService, kmsPlugin: 'mock'});
-
     // create KEK and HMAC keys for creating data hubs
     mock.keys.kek = await mock.keys.master.generateKey({type: 'kek'});
     mock.keys.hmac = await mock.keys.master.generateKey({type: 'hmac'});
