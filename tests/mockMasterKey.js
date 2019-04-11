@@ -9,9 +9,6 @@ class MockMasterKey {
     this.kmsPlugin = kmsPlugin;
   }
   async generateKey({type}) {
-
-    // for the time being, fips and recommended are the same; there is no
-    // other standardized key wrapping algorithm
     let Class;
     if(type === 'hmac') {
       type = 'Sha256HmacKey2019';
@@ -22,10 +19,27 @@ class MockMasterKey {
     } else {
       throw new Error(`Unknown key type "${type}".`);
     }
-
-    const {kmsService, kmsPlugin: plugin, signer} = this;
-    const id = await kmsService.generateKey({plugin, type, signer});
-    return new Class({id, kmsService, signer});
+    // disable exporting keys
+    let key;
+    const extractable = false;
+    if(type === 'AesKeyWrappingKey2019') {
+      // TODO: support other lengths?
+      key = await crypto.subtle.generateKey(
+        {name: 'AES-KW', length: 256},
+        extractable,
+        ['wrapKey', 'unwrapKey']);
+    } else if(type === 'Sha256HmacKey2019') {
+      // TODO: support other hashes?
+      key = await crypto.subtle.generateKey(
+        {name: 'HMAC', hash: {name: 'SHA-256'}},
+        extractable,
+        ['sign', 'verify']);
+    } else {
+      throw new Error(`Unknown key type "${type}".`);
+    }
+    key.signer = this.signer;
+    key.kmsService = this.kmsService;
+    return key;
   }
 }
 

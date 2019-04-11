@@ -5,11 +5,9 @@ import Pretender from 'pretender';
 import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
 import {MockKmsService} from 'bedrock-web-mock-kms-http';
-import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
 import {getMockKey} from './generateTestKey';
 
 // FIXME use mock test data
-//import {AccountMasterKey, KmsService} from 'bedrock-web-kms';
 
 export const mock = {};
 
@@ -57,7 +55,6 @@ mock.init = async () => {
     // create KEK and HMAC keys for creating data hubs
     mock.keys.kek = await mock.keys.master.generateKey({type: 'kek'});
     mock.keys.hmac = await mock.keys.master.generateKey({type: 'hmac'});
-    console.log('hmac', mock.keys.hmac);
   }
 };
 
