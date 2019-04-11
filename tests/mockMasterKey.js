@@ -37,6 +37,7 @@ class MockMasterKey {
     } else {
       throw new Error(`Unknown key type "${type}".`);
     }
+    key.id = 'http://localhost:9876/kms/mock/445d6646-076f-43b6-8918-4d55b062c34c';
     key.signer = this.signer;
     key.kmsService = this.kmsService;
     return key;

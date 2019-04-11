@@ -14,6 +14,7 @@ export class IndexHelper {
    * @return {IndexHelper}.
    */
   constructor({hmac}) {
+    console.log('hmac.id', hmac.id, 'hmac sign', hmac.sign, 'hmac verify', hmac.verify);
     if(!(hmac && typeof hmac === 'object' && typeof hmac.id === 'string' &&
       typeof hmac.sign === 'function' && typeof hmac.verify === 'function')) {
       throw new TypeError(
