@@ -22,16 +22,28 @@ class MockMasterKey {
         .get('mock').wrapKey({keyId: kekId, operation});
       return wrappedKey;
     };
-    this.kmsService.sign = async function({keyId, data, signer}) {
+    this.kmsService.sign = async function({keyId, data}) {
       data = base64url.encode(data);
       const operation = {
         type: 'SignOperation',
         invocationTarget: keyId,
         verifyData: data
       };
-      const {signatureValue} = await this.plugins.get('mock').sign({keyId, operation});
+      const {signatureValue} = await this.plugins.get('mock')
+        .sign({keyId, operation});
       return signatureValue;
     };
+    this.kmsService.unwrapKey = async function({wrappedKey, kekId}) {
+      const operation = {
+        type: 'UnwrapKeyOperation',
+        invocationTarget: kekId,
+        wrappedKey
+      };
+      const {unwrappedKey} = await this.plugins.get('mock')
+        .unwrapKey({keyId: kekId, operation});
+      return base64url.decode(unwrappedKey);
+    };
+
   }
   async generateKey({type}) {
     let Class;
