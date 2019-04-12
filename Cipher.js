@@ -92,9 +92,9 @@ export class Cipher {
           'Wrapping a new CEK for other recipients is not implemented.');
       }
       cek = await algorithm.generateKey();
-      console.log('kek wrap called here');
+      console.log('adding encryped key');
       recipient.encrypted_key = await kek.wrap({key: cek});
-      console.log('got wrapped key');
+      console.log('encrypted_key', recipient.encrypted_key);
       // TODO: wrap CEK for all other recipients
     } else {
       // unwrap CEK for use below
@@ -154,6 +154,7 @@ export class Cipher {
    *   `null` if the decryption failed.
    */
   async decrypt({jwe, kek}) {
+    console.log('cipher decrypt 1');
     // validate JWE
     if(!(jwe && typeof jwe === 'object')) {
       throw new TypeError('"jwe" must be an object.');
@@ -194,11 +195,15 @@ export class Cipher {
     if(!Array.isArray(jwe.recipients)) {
       throw new TypeError('"jwe.recipients" must be an array.');
     }
+    console.log('cipher decrypt 2', jwe.recipients.map(h => h.header), kek);
     const recipient = _findRecipient(jwe.recipients, kek);
     if(!recipient) {
       throw new Error('No matching recipient found for KEK.');
     }
+    console.log('cipher decrypt 3', recipient);
     const {encrypted_key: wrappedKey} = recipient;
+    console.log('cipher decrypt 4');
+
     if(typeof wrappedKey !== 'string') {
       throw new Error('Invalid or missing "encrypted_key".');
     }

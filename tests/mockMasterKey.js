@@ -18,7 +18,7 @@ class MockMasterKey {
         invocationTarget: kekId,
         unwrappedKey
       };
-      const {wrappedKey} = this.plugins
+      const {wrappedKey} = await this.plugins
         .get('mock').wrapKey({keyId: kekId, operation});
       return wrappedKey;
     };
