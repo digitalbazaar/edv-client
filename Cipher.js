@@ -92,7 +92,9 @@ export class Cipher {
           'Wrapping a new CEK for other recipients is not implemented.');
       }
       cek = await algorithm.generateKey();
+      console.log('kek wrap called here');
       recipient.encrypted_key = await kek.wrap({key: cek});
+      console.log('got wrapped key');
       // TODO: wrap CEK for all other recipients
     } else {
       // unwrap CEK for use below
