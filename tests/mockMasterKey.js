@@ -19,7 +19,7 @@ class MockMasterKey {
         unwrappedKey
       };
       const {wrappedKey} = await this.plugins
-        .get('mock').wrapKey({keyId: kekId, operation});
+        .get(kmsPlugin).wrapKey({keyId: kekId, operation});
       return wrappedKey;
     };
     this.kmsService.sign = async function({keyId, data}) {
@@ -29,7 +29,7 @@ class MockMasterKey {
         invocationTarget: keyId,
         verifyData: data
       };
-      const {signatureValue} = await this.plugins.get('mock')
+      const {signatureValue} = await this.plugins.get(kmsPlugin)
         .sign({keyId, operation});
       return signatureValue;
     };
@@ -39,11 +39,10 @@ class MockMasterKey {
         invocationTarget: kekId,
         wrappedKey
       };
-      const {unwrappedKey} = await this.plugins.get('mock')
+      const {unwrappedKey} = await this.plugins.get(kmsPlugin)
         .unwrapKey({keyId: kekId, operation});
       return base64url.decode(unwrappedKey);
     };
-
   }
   async generateKey({type}) {
     let Class;
@@ -62,7 +61,7 @@ class MockMasterKey {
     const base = 'http://localhost:9876/kms/mock/';
     const keyId = `${base}${type}`;
     const key = await this.kmsService.plugins
-      .get('mock').generateKey({keyId, operation});
+      .get(this.kmsPlugin).generateKey({keyId, operation});
     // disable exporting keys
     const id = key.id;
     const signer = this.signer;
