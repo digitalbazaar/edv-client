@@ -1,20 +1,38 @@
-import axios from 'axios';
-import sinon from 'sinon';
 import {DataHubClient} from '..';
+import MockServer from './mockServer';
+import {MockKmsService} from 'bedrock-web-mock-kms-http';
+import {getMockKey} from './generateTestKey';
 
-const mockAxios = sinon.mock(axios);
+const config = {
+  id: 'test'
+};
+const server = new MockServer();
 
 describe('DataHubClient spec', function() {
+  let hmac, kek, masterKey;
+  before(async function() {
+    const service = new MockKmsService({server});
+    masterKey = await getMockKey({kmsService: service});
+    hmac = await masterKey.generateKey({type: 'hmac'});
+    kek = await masterKey.generateKey({type: 'kek'});
+  });
+
+  after(async function() {
+
+  });
+
   it('should insert a document', async function() {
-    const dataHub = new DataHubClient({});
+    const dataHub = new DataHubClient({config, hmac, kek});
     const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    /**
     const axiosCall = mockAxios
       .expects('post')
       .withArgs(dataHub.urls.document, sinon.match.object)
       .once()
       .returns({success: true});
+    */
     const inserted = await dataHub.insert({doc});
-    axiosCall.verify();
+    // axiosCall.verify();
     should.exist(inserted);
     inserted.should.be.an('object');
     inserted.id.should.equal('foo');
