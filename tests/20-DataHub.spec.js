@@ -2,7 +2,7 @@
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
 import {DataHubClient} from '..';
-import {mock} from './mock.js';
+import mock from './mock.js';
 
 describe('DataHub', () => {
   before(async () => {

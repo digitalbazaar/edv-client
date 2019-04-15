@@ -1,9 +1,8 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-//import {DataHubService} from 'data-hub-client';
 import {DataHubService} from '..';
-import {mock} from './mock.js';
+import mock from './mock.js';
 
 describe('DataHubService', () => {
   before(async () => {
@@ -14,7 +13,9 @@ describe('DataHubService', () => {
   });
 
   it('should create data hub storage', async () => {
+    console.log('should create data hub storage');
     const dhs = new DataHubService();
+    console.log('should create data hub storage 2');
     const {kek, hmac} = mock.keys;
     const config = await dhs.create({
       config: {
@@ -24,6 +25,7 @@ describe('DataHubService', () => {
         hmac: {id: hmac.id, algorithm: hmac.algorithm}
       }
     });
+    console.log('should create data hub storage 3 config made');
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);

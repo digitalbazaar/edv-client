@@ -5,4 +5,3 @@
  */
 // load polyfills
 require('core-js/features/promise');
-
