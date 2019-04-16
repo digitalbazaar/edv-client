@@ -83,7 +83,6 @@ export class DataHubService {
     {baseUrl = this.config.urls.base, controller, primary, after, limit}) {
     const response = await axios.get(baseUrl, {
       params: {controller, primary, after, limit}, headers});
-    console.log('data', response.data);
     return response.data;
   }
 
