@@ -11,21 +11,13 @@ describe('DataHubService', () => {
   after(async () => {
     mock.server.shutdown();
   });
-
-  it('should create data hub storage', async () => {
-    console.log('should create data hub storage');
+  it('should get primary data hub storage', async () => {
+    // Note: depends on previous test that created primary data hub
+    // could alternatively change `before/after` to `beforeEach/afterEach`
+    // to enable creating multiple primary data hubs
     const dhs = new DataHubService();
-    console.log('should create data hub storage 2');
-    const {kek, hmac} = mock.keys;
-    const config = await dhs.create({
-      config: {
-        sequence: 0,
-        controller: mock.accountId,
-        kek: {id: kek.id, algorithm: kek.algorithm},
-        hmac: {id: hmac.id, algorithm: hmac.algorithm}
-      }
-    });
-    console.log('should create data hub storage 3 config made', config);
+    const config = await dhs.getPrimary({controller: mock.accountId});
+    console.log('config', config);
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);

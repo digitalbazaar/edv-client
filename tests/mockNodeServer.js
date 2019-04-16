@@ -1,6 +1,7 @@
 import axios from 'axios';
 import sinon from 'sinon';
 import pathToRegexp from 'path-to-regexp';
+import routeParams from 'route-params';
 
 class MockServer {
   constructor() {
@@ -14,12 +15,21 @@ class MockServer {
   }
   route(stub) {
     return function(path, callback) {
-      const pathRegex = pathToRegexp(path);
+      const pathKeys = [];
+      const pathRegex = pathToRegexp(path, pathKeys);
       return stub
         .withArgs(sinon.match(value => pathRegex.test(value)))
-        .callsFake(function(route, body) {
+        .callsFake(function(route, body, headers) {
+          const params = routeParams(path, route);
+          const queryParams = {};
+          for(const key in body.params) {
+            queryParams[key] = String(body.params[key]);
+          }
           const request = {
-            requestBody: JSON.stringify(body)
+            requestBody: JSON.stringify(body),
+            headers,
+            params,
+            queryParams
           };
           const result = callback(request);
           return {data: result[result.length - 1]};

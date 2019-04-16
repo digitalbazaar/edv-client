@@ -59,6 +59,7 @@
     "nyc": "^13.3.0",
     "path-to-regexp": "^3.0.0",
     "pretender": "^2.1.1",
+    "route-params": "^0.2.0",
     "sinon": "^7.3.1",
     "webpack": "^4.29.6"
   },
