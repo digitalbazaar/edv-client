@@ -5,14 +5,14 @@ import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
 import {MockKmsService} from 'bedrock-web-mock-kms-http';
 import {getMockKey} from './generateTestKey';
+const MockServer = require('./mockNodeServer');
 
 // FIXME use mock test data
 
 class TestMock {
-  constructor() {
+  constructor(server = new MockServer()) {
     // create mock server
-    const MockServer = require('./mockNodeServer');
-    this.server = new MockServer();
+    this.server = server;
     // mock backend for KMS
     this.kms = new MockKmsService({server: this.server});
     const accountId = this.accountId = 'test';
@@ -24,8 +24,6 @@ class TestMock {
     if(this.server) {
       return null;
     }
-    const Pretender = require('pretender');
-    this.server = new Pretender();
     this.server.prepareHeaders = function(headers) {
       if(headers) {
         if(headers.json) {
