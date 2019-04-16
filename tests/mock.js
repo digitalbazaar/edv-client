@@ -8,14 +8,8 @@ import {getMockKey} from './generateTestKey';
 
 // FIXME use mock test data
 
-let instance = null;
-
 class TestMock {
-  constructor(env = process.env.NODE_ENV) {
-    if(instance !== null) {
-      return instance;
-    }
-    instance = this;
+  constructor() {
     // create mock server
     const MockServer = require('./mockNodeServer');
     this.server = new MockServer();
