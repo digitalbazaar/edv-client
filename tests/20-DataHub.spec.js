@@ -14,8 +14,7 @@ describe('DataHub', () => {
 
   it('should create a data hub', async () => {
     const dataHub = await mock.createDataHub();
-    const result = dataHub instanceof DataHubClient;
-    result.should.equals(true);
+    dataHub.should.be.instanceOf(DataHubClient);
   });
 
   it('should ensure two new indexes', async () => {

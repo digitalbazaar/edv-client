@@ -15,14 +15,13 @@ class MockServer {
   }
   route(stub) {
     return function(path, callback) {
-      const pathKeys = [];
-      const pathRegex = pathToRegexp(path, pathKeys);
+      const pathRegex = pathToRegexp(path);
       return stub
         .withArgs(sinon.match(value => pathRegex.test(value)))
-        .callsFake(function(route, body, headers) {
+        .callsFake(async function(route, body, headers) {
           const params = routeParams(path, route);
-          const queryParams = {};
-          for(const key in body.params) {
+          const queryParams = body ? body.params : {};
+          for(const key in queryParams) {
             queryParams[key] = String(body.params[key]);
           }
           const request = {
@@ -31,8 +30,23 @@ class MockServer {
             params,
             queryParams
           };
-          const result = callback(request);
-          return {data: result[result.length - 1]};
+          const result = await callback(request);
+          const [statusCode] = result;
+          if(statusCode > 300) {
+            const error = new Error(statusCode);
+            error.response = {status: statusCode};
+            switch(statusCode) {
+              case 404:
+                error.name = 'NotFoundError';
+                throw error;
+              case 409:
+                error.name = 'DuplicateError';
+                throw error;
+              default:
+                throw error;
+            }
+          }
+          return {data: result[result.length - 1], status: statusCode};
         });
     };
   }

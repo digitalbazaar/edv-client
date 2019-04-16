@@ -13,9 +13,7 @@ describe('DataHubService', () => {
   });
 
   it('should create data hub storage', async () => {
-    console.log('should create data hub storage');
     const dhs = new DataHubService();
-    console.log('should create data hub storage 2');
     const {kek, hmac} = mock.keys;
     const config = await dhs.create({
       config: {
@@ -25,7 +23,6 @@ describe('DataHubService', () => {
         hmac: {id: hmac.id, algorithm: hmac.algorithm}
       }
     });
-    console.log('should create data hub storage 3 config made');
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
@@ -72,10 +69,23 @@ describe('DataHubService', () => {
   });
 
   it('should get primary data hub storage', async () => {
-    // Note: depends on previous test that created primary data hub
-    // could alternatively change `before/after` to `beforeEach/afterEach`
-    // to enable creating multiple primary data hubs
     const dhs = new DataHubService();
+    const {kek, hmac} = mock.keys;
+    // note: Tests should run in isolation however this will return 409
+    // DuplicateError when running in a suite.
+    try {
+      await dhs.create({
+        config: {
+          sequence: 0,
+          controller: mock.accountId,
+          kek: {id: kek.id, algorithm: kek.algorithm},
+          hmac: {id: hmac.id, algorithm: hmac.algorithm},
+          primary: true
+        }
+      });
+    } catch(e) {
+      // do nothing we just need to ensure that primary datahub was created.
+    }
     const config = await dhs.getPrimary({controller: mock.accountId});
     config.should.be.an('object');
     config.id.should.be.a('string');

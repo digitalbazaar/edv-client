@@ -12,12 +12,10 @@ let instance = null;
 
 class TestMock {
   constructor(env = process.env.NODE_ENV) {
-    console.log('instance is', instance);
     if(instance !== null) {
       return instance;
     }
     instance = this;
-    console.log('TestMock env', env);
     // create mock server
     const MockServer = require('./mockNodeServer');
     this.server = new MockServer();
