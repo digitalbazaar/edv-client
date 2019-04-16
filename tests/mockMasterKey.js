@@ -3,6 +3,16 @@ import {Hmac} from 'bedrock-web-kms/Hmac.js';
 import * as base64url from 'base64url-universal';
 
 class MockMasterKey {
+  /**
+   * A MockMasterKey for tests.
+   *
+   * @param {Object} options - Options for the key.
+   * @param {string} [options.accountId = 'test'] - The account id for the test.
+   * @param {Object} signer - A key used to sign things in this key.
+   * @param {Object} kmsService - A mock kmsService for the tests.
+   * @param {string} [kmsPlugin = 'mock']
+   * - The name of the plugin to use in tests.
+   */
   constructor({accountId = 'test', signer, kmsService, kmsPlugin = 'mock'}) {
     this.accountId = accountId;
     this.signer = signer;
@@ -44,6 +54,14 @@ class MockMasterKey {
       return base64url.decode(unwrappedKey);
     };
   }
+  /**
+   * Takes in a type and uses the plugin to generate a key.
+   *
+   * @param {Object} options - Options for gen key.
+   * @param {'hmac'|'kek'} options.type - The type of key to produce.
+   *
+   * @returns {Object} A key for the tests.
+   */
   async generateKey({type}) {
     let Class;
     if(type === 'hmac') {

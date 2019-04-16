@@ -3,6 +3,13 @@ import sinon from 'sinon';
 import pathToRegexp from 'path-to-regexp';
 import routeParams from 'route-params';
 
+/**
+ * This is the sinon stub mock server.
+ * It lacks some of the functionality of Pretender
+ * however it can run alot of tests in node using mocha in less time.
+ *
+ * @class MockServer
+ */
 class MockServer {
   constructor() {
     this.stubs = new Map();
@@ -13,7 +20,26 @@ class MockServer {
     this.get = this.route(this.stubs.get('get'));
     this.delete = this.route(this.stubs.get('delete'));
   }
+  /**
+   * This is the core of the sinon axios mock server.
+   * It takes in a stub which is then setup to a regex
+   * to match a route and an async function that will handle the mock data
+   *
+   * @param {sinon.stub} stub - A sinon stub.
+   *
+   * @returns {Function} A function that will allow other services
+   * should as mock storage and mock kms to setup test data.
+   */
   route(stub) {
+    /**
+     * This is a function curried to a stub.
+     *
+     * @param {string} path - A valid express route path ex: data-hubs/:id
+     * @param {Function} callback - A function that accepts the route params
+     * and then produces mock data for a test.
+     *
+     * @returns {Object} The result of the callback.
+     */
     return function(path, callback) {
       const pathRegex = pathToRegexp(path);
       return stub
