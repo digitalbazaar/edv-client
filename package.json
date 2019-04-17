@@ -44,7 +44,6 @@
     "crypto-ld": "^3.5.1",
     "eslint": "^5.16.0",
     "eslint-config-digitalbazaar": "^2.0.0",
-    "http-errors": "^1.7.2",
     "isomorphic-webcrypto": "^1.6.1",
     "karma": "^4.0.1",
     "karma-babel-preprocessor": "^8.0.0",
