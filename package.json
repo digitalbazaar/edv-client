@@ -39,7 +39,6 @@
     "bedrock-web-mock-kms-http": "^2.0.1",
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
-    "core-js": "^3.0.1",
     "cross-env": "^5.2.0",
     "crypto-ld": "^3.5.1",
     "eslint": "^5.16.0",
