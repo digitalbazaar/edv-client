@@ -5,7 +5,7 @@ import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'FIXME';
 import {MockKmsService} from 'FIXME';
 import {getMockKey} from './generateTestKey';
-const MockServer = require('./mockNodeServer');
+import {MockServer} from './mockNodeServer';
 
 // FIXME use mock test data
 

@@ -1,5 +1,5 @@
-const cryptoLd = require('crypto-ld');
-const MockMasterKey = require('./mockMasterKey');
+import cryptoLd from 'crypto-ld';
+import {MockMasterKey} from './mockMasterKey';
 
 const {Ed25519KeyPair} = cryptoLd;
 const _secret = new TextEncoder().encode('bcrypt of password');
@@ -21,4 +21,4 @@ async function genMockKey({secret = _secret, kmsService}) {
   return masterKey;
 }
 
-exports.getMockKey = genMockKey;
+export {genMockKey as getMockKey};
