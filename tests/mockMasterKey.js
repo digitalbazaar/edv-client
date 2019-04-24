@@ -2,7 +2,7 @@ import {Kek} from 'bedrock-web-kms/Kek.js';
 import {Hmac} from 'bedrock-web-kms/Hmac.js';
 import * as base64url from 'base64url-universal';
 
-class MockMasterKey {
+export class MockMasterKey {
   /**
    * A MockMasterKey for tests.
    *
@@ -87,5 +87,3 @@ class MockMasterKey {
     return new Class({id, signer, kmsService});
   }
 }
-
-module.exports = MockMasterKey;

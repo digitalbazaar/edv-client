@@ -5,7 +5,7 @@ import {DataHubClient, DataHubService} from '..';
 import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
 import {MockKmsService} from 'bedrock-web-mock-kms-http';
 import {getMockKey} from './generateTestKey';
-const MockServer = require('./mockNodeServer');
+import {MockServer} from './mockNodeServer';
 
 // FIXME use mock test data
 
