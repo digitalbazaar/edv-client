@@ -3,6 +3,8 @@
  */
 'use strict';
 
+import crypto from '../crypto.js';
+
 export const JWE_ENC = 'A256GCM';
 
 /**

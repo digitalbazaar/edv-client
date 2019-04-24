@@ -10,6 +10,7 @@ incompatible with a requirement for a JWE (JOSE Web Encryption) `protected`
 clear text header.
 */
 
+import crypto from '../crypto.js';
 // TODO: replace with forge once available?
 import {secretbox} from 'tweetnacl';
 
