@@ -5,7 +5,6 @@ module.exports = {
     node: true
   },
   globals: {
-    crypto: true,
     CryptoKey: true,
     TextDecoder: true,
     TextEncoder: true,

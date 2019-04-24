@@ -3,6 +3,7 @@
  */
 'use strict';
 
+import crypto from '../crypto.js';
 // TODO: replace with forge once available?
 // TODO: replace with XChaCha20Poly1305 once available
 import {ChaCha20Poly1305, KEY_LENGTH} from '@stablelib/chacha20poly1305';

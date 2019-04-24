@@ -81,7 +81,9 @@
   },
   "homepage": "https://github.com/digitalbazaar/data-hub-client",
   "module": "main.js",
-  "browser": {},
+  "browser": {
+    "./crypto.js": "./crypto-browser.js"
+  },
   "engines": {
     "node": "^8.6.0"
   },
