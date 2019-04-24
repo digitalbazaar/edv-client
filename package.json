@@ -25,7 +25,8 @@
     "@stablelib/chacha20poly1305": "^0.10.2",
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0",
-    "esm": "^3.2.22"
+    "esm": "^3.2.22",
+    "fast-text-encoding": "^1.0.0"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",
