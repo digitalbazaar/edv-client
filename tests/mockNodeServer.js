@@ -10,7 +10,7 @@ import routeParams from 'route-params';
  *
  * @class MockServer
  */
-class MockServer {
+export class MockServer {
   constructor() {
     this.stubs = new Map();
     this.stubs.set('post', sinon.stub(axios, 'post'));
@@ -80,5 +80,3 @@ class MockServer {
   prepareHeaders() {return true;}
   prepareBody() {return true;}
 }
-
-module.exports = MockServer;
