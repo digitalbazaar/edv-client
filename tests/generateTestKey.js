@@ -1,5 +1,6 @@
 import cryptoLd from 'crypto-ld';
 import {MockMasterKey} from './mockMasterKey';
+import {TextEncoder} from '../util.js';
 
 const {Ed25519KeyPair} = cryptoLd;
 const _secret = new TextEncoder().encode('bcrypt of password');
