@@ -1,5 +1,7 @@
 # JavaScript Data Hub Client _(data-hub-client)_
 
+[![Build Status](https://travis-ci.org/digitalbazaar/data-hub-client.png?branch=master)](https://travis-ci.org/digitalbazaar/data-hub-client)
+
 > A JavaScript library for Web and node.js apps for interfacing with a remote
 > Data Hub server
 
