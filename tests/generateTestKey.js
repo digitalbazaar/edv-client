@@ -1,5 +1,5 @@
 import cryptoLd from 'crypto-ld';
-import {MockMasterKey} from './mockMasterKey';
+import {MockMasterKey} from './mockMasterKey.js';
 import {TextEncoder} from '../util.js';
 
 const {Ed25519KeyPair} = cryptoLd;
