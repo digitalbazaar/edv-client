@@ -2,10 +2,10 @@
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
 import {DataHubClient, DataHubService} from '..';
-import {MockStorage} from 'bedrock-web-mock-data-hub-storage';
-import {MockKmsService} from 'bedrock-web-mock-kms-http';
-import {getMockKey} from './generateTestKey.js';
-import {MockServer} from './mockNodeServer.js';
+import {MockStorage} from './MockStorage.js';
+import {MockServer} from './MockServer.js';
+import {MockKek} from './MockKek.js';
+import {MockHmac} from './MockHmac.js';
 
 // FIXME use mock test data
 
@@ -13,35 +13,10 @@ class TestMock {
   constructor(server = new MockServer()) {
     // create mock server
     this.server = server;
-    // mock backend for KMS
-    this.kms = new MockKmsService({server: this.server});
     const accountId = this.accountId = 'test';
     // mock data hub storage
     this.dataHubStorage = new MockStorage(
       {server: this.server, controller: accountId});
-  }
-  preparePretender() {
-    if(this.server) {
-      return null;
-    }
-    this.server.prepareHeaders = function(headers) {
-      if(headers) {
-        if(headers.json) {
-          headers['content-type'] = 'application/json';
-          delete headers.json;
-        }
-      } else {
-        headers = {};
-      }
-      return headers;
-    };
-    this.server.prepareBody = function(body, headers) {
-      if(headers && headers['content-type'] === 'application/json') {
-        return (body && typeof body !== 'string') ?
-          JSON.stringify(body) : '{"message": "mock server error"}';
-      }
-      return body;
-    };
   }
   async init() {
     // only init keys once
@@ -49,11 +24,9 @@ class TestMock {
       // create mock keys
       this.keys = {};
 
-      // account master key for using KMS
-      this.keys.master = await getMockKey({kmsService: this.kms});
       // create KEK and HMAC keys for creating data hubs
-      this.keys.kek = await this.keys.master.generateKey({type: 'kek'});
-      this.keys.hmac = await this.keys.master.generateKey({type: 'hmac'});
+      this.keys.kek = await MockKek.create();
+      this.keys.hmac = await MockHmac.create();
     }
   }
   async createDataHub(

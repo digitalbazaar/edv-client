@@ -38,9 +38,6 @@
     "@babel/preset-env": "^7.4.3",
     "@babel/runtime": "^7.4.3",
     "babel-loader": "^8.0.5",
-    "bedrock-web-kms": "^2.0.0",
-    "bedrock-web-mock-data-hub-storage": "^2.0.0",
-    "bedrock-web-mock-kms-http": "^2.0.1",
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^5.2.0",
@@ -61,9 +58,9 @@
     "node-webcrypto-p11": "^2.0.3",
     "nyc": "^13.3.0",
     "path-to-regexp": "^3.0.0",
-    "pretender": "^2.1.1",
     "route-params": "^0.2.0",
     "sinon": "^7.3.1",
+    "uuid-random": "^1.0.8",
     "webpack": "^4.29.6"
   },
   "repository": {
