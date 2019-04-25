@@ -3,6 +3,8 @@
  */
 'use strict';
 
+import {TextEncoder} from './util.js';
+
 export class IndexHelper {
   /**
    * Creates a new IndexHelper instance that can be used to blind data hub
