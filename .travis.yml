@@ -2,7 +2,8 @@ language: node_js
 node_js:
   - "8"
   - "10"
-  - "12"
+  # re-enable when pre-built sodium-native is available
+  #- "12"
 sudo: false
 script:
   - if [ "x$KARMA" = "x" ]; then npm run test; fi
