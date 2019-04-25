@@ -4,6 +4,7 @@
 'use strict';
 
 import base64url from 'base64url-universal';
+import {TextDecoder, TextEncoder} from './util.js';
 import * as fipsAlgorithm from './algorithms/fips.js';
 import * as recAlgorithm from './algorithms/recommended.js';
 
