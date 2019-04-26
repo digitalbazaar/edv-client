@@ -29,7 +29,8 @@
     "@stablelib/chacha20poly1305": "^0.10.2",
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0",
-    "esm": "^3.2.22"
+    "esm": "^3.2.22",
+    "isomorphic-webcrypto": "^1.6.1"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",
@@ -44,7 +45,6 @@
     "crypto-ld": "^3.5.1",
     "eslint": "^5.16.0",
     "eslint-config-digitalbazaar": "^2.0.0",
-    "isomorphic-webcrypto": "^1.6.1",
     "karma": "^4.0.1",
     "karma-babel-preprocessor": "^8.0.0",
     "karma-chai": "^0.1.0",
