@@ -16,10 +16,12 @@ export class DataHubClient {
    * @param {Object} config the data hub's configuration document.
    * @param {kek} kek a KEK API for wrapping content encryption keys.
    * @param {hmac} hmac an HMAC API for blinding indexable attributes.
+   * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
+   *   use to handle HTTPS requests.
    *
    * @return {DataHub}.
    */
-  constructor({baseUrl = '/data-hubs', config, kek, hmac}) {
+  constructor({baseUrl = '/data-hubs', config, kek, hmac, httpsAgent}) {
     this.config = config;
     this.kek = kek;
     // TODO: support passing cipher `version`
@@ -31,6 +33,7 @@ export class DataHubClient {
       documents: `${root}/documents`,
       query: `${root}/query`
     };
+    this.httpsAgent = httpsAgent;
   }
 
   /**
@@ -60,7 +63,8 @@ export class DataHubClient {
     const encrypted = await this._encrypt({doc, update: false});
     // TODO: move axios usage to DataHubService?
     try {
-      await axios.post(this.urls.documents, encrypted);
+      const {httpsAgent} = this;
+      await axios.post(this.urls.documents, encrypted, {httpsAgent});
       encrypted.content = doc.content;
       return encrypted;
     } catch(e) {
@@ -87,7 +91,8 @@ export class DataHubClient {
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(encrypted.id);
     try {
-      await axios.post(url, encrypted);
+      const {httpsAgent} = this;
+      await axios.post(url, encrypted, {httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -121,7 +126,8 @@ export class DataHubClient {
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(doc.id) + '/index';
     try {
-      await axios.post(url, entry);
+      const {httpsAgent} = this;
+      await axios.post(url, entry, {httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -146,7 +152,8 @@ export class DataHubClient {
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(id);
     try {
-      await axios.delete(url);
+      const {httpsAgent} = this;
+      await axios.delete(url, {httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 404) {
@@ -169,7 +176,8 @@ export class DataHubClient {
     const url = this._getDocUrl(id);
     let response;
     try {
-      response = await axios.get(url);
+      const {httpsAgent} = this;
+      response = await axios.get(url, {httpsAgent});
     } catch(e) {
       response = e.response || {};
       if(response.status === 404) {
@@ -207,7 +215,8 @@ export class DataHubClient {
 
     // get results and decrypt them
     // TODO: move axios usage to DataHubService?
-    const response = await axios.post(this.urls.query, query);
+    const {httpsAgent} = this;
+    const response = await axios.post(this.urls.query, query, {httpsAgent});
     const docs = response.data;
     return Promise.all(docs.map(this._decrypt.bind(this)));
   }
