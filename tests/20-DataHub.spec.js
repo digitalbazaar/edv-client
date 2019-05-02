@@ -21,11 +21,11 @@ describe('DataHub', () => {
     const dataHub = await mock.createDataHub();
     const {indexHelper} = dataHub;
     const indexCount = indexHelper.indexes.size;
-    dataHub.ensureIndex({attribute: ['index1', 'index2']});
+    dataHub.ensureIndex({attribute: ['content', 'content.index1']});
     indexHelper.indexes.should.be.a('Map');
     indexHelper.indexes.size.should.equal(indexCount + 2);
-    indexHelper.indexes.has('index1').should.equal(true);
-    indexHelper.indexes.has('index2').should.equal(true);
+    indexHelper.indexes.has('content').should.equal(true);
+    indexHelper.indexes.has('content.index1').should.equal(true);
   });
 
   it('should insert a document', async () => {
@@ -65,7 +65,7 @@ describe('DataHub', () => {
     const dataHub = await mock.createDataHub();
     const doc = {id: 'foo', content: {someKey: 'someValue'}};
     await dataHub.insert({doc});
-    const expected = {id: 'foo', content: {someKey: 'someValue'}};
+    const expected = {id: 'foo', meta: {}, content: {someKey: 'someValue'}};
     const decrypted = await dataHub.get({id: expected.id});
     decrypted.should.be.an('object');
     decrypted.id.should.equal('foo');
@@ -217,7 +217,7 @@ describe('DataHub', () => {
 
   it('should insert a document with attributes', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'indexedKey'});
+    dataHub.ensureIndex({attribute: 'content.indexedKey'});
     const doc = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
     await dataHub.insert({doc});
     const decrypted = await dataHub.get({id: doc.id});
@@ -256,7 +256,7 @@ describe('DataHub', () => {
 
   it('should reject two documents with same unique attribute', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'uniqueKey', unique: true});
+    dataHub.ensureIndex({attribute: 'content.uniqueKey', unique: true});
     const doc1 = {id: 'hasAttributes1', content: {uniqueKey: 'value1'}};
     const doc2 = {id: 'hasAttributes2', content: {uniqueKey: 'value1'}};
     await dataHub.insert({doc: doc1});
@@ -272,10 +272,10 @@ describe('DataHub', () => {
 
   it('should find a document that has an attribute', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'indexedKey'});
+    dataHub.ensureIndex({attribute: 'content.indexedKey'});
     const doc = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
     await dataHub.insert({doc});
-    const docs = await dataHub.find({has: 'indexedKey'});
+    const docs = await dataHub.find({has: 'content.indexedKey'});
     docs.should.be.an('array');
     docs.length.should.equal(1);
     const decrypted = docs[0];
@@ -313,12 +313,12 @@ describe('DataHub', () => {
 
   it('should find two documents with an attribute', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'indexedKey'});
+    dataHub.ensureIndex({attribute: 'content.indexedKey'});
     const doc1 = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
     const doc2 = {id: 'hasAttributes2', content: {indexedKey: 'value2'}};
     await dataHub.insert({doc: doc1});
     await dataHub.insert({doc: doc2});
-    const docs = await dataHub.find({has: 'indexedKey'});
+    const docs = await dataHub.find({has: 'content.indexedKey'});
     docs.should.be.an('array');
     docs.length.should.equal(2);
     docs[0].should.be.an('object');
@@ -327,12 +327,34 @@ describe('DataHub', () => {
     docs[1].content.should.deep.equal({indexedKey: 'value2'});
   });
 
-  it('should find a document that has an attribute value', async () => {
+  it('should find a document that equals an attribute value', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'indexedKey'});
+    dataHub.ensureIndex({attribute: 'content.indexedKey'});
     const expected = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
     await dataHub.insert({doc: expected});
-    const docs = await dataHub.find({equals: {indexedKey: 'value1'}});
+    const docs = await dataHub.find({equals: {'content.indexedKey': 'value1'}});
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+  });
+
+  it('should find a document that equals the value of a' +
+    ' URL attribute', async () => {
+    const dataHub = await mock.createDataHub();
+    dataHub.ensureIndex({attribute: 'content.https://schema\\.org/'});
+    const expected = {
+      id: 'hasAttributes1',
+      content: {
+        'https://schema.org/': 'value1'
+      }
+    };
+    await dataHub.insert({doc: expected});
+    const docs = await dataHub.find({
+      equals: {
+        'content.https://schema\\.org/': 'value1'
+      }
+    });
     docs.should.be.an('array');
     docs.length.should.equal(1);
     docs[0].should.be.an('object');
@@ -341,13 +363,17 @@ describe('DataHub', () => {
 
   it('should find two documents with attribute values', async () => {
     const dataHub = await mock.createDataHub();
-    dataHub.ensureIndex({attribute: 'indexedKey'});
+    dataHub.ensureIndex({attribute: 'content.indexedKey'});
     const doc1 = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
     const doc2 = {id: 'hasAttributes2', content: {indexedKey: 'value2'}};
     await dataHub.insert({doc: doc1});
     await dataHub.insert({doc: doc2});
     const docs = await dataHub.find({
-      equals: [{indexedKey: 'value1'}, {indexedKey: 'value2'}]});
+      equals: [
+        {'content.indexedKey': 'value1'},
+        {'content.indexedKey': 'value2'}
+      ]
+    });
     docs.should.be.an('array');
     docs.length.should.equal(2);
     docs[0].should.be.an('object');

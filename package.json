@@ -30,7 +30,8 @@
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0",
     "esm": "^3.2.22",
-    "isomorphic-webcrypto": "^1.6.1"
+    "isomorphic-webcrypto": "^1.6.1",
+    "split-string": "^6.1.0"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",

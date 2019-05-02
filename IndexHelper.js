@@ -4,6 +4,9 @@
 'use strict';
 
 import {TextEncoder} from './util.js';
+import split from 'split-string';
+
+const VALID_SCOPES = ['content', 'meta'];
 
 export class IndexHelper {
   /**
@@ -34,6 +37,7 @@ export class IndexHelper {
    *   attribute names.
    * @param {Boolean} unique `true` if attribute values should be considered
    *   unique, `false` if not (default: `false`).
+   *
    */
   ensureIndex({attribute, unique = false}) {
     if(!Array.isArray(attribute)) {
@@ -43,7 +47,16 @@ export class IndexHelper {
       throw new TypeError(
         '"attribute" must be a string or an array of strings.');
     }
-    attribute.forEach(x => this.indexes.set(x, unique));
+    attribute.forEach(x => {
+      const {scope} = this._formatAttribute(x);
+      if(!(scope &&
+        typeof scope === 'string' &&
+        VALID_SCOPES.includes(scope))) {
+        throw new TypeError(
+          '"scope" must be a string with value "content" or "meta"');
+      }
+      this.indexes.set(x, unique);
+    });
   }
 
   /**
@@ -55,6 +68,7 @@ export class IndexHelper {
    * @return {Promise<Object>} resolves to the new indexable entry.
    */
   async createEntry({doc}) {
+    // handle prefix here
     const {hmac, indexes} = this;
     const entry = {
       hmac: {
@@ -67,16 +81,18 @@ export class IndexHelper {
     entry.sequence = doc.sequence;
 
     // blind all attributes specifies in current index set
-    const {content} = doc;
     const blindOps = [];
-    for(const [key, unique] of indexes.entries()) {
-      const value = content[key];
+    for(const [indexKey, unique] of indexes.entries()) {
+      const {key, scope} = this._formatAttribute(indexKey);
+      const value = doc[scope][key];
       if(Array.isArray(value)) {
         for(const v of value) {
-          blindOps.push(this._blindAttribute({key, value: v, unique}));
+          blindOps.push(
+            this._blindAttribute({key: indexKey, value: v, unique}));
         }
       } else if(value !== undefined) {
-        blindOps.push(this._blindAttribute({key, value, unique}));
+        blindOps.push(
+          this._blindAttribute({key: indexKey, value, unique}));
       }
     }
     entry.attributes = await Promise.all(blindOps);
@@ -222,5 +238,20 @@ export class IndexHelper {
     // convert value to Uint8Array
     const data = new TextEncoder().encode(value);
     return this.hmac.sign({data});
+  }
+
+  _formatAttribute(attribute) {
+    const keys = split(attribute);
+    const scope = keys[0];
+    keys.shift();
+    const key = keys.join('.');
+    if(!VALID_SCOPES.includes(scope)) {
+      throw new Error('Expected attribute prefixed with "content" or ' +
+        `"meta": ${attribute}`);
+    }
+    return {
+      scope,
+      key
+    };
   }
 }

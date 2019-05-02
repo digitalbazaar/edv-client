@@ -60,12 +60,16 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the inserted document.
    */
   async insert({doc}) {
+    if(!(doc.meta && typeof doc.meta === 'object')) {
+      doc.meta = {};
+    }
     const encrypted = await this._encrypt({doc, update: false});
     // TODO: move axios usage to DataHubService?
     try {
       const {httpsAgent} = this;
       await axios.post(this.urls.documents, encrypted, {httpsAgent});
       encrypted.content = doc.content;
+      encrypted.meta = doc.meta;
       return encrypted;
     } catch(e) {
       const {response = {}} = e;
@@ -87,6 +91,9 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the updated document.
    */
   async update({doc}) {
+    if(!(doc.meta && typeof doc.meta === 'object')) {
+      doc.meta = {};
+    }
     const encrypted = await this._encrypt({doc, update: true});
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(encrypted.id);
@@ -103,6 +110,7 @@ export class DataHubClient {
       throw e;
     }
     encrypted.content = doc.content;
+    encrypted.meta = doc.meta;
     return encrypted;
   }
 
@@ -234,14 +242,14 @@ export class DataHubClient {
     // decrypt doc content
     const {cipher, kek} = this;
     const {jwe} = encryptedDoc;
-    const content = await cipher.decryptObject({jwe, kek});
-    if(content === null) {
+    const {content, meta} = await cipher.decryptObject({jwe, kek});
+    if(content === null || meta === null) {
       throw new Error('Decryption failed.');
     }
-    return {...encryptedDoc, content};
+    return {...encryptedDoc, content, meta};
   }
 
-  // helper that creates an encrypted doc using a doc's (clear) content
+  // helper that creates an encrypted doc using a doc's (clear) content & meta
   // and blinding any attributes for indexing
   async _encrypt({doc, update}) {
     if(!(doc && typeof doc === 'object' && typeof doc.id === 'string' &&
@@ -290,12 +298,14 @@ export class DataHubClient {
     }
 
     // update indexed entries and jwe
+    const {meta, content} = doc;
     const [indexed, jwe] = await Promise.all([
       indexHelper.updateEntry({doc: encrypted}),
-      cipher.encryptObject({obj: doc.content, kek, recipients})
+      cipher.encryptObject({obj: {meta, content}, kek, recipients})
     ]);
 
     delete encrypted.content;
+    delete encrypted.meta;
     encrypted.indexed = indexed;
     encrypted.jwe = jwe;
     return encrypted;
