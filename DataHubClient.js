@@ -301,7 +301,7 @@ export class DataHubClient {
     const {content, meta} = doc;
     const [indexed, jwe] = await Promise.all([
       indexHelper.updateEntry({doc: encrypted}),
-      cipher.encryptObject({obj: {meta, content}, kek, recipients})
+      cipher.encryptObject({obj: {content, meta}, kek, recipients})
     ]);
 
     delete encrypted.content;
