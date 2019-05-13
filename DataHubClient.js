@@ -298,7 +298,7 @@ export class DataHubClient {
     }
 
     // update indexed entries and jwe
-    const {meta, content} = doc;
+    const {content, meta} = doc;
     const [indexed, jwe] = await Promise.all([
       indexHelper.updateEntry({doc: encrypted}),
       cipher.encryptObject({obj: {meta, content}, kek, recipients})
