@@ -60,9 +60,8 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the inserted document.
    */
   async insert({doc}) {
-    if(!(doc.meta && typeof doc.meta === 'object')) {
-      doc.meta = {};
-    }
+    _assertDocument(doc);
+
     const encrypted = await this._encrypt({doc, update: false});
     // TODO: move axios usage to DataHubService?
     try {
@@ -91,9 +90,8 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the updated document.
    */
   async update({doc}) {
-    if(!(doc.meta && typeof doc.meta === 'object')) {
-      doc.meta = {};
-    }
+    _assertDocument(doc);
+
     const encrypted = await this._encrypt({doc, update: true});
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(encrypted.id);
@@ -130,6 +128,8 @@ export class DataHubClient {
    * @return {Promise} resolves once the operation completes.
    */
   async updateIndex({doc}) {
+    _assertDocument(doc);
+
     const entry = await this.indexHelper.createEntry({doc});
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(doc.id) + '/index';
@@ -157,6 +157,8 @@ export class DataHubClient {
    *   and `false` if it did not exist.
    */
   async delete({id}) {
+    _assertString(id, '"id" must be a string.');
+
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(id);
     try {
@@ -180,6 +182,8 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the document.
    */
   async get({id}) {
+    _assertString(id, '"id" must be a string.');
+
     // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(id);
     let response;
@@ -232,34 +236,30 @@ export class DataHubClient {
   // helper that decrypts an encrypted doc to include its (cleartext) content
   async _decrypt(encryptedDoc) {
     // validate `encryptedDoc`
-    if(!(encryptedDoc && typeof encryptedDoc === 'object' &&
-      typeof encryptedDoc.id === 'string' &&
-      encryptedDoc.jwe && typeof encryptedDoc.jwe === 'object')) {
-      throw new TypeError(
-        '"encryptedDoc" must be an object with "id" and "jwe" properties.');
-    }
+    _assertObject(encryptedDoc, 'Encrypted document must be an object.');
+    _assertString(
+      encryptedDoc.id, 'Encrypted document "id" must be a string".');
+    _assertObject(encryptedDoc, 'Encrypted document "jwe" must be an object.');
 
     // decrypt doc content
     const {cipher, kek} = this;
     const {jwe} = encryptedDoc;
-    const {content, meta} = await cipher.decryptObject({jwe, kek});
-    if(content === null || meta === null) {
+    const data = await cipher.decryptObject({jwe, kek});
+    if(data === null) {
       throw new Error('Decryption failed.');
     }
+    const {content, meta} = data;
+    // append decrypted content and meta
     return {...encryptedDoc, content, meta};
   }
 
   // helper that creates an encrypted doc using a doc's (clear) content & meta
   // and blinding any attributes for indexing
   async _encrypt({doc, update}) {
-    if(!(doc && typeof doc === 'object' && typeof doc.id === 'string' &&
-      doc.content && typeof doc.content === 'object' &&
-      !Array.isArray(doc.content))) {
-      throw new TypeError(
-        '"doc" must be an object with value "id" and "content" properties.');
-    }
-
     const encrypted = {...doc};
+    if(!encrypted.meta) {
+      encrypted.meta = {};
+    }
 
     if(update) {
       if('sequence' in encrypted) {
@@ -314,5 +314,25 @@ export class DataHubClient {
   // helper that gets a document URL from a document ID
   _getDocUrl(id) {
     return `${this.urls.documents}/${encodeURIComponent(id)}`;
+  }
+}
+
+function _assertDocument(doc) {
+  _assertObject(doc, '"doc" must be an object.');
+  const {id, content, meta = {}} = doc;
+  _assertString(id, '"doc.id" must be a string.');
+  _assertObject(content, '"doc.content" must be an object.');
+  _assertObject(meta, '"doc.meta" must be an object.');
+}
+
+function _assertObject(x, msg) {
+  if(!(x && typeof x === 'object' && !Array.isArray(x))) {
+    throw new TypeError(msg);
+  }
+}
+
+function _assertString(x, msg) {
+  if(typeof x !== 'string') {
+    throw new TypeError(msg);
   }
 }
