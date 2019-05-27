@@ -4,7 +4,7 @@
 import {DataHubClient} from '..';
 import mock from './mock.js';
 
-describe('DataHub', () => {
+describe('DataHubClient', () => {
   before(async () => {
     await mock.init();
   });
