@@ -361,6 +361,46 @@ describe('DataHub', () => {
     docs[0].content.should.deep.equal(expected.content);
   });
 
+  it('should find a document with a deep index on an array', async () => {
+    const dataHub = await mock.createDataHub();
+    dataHub.ensureIndex({attribute: 'content.nested.array.foo'});
+    const expected = {
+      id: 'hasDeepArrayAttributes',
+      content: {
+        nested: {
+          array: [{
+            foo: 'bar'
+          }, {
+            foo: 'baz'
+          }]
+        }
+      }
+    };
+    await dataHub.insert({doc: expected});
+
+    // find with first value
+    let docs = await dataHub.find({
+      equals: {
+        'content.nested.array.foo': 'bar'
+      }
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+
+    // find with second value
+    docs = await dataHub.find({
+      equals: {
+        'content.nested.array.foo': 'baz'
+      }
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+  });
+
   it('should find two documents with attribute values', async () => {
     const dataHub = await mock.createDataHub();
     dataHub.ensureIndex({attribute: 'content.indexedKey'});

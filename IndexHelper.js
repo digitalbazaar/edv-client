@@ -6,7 +6,7 @@
 import {TextEncoder} from './util.js';
 import split from 'split-string';
 
-const VALID_SCOPES = ['content', 'meta'];
+const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
 export class IndexHelper {
   /**
@@ -48,13 +48,8 @@ export class IndexHelper {
         '"attribute" must be a string or an array of strings.');
     }
     attribute.forEach(x => {
-      const {scope} = this._formatAttribute(x);
-      if(!(scope &&
-        typeof scope === 'string' &&
-        VALID_SCOPES.includes(scope))) {
-        throw new TypeError(
-          '"scope" must be a string with value "content" or "meta"');
-      }
+      // parse attribute to ensure it is valid before adding the index entry
+      this._parseAttribute(x);
       this.indexes.set(x, unique);
     });
   }
@@ -83,16 +78,16 @@ export class IndexHelper {
     // blind all attributes specifies in current index set
     const blindOps = [];
     for(const [indexKey, unique] of indexes.entries()) {
-      const {key, scope} = this._formatAttribute(indexKey);
-      const value = doc[scope][key];
-      if(Array.isArray(value)) {
-        for(const v of value) {
-          blindOps.push(
-            this._blindAttribute({key: indexKey, value: v, unique}));
-        }
-      } else if(value !== undefined) {
+      let value = this._dereferenceAttribute({attribute: indexKey, doc});
+      if(value === undefined) {
+        continue;
+      }
+      if(!Array.isArray(value)) {
+        value = [value];
+      }
+      for(const v of value) {
         blindOps.push(
-          this._blindAttribute({key: indexKey, value, unique}));
+          this._blindAttribute({key: indexKey, value: v, unique}));
       }
     }
     entry.attributes = await Promise.all(blindOps);
@@ -240,18 +235,38 @@ export class IndexHelper {
     return this.hmac.sign({data});
   }
 
-  _formatAttribute(attribute) {
+  _parseAttribute(attribute) {
     const keys = split(attribute);
-    const scope = keys[0];
-    keys.shift();
-    const key = keys.join('.');
-    if(!VALID_SCOPES.includes(scope)) {
-      throw new Error('Expected attribute prefixed with "content" or ' +
-        `"meta": ${attribute}`);
+    if(keys.length === 0) {
+      throw new Error(
+        `Invalid attribute "${attribute}"; it must be of the form ` +
+        '"content.foo.bar".');
     }
-    return {
-      scope,
-      key
-    };
+    // ensure prefix is valid
+    if(!ATTRIBUTE_PREFIXES.includes(keys[0])) {
+      throw new Error(
+        'Attribute "${attribute}" must be prefixed with one of the ' +
+        `following: ${ATTRIBUTE_PREFIXES.join(', ')}`);
+    }
+    return keys;
+  }
+
+  _dereferenceAttribute({attribute, keys, doc}) {
+    keys = keys || this._parseAttribute(attribute);
+    let value = doc;
+    while(keys.length > 0) {
+      if(!(value && typeof value === 'object')) {
+        return undefined;
+      }
+      const key = keys.shift();
+      value = value[key];
+      if(Array.isArray(value)) {
+        // there are more keys, so recurse into array
+        return value
+          .map(v => this._dereferenceAttribute({keys: keys.slice(), doc: v}))
+          .filter(v => v !== undefined);
+      }
+    }
+    return value;
   }
 }
