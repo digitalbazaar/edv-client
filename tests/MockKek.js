@@ -27,7 +27,7 @@ export class MockKek {
     return kek;
   }
 
-  async wrap({key}) {
+  async wrapKey({key}) {
     const kek = this.key;
 
     // Note: algorithm name doesn't matter; will exported raw.
@@ -40,7 +40,7 @@ export class MockKek {
     return base64url.encode(new Uint8Array(wrappedKey));
   }
 
-  async unwrap({wrappedKey}) {
+  async unwrapKey({wrappedKey}) {
     const kek = this.key;
 
     let keyAlgorithm;

@@ -93,11 +93,11 @@ export class Cipher {
           'Wrapping a new CEK for other recipients is not implemented.');
       }
       cek = await algorithm.generateKey();
-      recipient.encrypted_key = await kek.wrap({key: cek});
+      recipient.encrypted_key = await kek.wrapKey({key: cek});
       // TODO: wrap CEK for all other recipients
     } else {
       // unwrap CEK for use below
-      cek = await kek.unwrap({wrappedKey: recipient.encrypted_key});
+      cek = await kek.unwrapKey({wrappedKey: recipient.encrypted_key});
     }
 
     // create shared protected header as associated authenticated data (aad)
@@ -204,7 +204,7 @@ export class Cipher {
     }
 
     // unwrap CEK and decrypt content
-    const cek = await kek.unwrap({wrappedKey});
+    const cek = await kek.unwrapKey({wrappedKey});
     const {ciphertext, iv, tag} = jwe;
     return algorithm.decrypt({
       ciphertext: base64url.decode(ciphertext),
