@@ -15,7 +15,7 @@
   "files": [
     "Cipher.js",
     "DataHubClient.js",
-    "DataHubService.js",
+    "DataHubDocument.js",
     "IndexHelper.js",
     "algorithms/*.js",
     "crypto-browser.js",

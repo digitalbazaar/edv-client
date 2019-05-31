@@ -7,27 +7,33 @@ import axios from 'axios';
 import {Cipher} from './Cipher.js';
 import {IndexHelper} from './IndexHelper.js';
 
+const headers = {Accept: 'application/ld+json, application/json'};
+
 export class DataHubClient {
   /**
    * Creates a new DataHub instance. The storage for the data hub must already
    * exist and have an HTTPS API at the given `baseUrl`.
    *
-   * @param {String} [baseUrl='/data-hubs'] an endpoint for data hub storage.
-   * @param {Object} config the data hub's configuration document.
-   * @param {kek} kek a KEK API for wrapping content encryption keys.
-   * @param {hmac} hmac an HMAC API for blinding indexable attributes.
+   * @param {Object} options - The options to use.
+   * @param {string} id the ID of the data hub; this must be a URL that
+   *   refers to the data hub's root storage location.
+   * @param {Object} [kek=null] a default KEK API for wrapping content
+   *   encryption keys.
+   * @param {Object} [hmac=null] a default HMAC API for blinding indexable
+   *   attributes.
    * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
    *   use to handle HTTPS requests.
    *
-   * @return {DataHub}.
+   * @return {DataHubClient}.
    */
-  constructor({baseUrl = '/data-hubs', config, kek, hmac, httpsAgent}) {
-    this.config = config;
+  constructor({id, kek, hmac, httpsAgent}) {
+    this.id = id;
     this.kek = kek;
+    this.hmac = hmac;
     // TODO: support passing cipher `version`
     this.cipher = new Cipher();
-    this.indexHelper = new IndexHelper({hmac});
-    const root = `${baseUrl}/${encodeURIComponent(config.id)}`;
+    this.indexHelper = new IndexHelper();
+    const root = id;
     this.urls = {
       root,
       documents: `${root}/documents`,
@@ -55,18 +61,27 @@ export class DataHubClient {
    * exist. If a document matching its ID already exists, a `DuplicateError` is
    * thrown.
    *
-   * @param {Object} doc the document to insert.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.doc the document to insert.
+   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   *   indexable attributes.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the inserted document.
    */
-  async insert({doc}) {
+  async insert(
+    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
     _assertDocument(doc);
 
-    const encrypted = await this._encrypt({doc, update: false});
-    // TODO: move axios usage to DataHubService?
+    const encrypted = await this._encrypt({doc, hmac, update: false});
     try {
       const {httpsAgent} = this;
-      await axios.post(this.urls.documents, encrypted, {httpsAgent});
+      await axios.post(this.urls.documents, encrypted, {headers, httpsAgent});
       encrypted.content = doc.content;
       encrypted.meta = doc.meta;
       return encrypted;
@@ -85,19 +100,29 @@ export class DataHubClient {
    * Encrypts and updates a document in the data hub. If the document does not
    * already exist, it is created.
    *
-   * @param {Object} doc the document to insert.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.doc the document to insert.
+   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   *   indexable attributes.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the updated document.
    */
-  async update({doc}) {
+  async update(
+    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
     _assertDocument(doc);
 
-    const encrypted = await this._encrypt({doc, update: true});
-    // TODO: move axios usage to DataHubService?
+    const encrypted = await this._encrypt({doc, hmac, update: true});
     const url = this._getDocUrl(encrypted.id);
     try {
+      // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
-      await axios.post(url, encrypted, {httpsAgent});
+      await axios.post(url, encrypted, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -123,19 +148,30 @@ export class DataHubClient {
    * Note: If the index does not exist or the document does not have an
    * existing entry for the index, it will be added.
    *
-   * @param {Object} doc the document to create or update an index for.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.doc the document to create or update an index for.
+   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   *   indexable attributes.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise} resolves once the operation completes.
    */
-  async updateIndex({doc}) {
+  async updateIndex(
+    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
     _assertDocument(doc);
+    _checkIndexing(hmac);
 
-    const entry = await this.indexHelper.createEntry({doc});
-    // TODO: move axios usage to DataHubService?
+    const entry = await this.indexHelper.createEntry({hmac, doc});
     const url = this._getDocUrl(doc.id) + '/index';
     try {
+      // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
-      await axios.post(url, entry, {httpsAgent});
+      await axios.post(url, entry, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -151,19 +187,26 @@ export class DataHubClient {
   /**
    * Deletes a document from the data hub.
    *
-   * @param {String} id the ID of the document to delete.
+   * @param {Object} options - The options to use.
+   * @param {string} options.id the ID of the document to delete.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise<Boolean>} resolves to `true` if the document was deleted
    *   and `false` if it did not exist.
    */
-  async delete({id}) {
+  async delete({id, capability = this.id, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(id);
     try {
+      // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
-      await axios.delete(url, {httpsAgent});
+      await axios.delete(url, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 404) {
@@ -177,19 +220,28 @@ export class DataHubClient {
   /**
    * Gets a document from data hub storage by its ID.
    *
-   * @param {String} id the ID of the document to get.
+   * @param {Object} options - The options to use.
+   * @param {string} options.id the ID of the document to get.
+   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
+   *   encryption keys.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the document.
    */
-  async get({id}) {
+  async get({id, kek = this.kek, capability = this.id, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    // TODO: move axios usage to DataHubService?
     const url = this._getDocUrl(id);
     let response;
     try {
+      // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
-      response = await axios.get(url, {httpsAgent});
+      response = await axios.get(url, {headers, httpsAgent});
     } catch(e) {
       response = e.response || {};
       if(response.status === 404) {
@@ -199,7 +251,7 @@ export class DataHubClient {
       }
       throw e;
     }
-    return this._decrypt(response.data);
+    return this._decrypt({encryptedDoc: response.data, kek});
   }
 
   /**
@@ -215,26 +267,157 @@ export class DataHubClient {
    * array of such strings. If an array is used, then the results will only
    * contain documents that possess *all* of the attributes listed.
    *
-   * @param {Object|Array} [equals] an object with key-value attribute pairs to
-   *   match or an array of such objects.
-   * @param {String|Array} [has] a string with an attribute name to match or an
-   *   array of such strings.
+   * @param {Object} options - The options to use.
+   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
+   *   encryption keys.
+   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   *   indexable attributes.
+   * @param {Object|Array} [options.equals] - An object with key-value
+   *   attribute pairs to match or an array of such objects.
+   * @param {String|Array} [options.has] - A string with an attribute name to
+   *   match or an array of such strings.
+   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
+   *   authorization capability to use to authorize the invocation of this
+   *   operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property, a `type` property, and a `sign` function for signing
+   *   a capability invocation.
    *
    * @return {Promise<Array>} resolves to the matching documents.
    */
-  async find({equals, has}) {
-    const query = await this.indexHelper.buildQuery({equals, has});
+  async find({
+    kek = this.kek, hmac = this.hmac, equals, has,
+    capability = this.id, invocationSigner
+  }) {
+    _checkIndexing(hmac);
+    const query = await this.indexHelper.buildQuery({hmac, equals, has});
+
+    // TODO: do http-signature w/capability and `invocationSigner`
 
     // get results and decrypt them
-    // TODO: move axios usage to DataHubService?
     const {httpsAgent} = this;
-    const response = await axios.post(this.urls.query, query, {httpsAgent});
+    const response = await axios.post(
+      this.urls.query, query, {headers, httpsAgent});
     const docs = response.data;
-    return Promise.all(docs.map(this._decrypt.bind(this)));
+    return Promise.all(docs.map(
+      encryptedDoc => this._decrypt({encryptedDoc, kek})));
+  }
+
+  /**
+   * Creates a new data hub using the given configuration.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.url - The url to post the configuration to.
+   * @param {string} options.config - The data hub's configuration.
+   *
+   * @return {Promise<Object>} resolves to the configuration for the newly
+   *   created data hub.
+   */
+  static async createDataHub({url = '/data-hubs', config}) {
+    // TODO: add `capability` and `invocationSigner`
+    // TODO: more robustly validate `config` (`kek`, `hmac`, if present, etc.)
+    if(!(config && typeof config === 'object')) {
+      throw new TypeError('"config" must be an object.');
+    }
+    if(!(config.controller && typeof config.controller === 'string')) {
+      throw new TypeError('"config.controller" must be a string.');
+    }
+    const response = await axios.post(url, config, {headers});
+    return response.data;
+  }
+
+  /**
+   * Gets the data hub config for the given controller and reference ID.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.url - The url to query.
+   * @param {string} options.controller - The ID of the controller.
+   * @param {string} options.referenceId - A controller-unique reference ID.
+   *
+   * @return {Promise<Object>} resolves to the data hub configuration
+   *   containing the given controller and reference ID.
+   */
+  static async findConfig({url = '/data-hubs', controller, referenceId}) {
+    // TODO: add `capability` and `invocationSigner`
+    const results = await this.findConfigs({url, controller, referenceId});
+    return results[0] || null;
+  }
+
+  /**
+   * Get all data hub configurations matching a query.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.url - The url to query.
+   * @param {string} options.controller - The data hub's controller.
+   * @param {string} [options.referenceId] - A controller-unique reference ID.
+   * @param {string} [options.after] - A data hub's ID.
+   * @param {number} [options.limit] - How many data hub configs to return.
+   *
+   * @return {Promise<Array>} resolves to the matching data hub configurations.
+   */
+  static async findConfigs(
+    {url = '/data-hubs', controller, referenceId, after, limit}) {
+    // TODO: add `capability` and `invocationSigner`
+    const response = await axios.get(url, {
+      params: {controller, referenceId, after, limit},
+      headers
+    });
+    return response.data;
+  }
+
+  /**
+   * Gets the configuration for a data hub.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.id the data hub's ID.
+   *
+   * @return {Promise<Object>} resolves to the configuration for the data hub.
+   */
+  static async getConfig({id}) {
+    // TODO: add `capability` and `invocationSigner`
+    const response = await axios.get(id, {headers});
+    return response.data;
+  }
+
+  /**
+   * Updates a data hub configuration via a JSON patch as specified by:
+   * [json patch format]{@link https://tools.ietf.org/html/rfc6902}
+   * [we use fast-json]{@link https://www.npmjs.com/package/fast-json-patch}
+   * to apply json patches.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - The data hub's ID.
+   * @param {Number} options.sequence - The data hub config's sequence number.
+   * @param {Array<Object>} options.patch - A JSON patch per RFC6902.
+   *
+   * @return {Promise<Void>} resolves once the operation completes.
+   */
+  static async updateConfig({id, sequence, patch}) {
+    // TODO: add `capability` and `invocationSigner`
+    const patchHeaders = {'Content-Type': 'application/json-patch+json'};
+    await axios.patch(id, {sequence, patch}, {
+      headers: {...headers, patchHeaders}
+    });
+  }
+
+  /**
+   * Sets the status of a data hub.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.id - A data hub ID.
+   * @param {string} options.status - Either `active` or `deleted`.
+   *
+   * @return {Promise<Void>} resolves once the operation completes.
+   */
+  static async setStatus({id, status}) {
+    // TODO: add `capability` and `invocationSigner`
+    // FIXME: add ability to disable data hub access or to revoke all ocaps
+    // that were delegated prior to a date of X.
+    await axios.post(`${id}/status`, {status}, {headers});
   }
 
   // helper that decrypts an encrypted doc to include its (cleartext) content
-  async _decrypt(encryptedDoc) {
+  async _decrypt({encryptedDoc, kek}) {
     // validate `encryptedDoc`
     _assertObject(encryptedDoc, 'Encrypted document must be an object.');
     _assertString(
@@ -242,7 +425,7 @@ export class DataHubClient {
     _assertObject(encryptedDoc, 'Encrypted document "jwe" must be an object.');
 
     // decrypt doc content
-    const {cipher, kek} = this;
+    const {cipher} = this;
     const {jwe} = encryptedDoc;
     const data = await cipher.decryptObject({jwe, kek});
     if(data === null) {
@@ -255,7 +438,7 @@ export class DataHubClient {
 
   // helper that creates an encrypted doc using a doc's (clear) content & meta
   // and blinding any attributes for indexing
-  async _encrypt({doc, update}) {
+  async _encrypt({doc, hmac, update}) {
     const encrypted = {...doc};
     if(!encrypted.meta) {
       encrypted.meta = {};
@@ -300,7 +483,8 @@ export class DataHubClient {
     // update indexed entries and jwe
     const {content, meta} = doc;
     const [indexed, jwe] = await Promise.all([
-      indexHelper.updateEntry({doc: encrypted}),
+      hmac ? indexHelper.updateEntry({hmac, doc: encrypted}) :
+        (doc.indexed || []),
       cipher.encryptObject({obj: {content, meta}, kek, recipients})
     ]);
 
@@ -314,6 +498,12 @@ export class DataHubClient {
   // helper that gets a document URL from a document ID
   _getDocUrl(id) {
     return `${this.urls.documents}/${encodeURIComponent(id)}`;
+  }
+}
+
+function _checkIndexing(hmac) {
+  if(!hmac) {
+    throw Error('Indexing disabled; no HMAC specified.');
   }
 }
 

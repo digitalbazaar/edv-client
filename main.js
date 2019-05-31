@@ -4,4 +4,4 @@
 'use strict';
 
 export {DataHubClient} from './DataHubClient.js';
-export {DataHubService} from './DataHubService.js';
+export {DataHubDocument} from './DataHubDocument.js';

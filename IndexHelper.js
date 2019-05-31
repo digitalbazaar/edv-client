@@ -13,18 +13,9 @@ export class IndexHelper {
    * Creates a new IndexHelper instance that can be used to blind data hub
    * document attributes to enable indexing.
    *
-   * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
-   *   properties.
-   *
    * @return {IndexHelper}.
    */
-  constructor({hmac}) {
-    if(!(hmac && typeof hmac === 'object' && typeof hmac.id === 'string' &&
-      typeof hmac.sign === 'function' && typeof hmac.verify === 'function')) {
-      throw new TypeError(
-        '"hmac" must be an object with "id", "sign", and "verify" properties.');
-    }
-    this.hmac = hmac;
+  constructor() {
     this.indexes = new Map();
   }
 
@@ -33,11 +24,11 @@ export class IndexHelper {
    * instance will be indexed according to the given attribute, provided that
    * they contain that attribute.
    *
-   * @param {Array|Object} attribute the attribute name or an array of
+   * @param {Object} options - The options to use.
+   * @param {Array|Object} options.attribute the attribute name or an array of
    *   attribute names.
-   * @param {Boolean} unique `true` if attribute values should be considered
-   *   unique, `false` if not (default: `false`).
-   *
+   * @param {boolean} [options.unique=false] `true` if attribute values should
+   *   be considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false}) {
     if(!Array.isArray(attribute)) {
@@ -58,17 +49,22 @@ export class IndexHelper {
    * Creates an indexable entry of blinded attributes for the given document
    * using the HMAC associated with this instance.
    *
-   * @param {Object} doc the document to create the indexable entry for.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {Object} options.doc the document to create the indexable entry for.
    *
    * @return {Promise<Object>} resolves to the new indexable entry.
    */
-  async createEntry({doc}) {
+  async createEntry({hmac, doc}) {
+    _assertHmac(hmac);
+
     // handle prefix here
-    const {hmac, indexes} = this;
+    const {indexes} = this;
     const entry = {
       hmac: {
         id: hmac.id,
-        algorithm: hmac.algorithm
+        type: hmac.type
       }
     };
 
@@ -87,7 +83,7 @@ export class IndexHelper {
       }
       for(const v of value) {
         blindOps.push(
-          this._blindAttribute({key: indexKey, value: v, unique}));
+          this._blindAttribute({hmac, key: indexKey, value: v, unique}));
       }
     }
     entry.attributes = await Promise.all(blindOps);
@@ -102,13 +98,18 @@ export class IndexHelper {
    * existing entry is found, a new entry is appended to the shallow copy
    * prior to its return.
    *
-   * @param {Object} doc the document to create or update an indexable
+   * @param {Object} options - The options to use.
+   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {Object} options.doc the document to create or update an indexable
    *   entry for.
    *
    * @return {Promise<Array>} resolves to the updated array of indexable
    *   entries.
    */
-  async updateEntry({doc}) {
+  async updateEntry({hmac, doc}) {
+    _assertHmac(hmac);
+
     // get previously indexed entries to update
     let {indexed = []} = doc;
     if(!Array.isArray(indexed)) {
@@ -116,12 +117,11 @@ export class IndexHelper {
     }
 
     // create new entry
-    const entry = await this.createEntry({doc});
+    const entry = await this.createEntry({hmac, doc});
 
-    // find existing entry in `indexed` by hmac ID and algorithm
-    const {hmac} = this;
+    // find existing entry in `indexed` by hmac ID and type
     const i = indexed.findIndex(
-      e => e.hmac.id === hmac.id && e.hmac.algorithm === hmac.algorithm);
+      e => e.hmac.id === hmac.id && e.hmac.type === hmac.type);
 
     // replace or append new entry
     indexed = indexed.slice();
@@ -137,14 +137,19 @@ export class IndexHelper {
   /**
    * Builds a query that can be submitted to a data hub index service.
    *
-   * @param {Object|Array} [equals] an object with key-value attribute pairs to
-   *   match or an array of such objects.
-   * @param {String|Array} [has] a string with an attribute name to match or an
-   *   array of such strings.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {Object|Array} [options.equals] an object with key-value attribute
+   *   pairs to match or an array of such objects.
+   * @param {string|Array} [options.has] a string with an attribute name to
+   *   match or an array of such strings.
    *
    * @return {Promise<Object>} resolves to the built query.
    */
-  async buildQuery({equals, has}) {
+  async buildQuery({hmac, equals, has}) {
+    _assertHmac(hmac);
+
     // validate params
     if(equals === undefined && has === undefined) {
       throw new Error('Either "equals" or "has" must be defined.');
@@ -173,7 +178,7 @@ export class IndexHelper {
     }
 
     const query = {
-      index: this.hmac.id,
+      index: hmac.id,
     };
 
     if(equals) {
@@ -185,7 +190,7 @@ export class IndexHelper {
         const result = {};
         for(const key in equal) {
           const value = equal[key];
-          const attr = await this._blindAttribute({key, value});
+          const attr = await this._blindAttribute({hmac, key, value});
           result[attr.name] = attr.value;
         }
         return result;
@@ -196,7 +201,7 @@ export class IndexHelper {
         has = [has];
       }
       query.has = await Promise.all(
-        has.map(key => this._blindString(key)));
+        has.map(key => this._blindString(hmac, key)));
     }
     return query;
   }
@@ -204,17 +209,22 @@ export class IndexHelper {
   /**
    * Blinds a single attribute using the internal HMAC API.
    *
-   * @param {String} key a key associated with a value.
-   * @param {Any} value the value associated with the key for the attribute.
-   * @param {Boolean} unique `true` to include a unique flag on the output.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {string} options.key a key associated with a value.
+   * @param {Any} options.value the value associated with the key for the
+   *   attribute.
+   * @param {boolean} options.unique `true` to include a unique flag on the
+   *   output.
    *
    * @return {Promise<Object>} resolves to an object `{name, value}`.
    */
-  async _blindAttribute({key, value, unique = false}) {
+  async _blindAttribute({hmac, key, value, unique = false}) {
     // salt values with key to prevent cross-key leakage
     value = JSON.stringify({key: value});
     const [blindedName, blindedValue] = await Promise.all(
-      [this._blindString(key), this._blindString(value)]);
+      [this._blindString(hmac, key), this._blindString(hmac, value)]);
     const result = {name: blindedName, value: blindedValue};
     if(unique) {
       result.unique = true;
@@ -225,14 +235,16 @@ export class IndexHelper {
   /**
    * Blinds a string using the internal HMAC API.
    *
-   * @param {String} value the value to blind.
+   * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {string} value the value to blind.
    *
    * @return {Promise<String>} resolves to the blinded value.
    */
-  async _blindString(value) {
+  async _blindString(hmac, value) {
     // convert value to Uint8Array
     const data = new TextEncoder().encode(value);
-    return this.hmac.sign({data});
+    return hmac.sign({data});
   }
 
   _parseAttribute(attribute) {
@@ -268,5 +280,13 @@ export class IndexHelper {
       }
     }
     return value;
+  }
+}
+
+function _assertHmac(hmac) {
+  if(!(hmac && typeof hmac === 'object' && typeof hmac.id === 'string' &&
+    typeof hmac.sign === 'function' && typeof hmac.verify === 'function')) {
+    throw new TypeError(
+      '"hmac" must be an object with "id", "sign", and "verify" properties.');
   }
 }

@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-import {DataHubClient, DataHubService} from '..';
+import {DataHubClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockKek} from './MockKek.js';
@@ -29,21 +29,19 @@ class TestMock {
       this.keys.hmac = await MockHmac.create();
     }
   }
-  async createDataHub(
-    {controller = this.accountId, primary = false} = {}) {
-    const dhs = new DataHubService();
+  async createDataHub({controller = this.accountId, referenceId} = {}) {
     const {kek, hmac} = this.keys;
     let config = {
       sequence: 0,
       controller,
-      kek: {id: kek.id, algorithm: kek.algorithm},
-      hmac: {id: hmac.id, algorithm: hmac.algorithm}
+      kek: {id: kek.id, type: kek.type},
+      hmac: {id: hmac.id, type: hmac.type}
     };
-    if(primary) {
-      config.primary = true;
+    if(referenceId) {
+      config.referenceId = referenceId;
     }
-    config = await dhs.create({config});
-    return new DataHubClient({config, kek, hmac});
+    config = await DataHubClient.createDataHub({config});
+    return new DataHubClient({id: config.id, kek, hmac});
   }
 }
 

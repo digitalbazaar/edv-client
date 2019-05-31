@@ -8,22 +8,23 @@ import uuid from 'uuid-random';
 export class MockStorage {
   constructor({server}) {
     this.dataHubs = new Map();
-    this.primaryHubs = new Map();
+    this.referenceHubs = new Map();
     this.documents = new Map();
 
+    const baseUrl = 'http://localhost:9876';
     const root = '/data-hubs';
     const routes = this.routes = {
       dataHubs: root,
-      dataHub: `${root}/:dataHubId`,
-      documents: `${root}/:dataHubId/documents`,
-      query: `${root}/:dataHubId/query`
+      dataHub: `${baseUrl}${root}/:dataHubId`,
+      documents: `${baseUrl}${root}/:dataHubId/documents`,
+      query: `${baseUrl}${root}/:dataHubId/query`
     };
 
     // create a new data hub
     server.post(routes.dataHubs, request => {
       const config = JSON.parse(request.requestBody);
       // TODO: validate `config`
-      config.id = uuid();
+      config.id = `${baseUrl}${root}/${uuid()}`;
       const dataHub = {
         config,
         documents: new Map(),
@@ -31,35 +32,37 @@ export class MockStorage {
       };
       this.dataHubs.set(config.id, dataHub);
       this.mapDocumentHandlers({server, dataHub});
-      if(config.primary) {
-        const primaryHub = this.primaryHubs.get(config.controller);
-        if(primaryHub) {
+      if(config.referenceId) {
+        const key = _getReferenceKey(config.controller, config.referenceId);
+        const refHub = this.referenceHubs.get(key);
+        if(refHub) {
           return [409];
         }
-        this.primaryHubs.set(config.controller, dataHub);
+        this.referenceHubs.set(key, dataHub);
       }
-      const location = `http://localhost:9876/${root}/${config.id}`;
+      const location = config.id;
       return [201, {location, json: true}, config];
     });
 
     // get data hubs by query
     server.get(routes.dataHubs, request => {
-      const {controller, primary} = request.queryParams;
-      if(primary !== 'true') {
+      const {controller, referenceId} = request.queryParams;
+      if(!referenceId) {
         // query for all data hubs controlled by controller not implemented yet
         // TODO: implement
         return [500, {json: true}, new Error('Not implemented.')];
       }
-      const primaryHub = this.primaryHubs.get(controller);
-      if(!primaryHub) {
+      const key = _getReferenceKey(controller, referenceId);
+      const refHub = this.referenceHubs.get(key);
+      if(!refHub) {
         return [200, {json: true}, []];
       }
-      return [200, {json: true}, [primaryHub.config]];
+      return [200, {json: true}, [refHub.config]];
     });
 
     // get a data hub
     server.get(routes.dataHub, request => {
-      const {dataHubId} = request.params;
+      const dataHubId = request.route;
       const dataHub = this.dataHubs.get(dataHubId);
       if(!dataHub) {
         return [404];
@@ -69,7 +72,8 @@ export class MockStorage {
 
     // insert a document into a data hub
     server.post(routes.documents, request => {
-      const {dataHubId} = request.params;
+      const idx = request.route.lastIndexOf('/documents');
+      const dataHubId = request.route.substr(0, idx);
       const dataHub = this.dataHubs.get(dataHubId);
       if(!dataHub) {
         // data hub does not exist
@@ -80,19 +84,20 @@ export class MockStorage {
       if(dataHub.documents.has(doc.id)) {
         return [409];
       }
+
       try {
         this.store({dataHub, doc, create: true});
       } catch(e) {
         return [409];
       }
-      const location =
-        `http://localhost:9876/${root}/${dataHubId}/documents/${doc.id}`;
+      const location = `${dataHubId}/documents/${doc.id}`;
       return [201, {location}];
     });
 
     // query a data hub
     server.post(routes.query, request => {
-      const {dataHubId} = request.params;
+      const idx = request.route.lastIndexOf('/query');
+      const dataHubId = request.route.substr(0, idx);
       const dataHub = this.dataHubs.get(dataHubId);
       if(!dataHub) {
         // data hub does not exist
@@ -231,7 +236,7 @@ export class MockStorage {
   }
 
   removeFromIndex({index, key}) {
-    let docSet = index.get(key);
+    const docSet = index.get(key);
     if(docSet) {
       index.delete(key);
     }
@@ -246,12 +251,17 @@ export class MockStorage {
   }
 
   mapDocumentHandlers({server, dataHub}) {
-    const root = `${this.routes.dataHubs}/${dataHub.config.id}/documents`;
-    const route = `${root}/:docId`;
+    const route = `${dataHub.config.id}/documents/:docId`;
+
+    function getDocId(route) {
+      const dir = '/documents/';
+      const idx = route.lastIndexOf(dir) + dir.length;
+      return route.substr(idx);
+    }
 
     // update a document
     server.post(route, request => {
-      const {docId} = request.params;
+      const docId = getDocId(request.route);
       const doc = JSON.parse(request.requestBody);
       if(docId !== doc.id) {
         return [400];
@@ -262,7 +272,7 @@ export class MockStorage {
 
     // get a document
     server.get(route, request => {
-      const {docId} = request.params;
+      const docId = getDocId(request.route);
       const doc = dataHub.documents.get(docId);
       if(!doc) {
         return [404];
@@ -272,7 +282,7 @@ export class MockStorage {
 
     // delete a document
     server.delete(route, request => {
-      const {docId} = request.params;
+      const docId = getDocId(request.route);
       if(!dataHub.documents.has(docId)) {
         return [404];
       }
@@ -282,4 +292,8 @@ export class MockStorage {
       return [204];
     });
   }
+}
+
+function _getReferenceKey(controller, referenceId) {
+  return `${encodeURIComponent(controller)}:${encodeURIComponent(referenceId)}`;
 }

@@ -7,8 +7,9 @@ import crypto from '../crypto.js';
 import * as base64url from 'base64url-universal';
 
 export class MockKek {
-  constructor({id, algorithm, key}) {
+  constructor({id, type, algorithm, key}) {
     this.id = id;
+    this.type = type;
     this.algorithm = algorithm;
     this.key = key;
   }
@@ -16,6 +17,7 @@ export class MockKek {
   static async create() {
     // random test data
     const id = 'urn:mockkek:1';
+    const type = 'AesKeyWrappingKey2019';
     const algorithm = 'A256KW';
     const data =
       base64url.decode('AOaZ9uajdymvmWDkSPTllw68arl6fRrhLIVtECwhNWY');
@@ -23,7 +25,7 @@ export class MockKek {
     const key = await crypto.subtle.importKey(
       'raw', data, {name: 'AES-KW', length: 256}, extractable,
       ['wrapKey', 'unwrapKey']);
-    const kek = new MockKek({id, algorithm, key});
+    const kek = new MockKek({id, type, algorithm, key});
     return kek;
   }
 
