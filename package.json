@@ -1,7 +1,7 @@
 {
-  "name": "data-hub-client",
+  "name": "secure-data-hub-client",
   "version": "0.0.1-0",
-  "description": "JavaScript data hub client",
+  "description": "JavaScript Secure Data Hub client",
   "license": "BSD-3-Clause",
   "main": "index.js",
   "scripts": {
@@ -65,7 +65,7 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/digitalbazaar/data-hub-client"
+    "url": "https://github.com/digitalbazaar/secure-data-hub-client"
   },
   "keywords": [
     "data hub",
@@ -77,9 +77,9 @@
     "url": "https://digitalbazaar.com/"
   },
   "bugs": {
-    "url": "https://github.com/digitalbazaar/data-hub-client/issues"
+    "url": "https://github.com/digitalbazaar/secure-data-hub-client/issues"
   },
-  "homepage": "https://github.com/digitalbazaar/data-hub-client",
+  "homepage": "https://github.com/digitalbazaar/secure-data-hub-client",
   "module": "main.js",
   "browser": {
     "./crypto.js": "./crypto-browser.js",

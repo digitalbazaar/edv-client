@@ -1,6 +1,6 @@
 # JavaScript Secure Data Hub Client _(secure-data-hub-client)_
 
-[![Build Status](https://travis-ci.org/digitalbazaar/data-hub-client.png?branch=master)](https://travis-ci.org/digitalbazaar/data-hub-client)
+[![Build Status](https://travis-ci.org/digitalbazaar/secure-data-hub-client.png?branch=master)](https://travis-ci.org/digitalbazaar/secure-data-hub-client)
 
 > A JavaScript library for Web and node.js apps for interfacing with a remote
 > Secure Data Hub server
@@ -33,8 +33,8 @@ It consists of one main class:
 To install locally (for development):
 
 ```
-git clone https://github.com/digitalbazaar/data-hub-client.git
-cd data-hub-client
+git clone https://github.com/digitalbazaar/secure-data-hub-client.git
+cd secure-data-hub-client
 npm install
 ```
 
@@ -50,7 +50,7 @@ a KMS system (TODO: show a simpler local example):
 
 ```js
 import {ControllerKey, KmsClient} from 'web-kms-client';
-import {DataHubClient} from 'data-hub-client';
+import {DataHubClient} from 'secure-data-hub-client';
 
 ```
 Although Secure Data Hubs are not bound to any particular key management system,
