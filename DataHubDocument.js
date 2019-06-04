@@ -23,19 +23,15 @@ export class DataHubDocument {
    *
    * @returns {DataHubDocument} The new DataHubDocument instance.
    */
-  constructor(
-    {id, capability, invocationSigner, kek = null, hmac = null, client}) {
+  constructor({
+    id, capability, invocationSigner, kek = null, hmac = null,
+    client = new DataHubClient()
+  }) {
     this.id = id;
     this.kek = kek;
     this.hmac = hmac;
     this.capability = capability;
     this.invocationSigner = invocationSigner;
-    if(!client) {
-      const dir = '/documents/';
-      const {invocationTarget: target} = capability;
-      const dataHubId = target.substr(0, target.lastIndexOf(dir));
-      client = new DataHubClient({id: dataHubId});
-    }
     this.client = client;
   }
 

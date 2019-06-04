@@ -34,7 +34,7 @@ export class DataHubClient {
    *
    * @return {DataHubClient}.
    */
-  constructor({id, kek, hmac, httpsAgent}) {
+  constructor({id, kek, hmac, httpsAgent} = {}) {
     this.id = id;
     this.kek = kek;
     this.hmac = hmac;
@@ -78,7 +78,7 @@ export class DataHubClient {
   async insert({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
 
-    let url = this._getInvocationTarget({capability}) ||
+    let url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
     // trim document ID and trailing slash, if present, to post to root
     // collection
@@ -124,7 +124,7 @@ export class DataHubClient {
     _assertDocument(doc);
 
     const encrypted = await this._encrypt({doc, hmac, update: true});
-    const url = this._getInvocationTarget({capability}) ||
+    const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
@@ -172,7 +172,7 @@ export class DataHubClient {
     _checkIndexing(hmac);
 
     // TODO: is appending `/index` the right way to accomplish this?
-    const url = (this._getInvocationTarget({capability}) ||
+    const url = (DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id)) + '/index';
     const entry = await this.indexHelper.createEntry({hmac, doc});
     try {
@@ -208,7 +208,8 @@ export class DataHubClient {
   async delete({id, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    const url = this._getInvocationTarget({capability}) || this._getDocUrl(id);
+    const url = DataHubClient._getInvocationTarget({capability}) ||
+      this._getDocUrl(id);
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
@@ -241,7 +242,8 @@ export class DataHubClient {
   async get({id, kek = this.kek, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    const url = this._getInvocationTarget({capability}) || this._getDocUrl(id);
+    const url = DataHubClient._getInvocationTarget({capability}) ||
+      this._getDocUrl(id);
     let response;
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
@@ -300,7 +302,8 @@ export class DataHubClient {
 
     // get results and decrypt them
     // TODO: is appending `query` the right way to do this?
-    const url = (this._getInvocationTarget({capability}) || this.id) + '/query';
+    const url = (DataHubClient._getInvocationTarget({capability}) || this.id) +
+      '/query';
     const {httpsAgent} = this;
     const response = await axios.post(url, query, {headers, httpsAgent});
     const docs = response.data;
@@ -505,7 +508,7 @@ export class DataHubClient {
     return `${this.id}/documents/${encodeURIComponent(id)}`;
   }
 
-  _getInvocationTarget({capability}) {
+  static _getInvocationTarget({capability}) {
     // TODO: use ocapld.getTarget() utility function?
     if(!(capability && typeof capability === 'object')) {
       // no capability provided
