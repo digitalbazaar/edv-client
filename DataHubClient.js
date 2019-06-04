@@ -14,9 +14,17 @@ export class DataHubClient {
    * Creates a new DataHub instance. The storage for the data hub must already
    * exist and have an HTTPS API at the given `baseUrl`.
    *
+   * In order to support portability (e.g., the use of DID URLs to reference
+   * documents), Secure Data Hub storage MUST expose an HTTPS API with a URL
+   * structure that is partitioned like so:
+   *
+   * <authority>/<URI encoded data hub ID>/documents/<URI encoded document ID>
+   *
    * @param {Object} options - The options to use.
-   * @param {string} id the ID of the data hub; this must be a URL that
-   *   refers to the data hub's root storage location.
+   * @param {string} [id=undefined] the ID of the data hub, to be used as a
+   *   root OCAP-LD authorization capability that must be a URL that refers to
+   *   the data hub's root storage location; if not given, then a separate
+   *   capability must be given to each method called on the client instance.
    * @param {Object} [kek=null] a default KEK API for wrapping content
    *   encryption keys.
    * @param {Object} [hmac=null] a default HMAC API for blinding indexable
@@ -33,12 +41,6 @@ export class DataHubClient {
     // TODO: support passing cipher `version`
     this.cipher = new Cipher();
     this.indexHelper = new IndexHelper();
-    const root = id;
-    this.urls = {
-      root,
-      documents: `${root}/documents`,
-      query: `${root}/query`
-    };
     this.httpsAgent = httpsAgent;
   }
 
@@ -65,23 +67,29 @@ export class DataHubClient {
    * @param {Object} options.doc the document to insert.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the inserted document.
    */
-  async insert(
-    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
+  async insert({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
 
+    let url = this._getInvocationTarget({capability}) ||
+      this._getDocUrl(doc.id);
+    // trim document ID and trailing slash, if present, to post to root
+    // collection
+    const encodedDocId = encodeURIComponent(doc.id);
+    if(url.endsWith(encodedDocId)) {
+      url = url.substr(0, url.length - encodedDocId.length - 1);
+    }
     const encrypted = await this._encrypt({doc, hmac, update: false});
     try {
       const {httpsAgent} = this;
-      await axios.post(this.urls.documents, encrypted, {headers, httpsAgent});
+      await axios.post(url, encrypted, {headers, httpsAgent});
       encrypted.content = doc.content;
       encrypted.meta = doc.meta;
       return encrypted;
@@ -104,21 +112,20 @@ export class DataHubClient {
    * @param {Object} options.doc the document to insert.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the updated document.
    */
-  async update(
-    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
+  async update({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
 
     const encrypted = await this._encrypt({doc, hmac, update: true});
-    const url = this._getDocUrl(encrypted.id);
+    const url = this._getInvocationTarget({capability}) ||
+      this._getDocUrl(encrypted.id);
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
@@ -152,22 +159,22 @@ export class DataHubClient {
    * @param {Object} options.doc the document to create or update an index for.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
    *
    * @return {Promise} resolves once the operation completes.
    */
-  async updateIndex(
-    {doc, hmac = this.hmac, capability = this.id, invocationSigner}) {
+  async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
     _checkIndexing(hmac);
 
+    // TODO: is appending `/index` the right way to accomplish this?
+    const url = (this._getInvocationTarget({capability}) ||
+      this._getDocUrl(doc.id)) + '/index';
     const entry = await this.indexHelper.createEntry({hmac, doc});
-    const url = this._getDocUrl(doc.id) + '/index';
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
@@ -189,9 +196,8 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id the ID of the document to delete.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
@@ -199,10 +205,10 @@ export class DataHubClient {
    * @return {Promise<Boolean>} resolves to `true` if the document was deleted
    *   and `false` if it did not exist.
    */
-  async delete({id, capability = this.id, invocationSigner}) {
+  async delete({id, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    const url = this._getDocUrl(id);
+    const url = this._getInvocationTarget({capability}) || this._getDocUrl(id);
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
       const {httpsAgent} = this;
@@ -224,19 +230,18 @@ export class DataHubClient {
    * @param {string} options.id the ID of the document to get.
    * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
    *   encryption keys.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
    *
    * @return {Promise<Object>} resolves to the document.
    */
-  async get({id, kek = this.kek, capability = this.id, invocationSigner}) {
+  async get({id, kek = this.kek, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
 
-    const url = this._getDocUrl(id);
+    const url = this._getInvocationTarget({capability}) || this._getDocUrl(id);
     let response;
     try {
       // TODO: do http-signature w/capability and `invocationSigner`
@@ -276,9 +281,8 @@ export class DataHubClient {
    *   attribute pairs to match or an array of such objects.
    * @param {String|Array} [options.has] - A string with an attribute name to
    *   match or an array of such strings.
-   * @param {string} [options.capability=this.id] - The ID of the OCAP-LD
-   *   authorization capability to use to authorize the invocation of this
-   *   operation.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property, a `type` property, and a `sign` function for signing
    *   a capability invocation.
@@ -287,7 +291,7 @@ export class DataHubClient {
    */
   async find({
     kek = this.kek, hmac = this.hmac, equals, has,
-    capability = this.id, invocationSigner
+    capability, invocationSigner
   }) {
     _checkIndexing(hmac);
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
@@ -295,9 +299,10 @@ export class DataHubClient {
     // TODO: do http-signature w/capability and `invocationSigner`
 
     // get results and decrypt them
+    // TODO: is appending `query` the right way to do this?
+    const url = (this._getInvocationTarget({capability}) || this.id) + '/query';
     const {httpsAgent} = this;
-    const response = await axios.post(
-      this.urls.query, query, {headers, httpsAgent});
+    const response = await axios.post(url, query, {headers, httpsAgent});
     const docs = response.data;
     return Promise.all(docs.map(
       encryptedDoc => this._decrypt({encryptedDoc, kek})));
@@ -497,7 +502,26 @@ export class DataHubClient {
 
   // helper that gets a document URL from a document ID
   _getDocUrl(id) {
-    return `${this.urls.documents}/${encodeURIComponent(id)}`;
+    return `${this.id}/documents/${encodeURIComponent(id)}`;
+  }
+
+  _getInvocationTarget({capability}) {
+    // TODO: use ocapld.getTarget() utility function?
+    if(!(capability && typeof capability === 'object')) {
+      // no capability provided
+      return null;
+    }
+    let result;
+    const {invocationTarget} = capability;
+    if(invocationTarget && typeof invocationTarget === 'object') {
+      result = invocationTarget.id;
+    } else {
+      result = invocationTarget;
+    }
+    if(typeof result !== 'string') {
+      throw new TypeError('"capability.invocationTarget" is invalid.');
+    }
+    return result;
   }
 }
 

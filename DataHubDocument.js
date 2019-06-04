@@ -28,7 +28,7 @@ export class DataHubDocument {
     this.id = id;
     this.kek = kek;
     this.hmac = hmac;
-    this.capability = capability ? capability.id : undefined;
+    this.capability = capability;
     this.invocationSigner = invocationSigner;
     if(!client) {
       const dir = '/documents/';
