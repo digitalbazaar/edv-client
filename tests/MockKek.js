@@ -29,16 +29,17 @@ export class MockKek {
     return kek;
   }
 
-  async wrapKey({key}) {
+  async wrapKey({unwrappedKey}) {
     const kek = this.key;
 
     // Note: algorithm name doesn't matter; will exported raw.
     // TODO: support other key lengths?
     const extractable = true;
-    key = await crypto.subtle.importKey(
-      'raw', key, {name: 'AES-GCM', length: 256}, extractable, ['encrypt']);
+    unwrappedKey = await crypto.subtle.importKey(
+      'raw', unwrappedKey, {name: 'AES-GCM', length: 256},
+      extractable, ['encrypt']);
     const wrappedKey = await crypto.subtle.wrapKey(
-      'raw', key, kek, kek.algorithm);
+      'raw', unwrappedKey, kek, kek.algorithm);
     return base64url.encode(new Uint8Array(wrappedKey));
   }
 
