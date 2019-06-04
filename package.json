@@ -43,7 +43,6 @@
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^5.2.0",
-    "crypto-ld": "^3.5.1",
     "eslint": "^5.16.0",
     "eslint-config-digitalbazaar": "^2.0.0",
     "karma": "^4.0.1",
