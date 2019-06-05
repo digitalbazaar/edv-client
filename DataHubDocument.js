@@ -10,7 +10,9 @@ export class DataHubDocument {
    * Creates a new instance of a DataHubDocument.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id - The ID for this document.
+   * @param {string} [options.id=undefined] the ID of the document; this is
+   *   only necessary if the capability's `invocationTarget` is not for the
+   *   document itself (but is for the entire data hub).
    * @param {Object} kek a KEK API for wrapping content encryption keys.
    * @param {Object} [hmac=null] an HMAC API for blinding indexable
    *   attributes.
@@ -31,6 +33,11 @@ export class DataHubDocument {
     this.kek = kek;
     this.hmac = hmac;
     this.capability = capability;
+    if(!this.id) {
+      // TODO: determine if there's a cleaner way to do this that maintains
+      // portability
+      this.id = _parseDataHubDocId(capability);
+    }
     this.invocationSigner = invocationSigner;
     this.client = client;
   }
@@ -57,4 +64,18 @@ export class DataHubDocument {
     const {kek, hmac, capability, invocationSigner, client} = this;
     return client.update({doc, kek, hmac, capability, invocationSigner});
   }
+}
+
+function _parseDataHubDocId(capability) {
+  const target = DataHubClient._getInvocationTarget({capability});
+  if(!target) {
+    throw new TypeError('"capability" must be an object.');
+  }
+  let idx = target.lastIndexOf('/documents/');
+  if(idx === -1) {
+    // capability is not for a single document
+    return;
+  }
+  idx += '/documents/'.length;
+  return decodeURIComponent(target.substr(idx));
 }
