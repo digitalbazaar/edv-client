@@ -65,6 +65,8 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
+   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
+   *   encryption keys.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -75,7 +77,8 @@ export class DataHubClient {
    *
    * @return {Promise<Object>} resolves to the inserted document.
    */
-  async insert({doc, hmac = this.hmac, capability, invocationSigner}) {
+  async insert(
+    {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
 
     let url = DataHubClient._getInvocationTarget({capability}) ||
@@ -86,7 +89,7 @@ export class DataHubClient {
     if(url.endsWith(encodedDocId)) {
       url = url.substr(0, url.length - encodedDocId.length - 1);
     }
-    const encrypted = await this._encrypt({doc, hmac, update: false});
+    const encrypted = await this._encrypt({doc, kek, hmac, update: false});
     try {
       const {httpsAgent} = this;
       await axios.post(url, encrypted, {headers, httpsAgent});
@@ -110,6 +113,8 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
+   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
+   *   encryption keys.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -120,10 +125,11 @@ export class DataHubClient {
    *
    * @return {Promise<Object>} resolves to the updated document.
    */
-  async update({doc, hmac = this.hmac, capability, invocationSigner}) {
+  async update(
+    {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
 
-    const encrypted = await this._encrypt({doc, hmac, update: true});
+    const encrypted = await this._encrypt({doc, kek, hmac, update: true});
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     try {
@@ -446,11 +452,17 @@ export class DataHubClient {
 
   // helper that creates an encrypted doc using a doc's (clear) content & meta
   // and blinding any attributes for indexing
-  async _encrypt({doc, hmac, update}) {
+  async _encrypt({doc, kek, hmac, update}) {
     const encrypted = {...doc};
     if(!encrypted.meta) {
       encrypted.meta = {};
     }
+
+    // TODO: do we also want message digests to go along with sequence numbers
+    // in order to better support portability and conflict handling? what
+    // are the use cases for portability ... will only entire data hubs be
+    // ported automatically (no intervention) or will individual documents
+    // be ported?
 
     if(update) {
       if('sequence' in encrypted) {
@@ -467,7 +479,7 @@ export class DataHubClient {
       encrypted.sequence = 0;
     }
 
-    const {cipher, kek, indexHelper} = this;
+    const {cipher, indexHelper} = this;
 
     // update existing recipients
     let recipients;
