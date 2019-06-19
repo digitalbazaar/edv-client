@@ -30,6 +30,7 @@
     "axios": "^0.18.0",
     "base64url-universal": "^1.0.0",
     "esm": "^3.2.22",
+    "http-signature-header": "digitalbazaar/http-signature-header#master",
     "isomorphic-webcrypto": "^1.6.1",
     "split-string": "^6.1.0"
   },

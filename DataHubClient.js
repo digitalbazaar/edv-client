@@ -4,10 +4,14 @@
 'use strict';
 
 import axios from 'axios';
+import base64url from 'base64url-universal';
+import crypto from './crypto.js';
 import {Cipher} from './Cipher.js';
 import {IndexHelper} from './IndexHelper.js';
+import {TextEncoder, URL} from './util.js';
+import {createAuthzHeader, createSignatureString} from 'http-signature-header';
 
-const headers = {Accept: 'application/ld+json, application/json'};
+const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
 
 export class DataHubClient {
   /**
@@ -91,6 +95,13 @@ export class DataHubClient {
     }
     const encrypted = await this._encrypt({doc, kek, hmac, update: false});
     try {
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: encrypted, capability, invocationSigner,
+        capabilityAction: capability && 'write'
+      });
+      // send request
       const {httpsAgent} = this;
       await axios.post(url, encrypted, {headers, httpsAgent});
       encrypted.content = doc.content;
@@ -133,7 +144,13 @@ export class DataHubClient {
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     try {
-      // TODO: do http-signature w/capability and `invocationSigner`
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: encrypted, capability, invocationSigner,
+        capabilityAction: capability && 'write'
+      });
+      // send request
       const {httpsAgent} = this;
       await axios.post(url, encrypted, {headers, httpsAgent});
     } catch(e) {
@@ -182,7 +199,13 @@ export class DataHubClient {
       this._getDocUrl(doc.id)) + '/index';
     const entry = await this.indexHelper.createEntry({hmac, doc});
     try {
-      // TODO: do http-signature w/capability and `invocationSigner`
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: entry, capability, invocationSigner,
+        capabilityAction: capability && 'write'
+      });
+      // send request
       const {httpsAgent} = this;
       await axios.post(url, entry, {headers, httpsAgent});
     } catch(e) {
@@ -217,7 +240,14 @@ export class DataHubClient {
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
     try {
-      // TODO: do http-signature w/capability and `invocationSigner`
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'delete', headers: DEFAULT_HEADERS,
+        capability, invocationSigner,
+        // TODO: should `delete` be used here as a separate action?
+        capabilityAction: capability && 'write'
+      });
+      // send request
       const {httpsAgent} = this;
       await axios.delete(url, {headers, httpsAgent});
     } catch(e) {
@@ -252,7 +282,13 @@ export class DataHubClient {
       this._getDocUrl(id);
     let response;
     try {
-      // TODO: do http-signature w/capability and `invocationSigner`
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'get', headers: DEFAULT_HEADERS,
+        capability, invocationSigner,
+        capabilityAction: capability && 'read'
+      });
+      // send request
       const {httpsAgent} = this;
       response = await axios.get(url, {headers, httpsAgent});
     } catch(e) {
@@ -304,12 +340,17 @@ export class DataHubClient {
     _checkIndexing(hmac);
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
-    // TODO: do http-signature w/capability and `invocationSigner`
-
     // get results and decrypt them
     // TODO: is appending `query` the right way to do this?
     const url = (DataHubClient._getInvocationTarget({capability}) || this.id) +
       '/query';
+    // sign HTTP header
+    const headers = await _signHeaders({
+      url, method: 'post', headers: DEFAULT_HEADERS,
+      json: query, capability, invocationSigner,
+      capabilityAction: capability && 'read'
+    });
+    // send request
     const {httpsAgent} = this;
     const response = await axios.post(url, query, {headers, httpsAgent});
     const docs = response.data;
@@ -328,7 +369,7 @@ export class DataHubClient {
    *   created data hub.
    */
   static async createDataHub({url = '/data-hubs', config}) {
-    // TODO: add `capability` and `invocationSigner`
+    // TODO: add `capability` and `invocationSigner` support?
     // TODO: more robustly validate `config` (`kek`, `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
@@ -336,7 +377,7 @@ export class DataHubClient {
     if(!(config.controller && typeof config.controller === 'string')) {
       throw new TypeError('"config.controller" must be a string.');
     }
-    const response = await axios.post(url, config, {headers});
+    const response = await axios.post(url, config, {headers: DEFAULT_HEADERS});
     return response.data;
   }
 
@@ -352,7 +393,7 @@ export class DataHubClient {
    *   containing the given controller and reference ID.
    */
   static async findConfig({url = '/data-hubs', controller, referenceId}) {
-    // TODO: add `capability` and `invocationSigner`
+    // TODO: add `capability` and `invocationSigner` support?
     const results = await this.findConfigs({url, controller, referenceId});
     return results[0] || null;
   }
@@ -371,10 +412,10 @@ export class DataHubClient {
    */
   static async findConfigs(
     {url = '/data-hubs', controller, referenceId, after, limit}) {
-    // TODO: add `capability` and `invocationSigner`
+    // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers
+      headers: DEFAULT_HEADERS
     });
     return response.data;
   }
@@ -388,8 +429,8 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the configuration for the data hub.
    */
   static async getConfig({id}) {
-    // TODO: add `capability` and `invocationSigner`
-    const response = await axios.get(id, {headers});
+    // TODO: add `capability` and `invocationSigner` support?
+    const response = await axios.get(id, {headers: DEFAULT_HEADERS});
     return response.data;
   }
 
@@ -407,10 +448,10 @@ export class DataHubClient {
    * @return {Promise<Void>} resolves once the operation completes.
    */
   static async updateConfig({id, sequence, patch}) {
-    // TODO: add `capability` and `invocationSigner`
+    // TODO: add `capability` and `invocationSigner` support?
     const patchHeaders = {'Content-Type': 'application/json-patch+json'};
     await axios.patch(id, {sequence, patch}, {
-      headers: {...headers, patchHeaders}
+      headers: {...DEFAULT_HEADERS, patchHeaders}
     });
   }
 
@@ -424,10 +465,10 @@ export class DataHubClient {
    * @return {Promise<Void>} resolves once the operation completes.
    */
   static async setStatus({id, status}) {
-    // TODO: add `capability` and `invocationSigner`
+    // TODO: add `capability` and `invocationSigner` support?
     // FIXME: add ability to disable data hub access or to revoke all ocaps
     // that were delegated prior to a date of X.
-    await axios.post(`${id}/status`, {status}, {headers});
+    await axios.post(`${id}/status`, {status}, {headers: DEFAULT_HEADERS});
   }
 
   // helper that decrypts an encrypted doc to include its (cleartext) content
@@ -458,11 +499,14 @@ export class DataHubClient {
       encrypted.meta = {};
     }
 
-    // TODO: do we also want message digests to go along with sequence numbers
-    // in order to better support portability and conflict handling? what
-    // are the use cases for portability ... will only entire data hubs be
-    // ported automatically (no intervention) or will individual documents
-    // be ported?
+    /* Note: There is an assumption that data hubs will be ported in their
+    entirety. If the contents of a single data hub document is to be copied to
+    another data hub, it should receive a new data hub document ID on the
+    target data hub system. No data hub document with the same ID should live
+    on more than one data hub unless those data hubs are intended to be mirrors
+    of one another. This reduces synchronization issues to a sequence number
+    instead of something more complicated involving digests and other
+    synchronization complexities. */
 
     if(update) {
       if('sequence' in encrypted) {
@@ -538,6 +582,92 @@ export class DataHubClient {
     }
     return result;
   }
+}
+
+async function _signHeaders({
+  url, method, headers, json, capability = url, invocationSigner,
+  capabilityAction
+}) {
+  // lower case keys to ensure any updates apply properly
+  const signed = _lowerCaseObjectKeys(headers);
+
+  if(!('host' in signed)) {
+    signed.host = new URL(url).host;
+  }
+  signed['authorization-capability'] = capability;
+
+  if(json && !('digest' in signed)) {
+    // compute digest for json
+    const data = new TextEncoder().encode(JSON.stringify(json));
+    const digest = await crypto.subtle.digest({name: 'SHA-256'}, data);
+    // format as multihash digest
+    // sha2-256: 0x12, length: 32 (0x20), digest value
+    const mh = new Uint8Array(34);
+    mh[0] = 0x12;
+    mh[1] = 0x20;
+    mh.set(digest, 2);
+    // encode multihash using multibase, base64url: `u`
+    signed.digest = `multihash=u${base64url.encode(mh)}`;
+    if(!('content-type' in signed)) {
+      signed['content-type'] = 'application/json';
+    }
+  }
+
+  // TODO: allow for parameter for expiration window
+  // set expiration 10 minutes into the future
+  const created = Date.now();
+  const expires = new Date(created + 600000).getTime();
+
+  // FIXME: remove me
+  if(!invocationSigner) {
+    invocationSigner = {
+      id: 'urn:example-key:123',
+      sign() {
+        return new Uint8Array([0x01, 0x02, 0x03]);
+      }
+    };
+  }
+
+  // sign header
+  const {id: keyId} = invocationSigner;
+  const includeHeaders = [
+    '(key-id)', '(created)', '(expires)', '(request-target)',
+    'host', 'authorization-capability'];
+  if(capabilityAction) {
+    includeHeaders.push('authorization-capability-action');
+    signed['authorization-capability-action'] = capabilityAction;
+  }
+  if(json) {
+    includeHeaders.push('content-type');
+    includeHeaders.push('digest');
+  }
+  const plaintext = createSignatureString({
+    includeHeaders,
+    requestOptions: {url, method, headers: signed, created, expires, keyId}
+  });
+  const data = new TextEncoder().encode(plaintext);
+  const signature = base64url.encode(await invocationSigner.sign({data}));
+
+  signed.authorization = createAuthzHeader({
+    includeHeaders,
+    keyId,
+    signature
+  });
+
+  if(typeof self !== 'undefined') {
+    // remove `host` header as it will be automatically set by the browser
+    delete signed.host;
+  }
+
+  return signed;
+}
+
+function _lowerCaseObjectKeys(obj) {
+  const newObject = {};
+  for(const k of Object.keys(obj)) {
+    newObject[k.toLowerCase()] = obj[k];
+  }
+  return newObject;
 }
 
 function _checkIndexing(hmac) {
