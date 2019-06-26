@@ -651,7 +651,9 @@ async function _signHeaders({
   signed.authorization = createAuthzHeader({
     includeHeaders,
     keyId,
-    signature
+    signature,
+    created,
+    expires
   });
 
   if(typeof self !== 'undefined') {
