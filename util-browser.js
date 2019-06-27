@@ -60,13 +60,12 @@ if(typeof URL !== 'function' && typeof window !== 'undefined') {
 
 export {TextDecoder, TextEncoder, URL};
 
-const encoder = new TextEncoder();
-const decoder = new TextDecoder();
+// TODO: replace these with faster base64 implementation
 
 export function base64Encode(data) {
-  return btoa(decoder.decode(data));
+  return btoa(String.fromCharCode.apply(null, data));
 }
 
 export function base64Decode(str) {
-  return encoder.encode(atob(str));
+  Uint8Array.from(atob(str), c => c.charCodeAt(0));
 }
