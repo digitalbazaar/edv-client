@@ -76,14 +76,14 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Object>} resolves to the inserted document.
    */
   async insert(
     {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
+    _assertInvocationSigner(invocationSigner);
 
     let url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
@@ -99,7 +99,7 @@ export class DataHubClient {
       const headers = await _signHeaders({
         url, method: 'post', headers: DEFAULT_HEADERS,
         json: encrypted, capability, invocationSigner,
-        capabilityAction: capability && 'write'
+        capabilityAction: 'write'
       });
       // send request
       const {httpsAgent} = this;
@@ -131,14 +131,14 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Object>} resolves to the updated document.
    */
   async update(
     {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
+    _assertInvocationSigner(invocationSigner);
 
     const encrypted = await this._encrypt({doc, kek, hmac, update: true});
     const url = DataHubClient._getInvocationTarget({capability}) ||
@@ -148,7 +148,7 @@ export class DataHubClient {
       const headers = await _signHeaders({
         url, method: 'post', headers: DEFAULT_HEADERS,
         json: encrypted, capability, invocationSigner,
-        capabilityAction: capability && 'write'
+        capabilityAction: 'write'
       });
       // send request
       const {httpsAgent} = this;
@@ -185,13 +185,13 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise} resolves once the operation completes.
    */
   async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
+    _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
 
     // TODO: is appending `/index` the right way to accomplish this?
@@ -203,7 +203,7 @@ export class DataHubClient {
       const headers = await _signHeaders({
         url, method: 'post', headers: DEFAULT_HEADERS,
         json: entry, capability, invocationSigner,
-        capabilityAction: capability && 'write'
+        capabilityAction: 'write'
       });
       // send request
       const {httpsAgent} = this;
@@ -228,14 +228,14 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Boolean>} resolves to `true` if the document was deleted
    *   and `false` if it did not exist.
    */
   async delete({id, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
+    _assertInvocationSigner(invocationSigner);
 
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
@@ -245,7 +245,7 @@ export class DataHubClient {
         url, method: 'delete', headers: DEFAULT_HEADERS,
         capability, invocationSigner,
         // TODO: should `delete` be used here as a separate action?
-        capabilityAction: capability && 'write'
+        capabilityAction: 'write'
       });
       // send request
       const {httpsAgent} = this;
@@ -270,13 +270,13 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Object>} resolves to the document.
    */
   async get({id, kek = this.kek, capability, invocationSigner}) {
     _assertString(id, '"id" must be a string.');
+    _assertInvocationSigner(invocationSigner);
 
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
@@ -286,7 +286,7 @@ export class DataHubClient {
       const headers = await _signHeaders({
         url, method: 'get', headers: DEFAULT_HEADERS,
         capability, invocationSigner,
-        capabilityAction: capability && 'read'
+        capabilityAction: 'read'
       });
       // send request
       const {httpsAgent} = this;
@@ -328,8 +328,7 @@ export class DataHubClient {
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
-   *   `id` property, a `type` property, and a `sign` function for signing
-   *   a capability invocation.
+   *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Array>} resolves to the matching documents.
    */
@@ -337,6 +336,7 @@ export class DataHubClient {
     kek = this.kek, hmac = this.hmac, equals, has,
     capability, invocationSigner
   }) {
+    _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
@@ -348,7 +348,7 @@ export class DataHubClient {
     const headers = await _signHeaders({
       url, method: 'post', headers: DEFAULT_HEADERS,
       json: query, capability, invocationSigner,
-      capabilityAction: capability && 'read'
+      capabilityAction: 'read'
     });
     // send request
     const {httpsAgent} = this;
@@ -687,6 +687,13 @@ function _assertDocument(doc) {
   _assertObject(meta, '"doc.meta" must be an object.');
 }
 
+function _assertInvocationSigner(invocationSigner) {
+  _assertObject(invocationSigner, '"invocationSigner" must be an object.');
+  const {id, sign} = invocationSigner;
+  _assertString(id, '"invocationSigner.id" must be a string.');
+  _assertFunction(sign, '"invocationSigner.sign" must be a function.');
+}
+
 function _assertObject(x, msg) {
   if(!(x && typeof x === 'object' && !Array.isArray(x))) {
     throw new TypeError(msg);
@@ -695,6 +702,12 @@ function _assertObject(x, msg) {
 
 function _assertString(x, msg) {
   if(typeof x !== 'string') {
+    throw new TypeError(msg);
+  }
+}
+
+function _assertFunction(x, msg) {
+  if(typeof x !== 'function') {
     throw new TypeError(msg);
   }
 }
