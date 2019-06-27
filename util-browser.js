@@ -59,3 +59,14 @@ if(typeof URL !== 'function' && typeof window !== 'undefined') {
 }
 
 export {TextDecoder, TextEncoder, URL};
+
+const encoder = new TextEncoder();
+const decoder = new TextDecoder();
+
+export function base64Encode(data) {
+  return btoa(decoder.decode(data));
+}
+
+export function base64Decode(str) {
+  return encoder.encode(atob(str));
+}

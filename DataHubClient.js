@@ -8,7 +8,7 @@ import base64url from 'base64url-universal';
 import crypto from './crypto.js';
 import {Cipher} from './Cipher.js';
 import {IndexHelper} from './IndexHelper.js';
-import {TextEncoder, URL} from './util.js';
+import {TextEncoder, URL, base64Encode} from './util.js';
 import {createAuthzHeader, createSignatureString} from 'http-signature-header';
 
 const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
@@ -622,7 +622,7 @@ async function _signHeaders({
   // FIXME: remove me
   if(!invocationSigner) {
     invocationSigner = {
-      id: 'urn:example-key:123',
+      id: 'did:key:z6MkhC8JS6vN9AQDww5sKaZAhpwoC3WWwvdsoprzAkzo1beC',
       sign() {
         return new Uint8Array([0x01, 0x02, 0x03]);
       }
@@ -647,7 +647,7 @@ async function _signHeaders({
     requestOptions: {url, method, headers: signed, created, expires, keyId}
   });
   const data = new TextEncoder().encode(plaintext);
-  const signature = base64url.encode(await invocationSigner.sign({data}));
+  const signature = base64Encode(await invocationSigner.sign({data}));
 
   signed.authorization = createAuthzHeader({
     includeHeaders,
