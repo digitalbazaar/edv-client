@@ -664,6 +664,10 @@ async function _signHeaders({
   if(!('host' in signed)) {
     signed.host = new URL(url).host;
   }
+  // use ID of capability only
+  if(typeof capability === 'object') {
+    capability = capability.id;
+  }
   signed['authorization-capability'] = capability;
 
   if(json && !('digest' in signed)) {
