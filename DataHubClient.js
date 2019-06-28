@@ -372,7 +372,7 @@ export class DataHubClient {
   async enableCapability({capabilityToEnable, invocationSigner}) {
     _assertObject(capabilityToEnable);
 
-    const url = `${this.id}/zcaps`;
+    const url = `${this.id}/authorizations`;
     try {
       // sign HTTP header
       const headers = await _signHeaders({
@@ -409,7 +409,7 @@ export class DataHubClient {
   async disableCapability({id, invocationSigner}) {
     _assertString(id);
 
-    const url = `${this.id}/zcaps?id=${encodeURIComponent(id)}`;
+    const url = `${this.id}/authorizations?id=${encodeURIComponent(id)}`;
     try {
       // sign HTTP header
       const headers = await _signHeaders({
