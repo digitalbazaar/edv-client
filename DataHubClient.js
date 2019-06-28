@@ -359,6 +359,79 @@ export class DataHubClient {
   }
 
   /**
+   * Stores a delegated authorization capability for this data hub, enabling
+   * it to be invoked by its designated invoker.
+   *
+   * @param {Object} options - The options to use.
+   * @param {Object} options.capabilityToEnable the capability to enable.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @return {Promise<Object>} resolves once the operation completes.
+   */
+  async enableCapability({capabilityToEnable, invocationSigner}) {
+    _assertObject(capabilityToEnable);
+
+    const url = `${this.id}/zcaps`;
+    try {
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: capabilityToEnable, invocationSigner,
+        capabilityAction: 'write'
+      });
+      // send request
+      const {httpsAgent} = this;
+      await axios.post(url, capabilityToEnable, {headers, httpsAgent});
+    } catch(e) {
+      const {response = {}} = e;
+      if(response.status === 409) {
+        const err = new Error('Duplicate error.');
+        err.name = 'DuplicateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * Removes a previously stored delegated authorization capability from this
+   * data hub, preventing it from being invoked by its designated invoker.
+   *
+   * @param {Object} options - The options to use.
+   * @param {Object} options.capability the ID of the capability to revoke.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @return {Promise<Boolean>} resolves to `true` if the document was deleted
+   *   and `false` if it did not exist.
+   */
+  async disableCapability({id, invocationSigner}) {
+    _assertString(id);
+
+    const url = `${this.id}/zcaps?id=${encodeURIComponent(id)}`;
+    try {
+      // sign HTTP header
+      const headers = await _signHeaders({
+        url, method: 'delete', headers: DEFAULT_HEADERS,
+        invocationSigner,
+        // TODO: should `delete` be used here as a separate action?
+        capabilityAction: 'write'
+      });
+      // send request
+      const {httpsAgent} = this;
+      await axios.delete(url, {headers, httpsAgent});
+    } catch(e) {
+      const {response = {}} = e;
+      if(response.status === 404) {
+        return false;
+      }
+      throw e;
+    }
+    return true;
+  }
+
+  /**
    * Creates a new data hub using the given configuration.
    *
    * @param {Object} options - The options to use.
@@ -369,7 +442,6 @@ export class DataHubClient {
    *   created data hub.
    */
   static async createDataHub({url = '/data-hubs', config}) {
-    // TODO: add `capability` and `invocationSigner` support?
     // TODO: more robustly validate `config` (`kek`, `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
@@ -393,7 +465,6 @@ export class DataHubClient {
    *   containing the given controller and reference ID.
    */
   static async findConfig({url = '/data-hubs', controller, referenceId}) {
-    // TODO: add `capability` and `invocationSigner` support?
     const results = await this.findConfigs({url, controller, referenceId});
     return results[0] || null;
   }
@@ -412,7 +483,6 @@ export class DataHubClient {
    */
   static async findConfigs(
     {url = '/data-hubs', controller, referenceId, after, limit}) {
-    // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
       headers: DEFAULT_HEADERS
