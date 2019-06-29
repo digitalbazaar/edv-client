@@ -64,6 +64,17 @@ export class DataHubDocument {
     const {kek, hmac, capability, invocationSigner, client} = this;
     return client.update({doc, kek, hmac, capability, invocationSigner});
   }
+
+  /**
+   * Deletes this document from the data hub.
+   *
+   * @return {Promise<Boolean>} resolves to `true` if the document was deleted
+   *   and `false` if it did not exist.
+   */
+  async delete() {
+    const {id, capability, invocationSigner, client} = this;
+    return client.delete({id, capability, invocationSigner});
+  }
 }
 
 function _parseDataHubDocId(capability) {
