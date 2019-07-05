@@ -1,4 +1,4 @@
-# data-hub-client ChangeLog
+# secure-data-hub-client ChangeLog
 
 ## 1.0.0 - TBD
 

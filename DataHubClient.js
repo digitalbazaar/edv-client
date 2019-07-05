@@ -6,7 +6,7 @@
 import axios from 'axios';
 import base64url from 'base64url-universal';
 import crypto from './crypto.js';
-import {Cipher} from './Cipher.js';
+import {Cipher} from 'minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {TextEncoder, URL, base64Encode} from './util.js';
 import {createAuthzHeader, createSignatureString} from 'http-signature-header';
