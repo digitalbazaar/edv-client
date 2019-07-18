@@ -90,6 +90,9 @@ export class DataHubClient {
     if(url.endsWith(encodedDocId)) {
       url = url.substr(0, url.length - encodedDocId.length - 1);
     }
+    if(!capability) {
+      capability = `${this.id}/zcaps/documents`;
+    }
     const encrypted = await this._encrypt({doc, kek, hmac, update: false});
     try {
       // sign HTTP header
@@ -140,6 +143,9 @@ export class DataHubClient {
     const encrypted = await this._encrypt({doc, kek, hmac, update: true});
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
+    if(!capability) {
+      capability = this._getRootDocCapability(encrypted.id);
+    }
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
@@ -194,6 +200,9 @@ export class DataHubClient {
     // TODO: is appending `/index` the right way to accomplish this?
     const url = (DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id)) + '/index';
+    if(!capability) {
+      capability = this._getRootDocCapability(doc.id) + '/index';
+    }
     const entry = await this.indexHelper.createEntry({hmac, doc});
     try {
       // sign HTTP header
@@ -236,6 +245,9 @@ export class DataHubClient {
 
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
+    if(!capability) {
+      capability = this._getRootDocCapability(id);
+    }
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
@@ -277,6 +289,9 @@ export class DataHubClient {
 
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
+    if(!capability) {
+      capability = this._getRootDocCapability(id);
+    }
     let response;
     try {
       // sign HTTP header
@@ -338,9 +353,11 @@ export class DataHubClient {
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
     // get results and decrypt them
-    // TODO: is appending `query` the right way to do this?
     const url = (DataHubClient._getInvocationTarget({capability}) || this.id) +
       '/query';
+    if(!capability) {
+      capability = `${this.id}/zcaps/query`;
+    }
     // sign HTTP header
     const headers = await signCapabilityInvocation({
       url, method: 'post', headers: DEFAULT_HEADERS,
@@ -370,11 +387,12 @@ export class DataHubClient {
     _assertObject(capabilityToEnable);
 
     const url = `${this.id}/authorizations`;
+    const capability = `${this.id}/zcaps/authorizations`;
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
         url, method: 'post', headers: DEFAULT_HEADERS,
-        json: capabilityToEnable, invocationSigner,
+        json: capabilityToEnable, capability, invocationSigner,
         capabilityAction: 'write'
       });
       // send request
@@ -407,11 +425,12 @@ export class DataHubClient {
     _assertString(id);
 
     const url = `${this.id}/authorizations?id=${encodeURIComponent(id)}`;
+    const capability = `${this.id}/zcaps/authorizations`;
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
         url, method: 'delete', headers: DEFAULT_HEADERS,
-        invocationSigner,
+        capability, invocationSigner,
         // TODO: should `delete` be used here as a separate action?
         capabilityAction: 'write'
       });
@@ -629,6 +648,11 @@ export class DataHubClient {
   // helper that gets a document URL from a document ID
   _getDocUrl(id) {
     return `${this.id}/documents/${encodeURIComponent(id)}`;
+  }
+
+  // helper that gets a root zcap document URL from a document ID
+  _getRootDocCapability(id) {
+    return `${this.id}/zcaps/documents/${encodeURIComponent(id)}`;
   }
 
   static _getInvocationTarget({capability}) {
