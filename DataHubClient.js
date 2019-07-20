@@ -12,8 +12,7 @@ const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
 
 export class DataHubClient {
   /**
-   * Creates a new DataHub instance. The storage for the data hub must already
-   * exist and have an HTTPS API at the given `baseUrl`.
+   * Creates a new DataHub instance.
    *
    * In order to support portability (e.g., the use of DID URLs to reference
    * documents), Secure Data Hub storage MUST expose an HTTPS API with a URL
