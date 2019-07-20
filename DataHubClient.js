@@ -21,10 +21,10 @@ export class DataHubClient {
    * <authority>/<URI encoded data hub ID>/documents/<URI encoded document ID>
    *
    * @param {Object} options - The options to use.
-   * @param {string} [id=undefined] the ID of the data hub, to be used as a
-   *   root OCAP-LD authorization capability that must be a URL that refers to
-   *   the data hub's root storage location; if not given, then a separate
-   *   capability must be given to each method called on the client instance.
+   * @param {string} [id=undefined] the ID of the data hub that must be a URL
+   *   that refers to the data hub's root storage location; if not given, then
+   *   a separate capability must be given to each method called on the client
+   *   instance.
    * @param {Object} [kek=null] a default KEK API for wrapping content
    *   encryption keys.
    * @param {Object} [hmac=null] a default HMAC API for blinding indexable
