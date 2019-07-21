@@ -13,6 +13,8 @@ export class DataHubDocument {
    * @param {string} [options.id=undefined] the ID of the document; this is
    *   only necessary if the capability's `invocationTarget` is not for the
    *   document itself (but is for the entire data hub).
+   * @param {Array} [recipients=[]] an array of additional recipients for the
+   *   encrypted content.
    * @param {function} [keyResolver=this.keyResolver] a default function that
    *   returns a Promise that resolves a key ID to a DH public key.
    * @param {Object} [keyAgreementKey=null] a KeyAgreementKey API for deriving
@@ -29,12 +31,14 @@ export class DataHubDocument {
    * @returns {DataHubDocument} The new DataHubDocument instance.
    */
   constructor({
-    id, capability, invocationSigner, keyResolver = null,
+    id, capability, invocationSigner,
+    recipients = [], keyResolver = null,
     keyAgreementKey = null, hmac = null,
     // TODO: add `getKey`/`keyResolver`
     client = new DataHubClient()
   }) {
     this.id = id;
+    this.recipients = recipients;
     this.keyResolver = keyResolver;
     this.keyAgreementKey = keyAgreementKey;
     this.hmac = hmac;
@@ -70,7 +74,8 @@ export class DataHubDocument {
    *
    * @returns {Promise<Object>} resolves to the inserted document.
    */
-  async write({doc, recipients = [], keyResolver = this.keyResolver}) {
+  async write(
+    {doc, recipients = this.recipients, keyResolver = this.keyResolver}) {
     const {keyAgreementKey, hmac, capability, invocationSigner, client} = this;
     return client.update({
       doc, recipients, keyResolver,
