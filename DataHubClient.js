@@ -452,11 +452,13 @@ export class DataHubClient {
    * @param {Object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
    * @param {string} options.config - The data hub's configuration.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the newly
    *   created data hub.
    */
-  static async createDataHub({url = '/data-hubs', config}) {
+  static async createDataHub({url = '/data-hubs', config, httpsAgent}) {
     // TODO: more robustly validate `config` (`kek`, `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
@@ -464,7 +466,8 @@ export class DataHubClient {
     if(!(config.controller && typeof config.controller === 'string')) {
       throw new TypeError('"config.controller" must be a string.');
     }
-    const response = await axios.post(url, config, {headers: DEFAULT_HEADERS});
+    const response = await axios.post(
+      url, config, {headers: DEFAULT_HEADERS, httpsAgent});
     return response.data;
   }
 
@@ -475,12 +478,16 @@ export class DataHubClient {
    * @param {string} options.url - The url to query.
    * @param {string} options.controller - The ID of the controller.
    * @param {string} options.referenceId - A controller-unique reference ID.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Object>} resolves to the data hub configuration
    *   containing the given controller and reference ID.
    */
-  static async findConfig({url = '/data-hubs', controller, referenceId}) {
-    const results = await this.findConfigs({url, controller, referenceId});
+  static async findConfig(
+    {url = '/data-hubs', controller, referenceId, httpsAgent}) {
+    const results = await this.findConfigs(
+      {url, controller, referenceId, httpsAgent});
     return results[0] || null;
   }
 
@@ -493,14 +500,17 @@ export class DataHubClient {
    * @param {string} [options.referenceId] - A controller-unique reference ID.
    * @param {string} [options.after] - A data hub's ID.
    * @param {number} [options.limit] - How many data hub configs to return.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Array>} resolves to the matching data hub configurations.
    */
   static async findConfigs(
-    {url = '/data-hubs', controller, referenceId, after, limit}) {
+    {url = '/data-hubs', controller, referenceId, after, limit, httpsAgent}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: DEFAULT_HEADERS
+      headers: DEFAULT_HEADERS,
+      httpsAgent
     });
     return response.data;
   }
@@ -510,12 +520,15 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id the data hub's ID.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the data hub.
    */
-  static async getConfig({id}) {
+  static async getConfig({id, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
-    const response = await axios.get(id, {headers: DEFAULT_HEADERS});
+    const response = await axios.get(
+      id, {headers: DEFAULT_HEADERS, httpsAgent});
     return response.data;
   }
 
@@ -529,14 +542,17 @@ export class DataHubClient {
    * @param {string} options.id - The data hub's ID.
    * @param {Number} options.sequence - The data hub config's sequence number.
    * @param {Array<Object>} options.patch - A JSON patch per RFC6902.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async updateConfig({id, sequence, patch}) {
+  static async updateConfig({id, sequence, patch, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
     const patchHeaders = {'Content-Type': 'application/json-patch+json'};
     await axios.patch(id, {sequence, patch}, {
-      headers: {...DEFAULT_HEADERS, patchHeaders}
+      headers: {...DEFAULT_HEADERS, patchHeaders},
+      httpsAgent
     });
   }
 
@@ -546,14 +562,17 @@ export class DataHubClient {
    * @param {Object} options - The options to use.
    * @param {string} options.id - A data hub ID.
    * @param {string} options.status - Either `active` or `deleted`.
+   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async setStatus({id, status}) {
+  static async setStatus({id, status, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
     // FIXME: add ability to disable data hub access or to revoke all ocaps
     // that were delegated prior to a date of X.
-    await axios.post(`${id}/status`, {status}, {headers: DEFAULT_HEADERS});
+    await axios.post(
+      `${id}/status`, {status}, {headers: DEFAULT_HEADERS, httpsAgent});
   }
 
   // helper that decrypts an encrypted doc to include its (cleartext) content
