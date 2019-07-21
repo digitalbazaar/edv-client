@@ -413,12 +413,12 @@ export class DataHubClient {
    * data hub, preventing it from being invoked by its designated invoker.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.capability the ID of the capability to revoke.
+   * @param {Object} options.id the ID of the capability to revoke.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Boolean>} resolves to `true` if the document was deleted
-   *   and `false` if it did not exist.
+   * @return {Promise<Boolean>} resolves to `true` if the capability was
+   *   disabled and `false` if it did not exist.
    */
   async disableCapability({id, invocationSigner}) {
     _assertString(id);
