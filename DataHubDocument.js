@@ -72,8 +72,6 @@ export class DataHubDocument {
    */
   async write({doc, recipients = [], keyResolver = this.keyResolver}) {
     const {keyAgreementKey, hmac, capability, invocationSigner, client} = this;
-    // TODO: `getKey` will be required for encryption...
-    // TODO: might want to call it `keyResolver` or something instead?
     return client.update({
       doc, recipients, keyResolver,
       keyAgreementKey, hmac, capability, invocationSigner

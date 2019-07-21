@@ -106,7 +106,7 @@ export class DataHubClient {
     }
     // if no recipients specified, add default
     if(recipients.length === 0 && keyAgreementKey) {
-      recipients = this._createDefaultRecipients();
+      recipients = this._createDefaultRecipients(keyAgreementKey);
     }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: false});
@@ -165,16 +165,16 @@ export class DataHubClient {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
 
+    // if no recipients specified, add default
+    if(recipients.length === 0 && keyAgreementKey) {
+      recipients = this._createDefaultRecipients(keyAgreementKey);
+    }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: true});
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     if(!capability) {
       capability = this._getRootDocCapability(encrypted.id);
-    }
-    // if no recipients specified, add default
-    if(recipients.length === 0 && keyAgreementKey) {
-      recipients = this._createDefaultRecipients();
     }
     try {
       // sign HTTP header
@@ -612,8 +612,7 @@ export class DataHubClient {
   }
 
   // helper to create default recipients
-  _createDefaultRecipients() {
-    const {keyAgreementKey} = this;
+  _createDefaultRecipients(keyAgreementKey) {
     return keyAgreementKey ? [{
       header: {
         kid: keyAgreementKey.id,
