@@ -42,11 +42,11 @@ npm install
 
 ### Creating and registering a secure data hub
 
-First, create a KEK (key encryption key) and an HMAC (hash-based message
-authentication code) for encrypting your documents and blinding any indexed
-attributes in them. This requires creating some cryptographic key material
-which can be done locally or via a KMS system. The current example shows using
-a KMS system (TODO: show a simpler local example):
+First, create a key agreement key and an HMAC (hash-based message authentication
+code) key for encrypting your documents and blinding any indexed attributes in
+them. This requires creating some cryptographic key material which can be done
+locally or via a KMS system. The current example shows using a KMS system
+(TODO: show a simpler local example):
 
 ```js
 import {ControllerKey, KmsClient} from 'web-kms-client';
@@ -66,8 +66,11 @@ Optional:
 const kmsService = new KmsService();
 const controllerKey = await ControllerKey.fromSecret({secret, handle});
 
-// Use the Controller Key to create KEK (key encryption key) and HMAC keys
-const kek = await controllerKey.generateKey({type: 'kek'});
+// TODO: create keystore for controllerKey and update
+// controllerKey.kmsClient.keystore, or improve API to do this automatically
+
+// Use the Controller Key to create key agreement and HMAC keys
+const keyAgreementKey = await controllerKey.generateKey({type: 'keyAgreement'});
 const hmac = await controllerKey.generateKey({type: 'hmac'});
 ```
 
@@ -83,7 +86,7 @@ const config = {
   controller,
   // TODO: Explain what 'referenceId' is
   referenceId: 'primary',
-  kek: {id: kek.id, type: kek.type},
+  keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
   hmac: {id: hmac.id, type: hmac.type}
 };
 
@@ -91,7 +94,7 @@ const config = {
 const remoteConfig = await DataHubClient.createDataHub({config});
 
 // connect to the new data hub via a `DataHubClient`
-const hub = new DataHubClient({id: remoteConfig.id, kek, hmac});
+const hub = new DataHubClient({id: remoteConfig.id, keyAgreementKey, hmac});
 ```
 
 ### Loading a saved data hub config
@@ -107,7 +110,7 @@ const {id} = await DataHubClient.createDataHub({config});
 const remoteConfig = await DataHubClient.getConfig({id});
 
 // connect to the existing data hub via a `DataHubClient` instance
-const hub = new DataHubClient({id: remoteConfig.id, kek, hmac});
+const hub = new DataHubClient({id: remoteConfig.id, keyAgreementKey, hmac});
 ```
 
 If you know a controller/`accountId` but do not know a specific hub `id`, you
@@ -118,7 +121,7 @@ can request a data hub by a controller-scoped custom `referenceId`:
 // note that a referenceId can be any string but must be unique per controller
 const config = await DataHub.findConfig(
   {controller: accountId, referenceId: 'primary'});
-const hub = new DataHubClient({id: config.id, kek, hmac});
+const hub = new DataHubClient({id: config.id, keyAgreementKey, hmac});
 ```
 
 ### Using a DataHubClient instance for document storage

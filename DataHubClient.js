@@ -25,8 +25,10 @@ export class DataHubClient {
    *   that refers to the data hub's root storage location; if not given, then
    *   a separate capability must be given to each method called on the client
    *   instance.
-   * @param {Object} [kek=null] a default KEK API for wrapping content
-   *   encryption keys.
+   * @param {function} [keyResolver=this.keyResolver] a default function that
+   *   returns a Promise that resolves a key ID to a DH public key.
+   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   *   deriving shared KEKs for wrapping content encryption keys.
    * @param {Object} [hmac=null] a default HMAC API for blinding indexable
    *   attributes.
    * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
@@ -34,9 +36,10 @@ export class DataHubClient {
    *
    * @return {DataHubClient}.
    */
-  constructor({id, kek, hmac, httpsAgent} = {}) {
+  constructor({id, keyResolver, keyAgreementKey, hmac, httpsAgent} = {}) {
     this.id = id;
-    this.kek = kek;
+    this.keyResolver = keyResolver;
+    this.keyAgreementKey = keyAgreementKey;
     this.hmac = hmac;
     // TODO: support passing cipher `version`
     this.cipher = new Cipher();
@@ -65,8 +68,14 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
-   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
-   *   encryption keys.
+   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
+   *   the document for; if not present, a default recipient will be added
+   *   using `this.keyAgreementKey` and if no `keyAgreementKey` is set, an
+   *   error will be thrown.
+   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   *   a Promise that resolves a key ID to a DH public key.
+   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   *   deriving shared KEKs for wrapping content encryption keys.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -76,8 +85,11 @@ export class DataHubClient {
    *
    * @return {Promise<Object>} resolves to the inserted document.
    */
-  async insert(
-    {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
+  async insert({
+    doc, recipients = [], keyResolver = this.keyResolver,
+    keyAgreementKey = this.keyAgreementKey, hmac = this.hmac,
+    capability, invocationSigner
+  }) {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
 
@@ -92,7 +104,12 @@ export class DataHubClient {
     if(!capability) {
       capability = `${this.id}/zcaps/documents`;
     }
-    const encrypted = await this._encrypt({doc, kek, hmac, update: false});
+    // if no recipients specified, add default
+    if(recipients.length === 0 && keyAgreementKey) {
+      recipients = this._createDefaultRecipients();
+    }
+    const encrypted = await this._encrypt(
+      {doc, recipients, keyResolver, hmac, update: false});
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
@@ -123,8 +140,14 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
-   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
-   *   encryption keys.
+   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
+   *   the document for; if present, recipients will be added to any existing
+   *   recipients; to remove existing recipients, modify the
+   *   `encryptedDoc.jwe.recipients` field.
+   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   *   a Promise that resolves a key ID to a DH public key.
+   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   *   deriving shared KEKs for wrapping content encryption keys.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -134,16 +157,24 @@ export class DataHubClient {
    *
    * @return {Promise<Object>} resolves to the updated document.
    */
-  async update(
-    {doc, kek = this.kek, hmac = this.hmac, capability, invocationSigner}) {
+  async update({
+    doc, recipients = [], keyResolver = this.keyResolver,
+    keyAgreementKey = this.keyAgreementKey,
+    hmac = this.hmac, capability, invocationSigner
+  }) {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
 
-    const encrypted = await this._encrypt({doc, kek, hmac, update: true});
+    const encrypted = await this._encrypt(
+      {doc, recipients, keyResolver, hmac, update: true});
     const url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     if(!capability) {
       capability = this._getRootDocCapability(encrypted.id);
+    }
+    // if no recipients specified, add default
+    if(recipients.length === 0 && keyAgreementKey) {
+      recipients = this._createDefaultRecipients();
     }
     try {
       // sign HTTP header
@@ -273,8 +304,9 @@ export class DataHubClient {
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id the ID of the document to get.
-   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
-   *   encryption keys.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
+   *   encryption key.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
@@ -282,7 +314,9 @@ export class DataHubClient {
    *
    * @return {Promise<Object>} resolves to the document.
    */
-  async get({id, kek = this.kek, capability, invocationSigner}) {
+  async get({
+    id, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
+  }) {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
@@ -311,7 +345,7 @@ export class DataHubClient {
       }
       throw e;
     }
-    return this._decrypt({encryptedDoc: response.data, kek});
+    return this._decrypt({encryptedDoc: response.data, keyAgreementKey});
   }
 
   /**
@@ -328,8 +362,9 @@ export class DataHubClient {
    * contain documents that possess *all* of the attributes listed.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} [options.kek=this.kek] a Kek API for wrapping content
-   *   encryption keys.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
+   *   encryption key.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {Object|Array} [options.equals] - An object with key-value
@@ -344,7 +379,7 @@ export class DataHubClient {
    * @return {Promise<Array>} resolves to the matching documents.
    */
   async find({
-    kek = this.kek, hmac = this.hmac, equals, has,
+    keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
     capability, invocationSigner
   }) {
     _assertInvocationSigner(invocationSigner);
@@ -368,7 +403,7 @@ export class DataHubClient {
     const response = await axios.post(url, query, {headers, httpsAgent});
     const docs = response.data;
     return Promise.all(docs.map(
-      encryptedDoc => this._decrypt({encryptedDoc, kek})));
+      encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
   }
 
   /**
@@ -459,7 +494,8 @@ export class DataHubClient {
    *   created data hub.
    */
   static async createDataHub({url = '/data-hubs', config, httpsAgent}) {
-    // TODO: more robustly validate `config` (`kek`, `hmac`, if present, etc.)
+    // TODO: more robustly validate `config` (`keyAgreementKey`,
+    // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
     }
@@ -575,8 +611,19 @@ export class DataHubClient {
       `${id}/status`, {status}, {headers: DEFAULT_HEADERS, httpsAgent});
   }
 
+  // helper to create default recipients
+  async _createDefaultRecipients() {
+    const {keyAgreementKey} = this;
+    return keyAgreementKey ? [{
+      header: {
+        kid: keyAgreementKey.id,
+        alg: keyAgreementKey.algorithm
+      }
+    }] : [];
+  }
+
   // helper that decrypts an encrypted doc to include its (cleartext) content
-  async _decrypt({encryptedDoc, kek}) {
+  async _decrypt({encryptedDoc, keyAgreementKey}) {
     // validate `encryptedDoc`
     _assertObject(encryptedDoc, 'Encrypted document must be an object.');
     _assertString(
@@ -586,7 +633,7 @@ export class DataHubClient {
     // decrypt doc content
     const {cipher} = this;
     const {jwe} = encryptedDoc;
-    const data = await cipher.decryptObject({jwe, kek});
+    const data = await cipher.decryptObject({jwe, keyAgreementKey});
     if(data === null) {
       throw new Error('Decryption failed.');
     }
@@ -597,7 +644,7 @@ export class DataHubClient {
 
   // helper that creates an encrypted doc using a doc's (clear) content & meta
   // and blinding any attributes for indexing
-  async _encrypt({doc, kek, hmac, update}) {
+  async _encrypt({doc, recipients, keyResolver, hmac, update}) {
     const encrypted = {...doc};
     if(!encrypted.meta) {
       encrypted.meta = {};
@@ -629,23 +676,20 @@ export class DataHubClient {
 
     const {cipher, indexHelper} = this;
 
-    // update existing recipients
-    let recipients;
+    // include existing recipients
     if(encrypted.jwe && encrypted.jwe.recipients) {
-      if(!Array.isArray(encrypted.jwe.recipients)) {
-        throw new TypeError('Invalid existing "recipients" in JWE.');
-      }
-      recipients = encrypted.jwe.recipients.slice();
-      const recipient = recipients.find(
-        r => r.header.kid === kek.id && r.header.alg === kek.algorithm);
-      if(!recipient) {
-        recipients.push({
-          header: {
-            alg: kek.algorithm,
-            kid: kek.id
+      const prev = encrypted.jwe.recipients.slice();
+      if(recipients) {
+        // add any new recipients
+        for(const recipient of recipients) {
+          if(!_findRecipient(prev, recipient)) {
+            prev.push(recipient);
           }
-        });
+        }
       }
+      recipients = prev;
+    } else if(!(Array.isArray(recipients) && recipients.length > 0)) {
+      throw new TypeError('"recipients" must be a non-empty array.');
     }
 
     // update indexed entries and jwe
@@ -653,7 +697,7 @@ export class DataHubClient {
     const [indexed, jwe] = await Promise.all([
       hmac ? indexHelper.updateEntry({hmac, doc: encrypted}) :
         (doc.indexed || []),
-      cipher.encryptObject({obj: {content, meta}, kek, recipients})
+      cipher.encryptObject({obj: {content, meta}, recipients, keyResolver})
     ]);
 
     delete encrypted.content;
@@ -730,4 +774,10 @@ function _assertFunction(x, msg) {
   if(typeof x !== 'function') {
     throw new TypeError(msg);
   }
+}
+
+function _findRecipient(recipients, recipient) {
+  const {kid, alg} = recipient.header;
+  return recipients.find(
+    r => r.header.kid === kid && r.header.alg === alg);
 }

@@ -13,7 +13,10 @@ export class DataHubDocument {
    * @param {string} [options.id=undefined] the ID of the document; this is
    *   only necessary if the capability's `invocationTarget` is not for the
    *   document itself (but is for the entire data hub).
-   * @param {Object} kek a KEK API for wrapping content encryption keys.
+   * @param {function} [keyResolver=this.keyResolver] a default function that
+   *   returns a Promise that resolves a key ID to a DH public key.
+   * @param {Object} [keyAgreementKey=null] a KeyAgreementKey API for deriving
+   *   KEKs for wrapping/unwrapping content encryption keys.
    * @param {Object} [hmac=null] an HMAC API for blinding indexable
    *   attributes.
    * @param {Object} [options.capability=undefined] - The OCAP-LD authorization
@@ -26,11 +29,14 @@ export class DataHubDocument {
    * @returns {DataHubDocument} The new DataHubDocument instance.
    */
   constructor({
-    id, capability, invocationSigner, kek = null, hmac = null,
+    id, capability, invocationSigner, keyResolver = null,
+    keyAgreementKey = null, hmac = null,
+    // TODO: add `getKey`/`keyResolver`
     client = new DataHubClient()
   }) {
     this.id = id;
-    this.kek = kek;
+    this.keyResolver = keyResolver;
+    this.keyAgreementKey = keyAgreementKey;
     this.hmac = hmac;
     this.capability = capability;
     if(!this.id) {
@@ -48,8 +54,8 @@ export class DataHubDocument {
    * @returns {Promise<Object>} resolves to the decrypted document.
    */
   async read() {
-    const {id, kek, capability, invocationSigner, client} = this;
-    return client.get({id, kek, capability, invocationSigner});
+    const {id, keyAgreementKey, capability, invocationSigner, client} = this;
+    return client.get({id, keyAgreementKey, capability, invocationSigner});
   }
 
   /**
@@ -57,12 +63,21 @@ export class DataHubDocument {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc - The unencrypted document to update/insert.
+   * @param {Array} [recipients=[]] an array of additional recipients for the
+   *   encrypted content.
+   * @param {function} keyResolver a function that returns a Promise
+   *   that resolves a key ID to a DH public key.
    *
    * @returns {Promise<Object>} resolves to the inserted document.
    */
-  async write({doc}) {
-    const {kek, hmac, capability, invocationSigner, client} = this;
-    return client.update({doc, kek, hmac, capability, invocationSigner});
+  async write({doc, recipients = [], keyResolver = this.keyResolver}) {
+    const {keyAgreementKey, hmac, capability, invocationSigner, client} = this;
+    // TODO: `getKey` will be required for encryption...
+    // TODO: might want to call it `keyResolver` or something instead?
+    return client.update({
+      doc, recipients, keyResolver,
+      keyAgreementKey, hmac, capability, invocationSigner
+    });
   }
 
   /**
