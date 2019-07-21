@@ -617,7 +617,8 @@ export class DataHubClient {
     return keyAgreementKey ? [{
       header: {
         kid: keyAgreementKey.id,
-        alg: keyAgreementKey.algorithm
+        // only supported algorithm
+        alg: 'ECDH-ES+A256KW'
       }
     }] : [];
   }
