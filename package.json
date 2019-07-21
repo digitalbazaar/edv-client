@@ -25,7 +25,7 @@
     "axios": "^0.18.0",
     "esm": "^3.2.22",
     "http-signature-zcap-invoke": "github:digitalbazaar/http-signature-zcap-invoke#initial",
-    "minimal-cipher": "github:digitalbazaar/minimal-cipher#initial",
+    "minimal-cipher": "github:digitalbazaar/minimal-cipher#key-agreement",
     "split-string": "^6.1.0"
   },
   "devDependencies": {
