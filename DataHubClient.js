@@ -612,7 +612,7 @@ export class DataHubClient {
   }
 
   // helper to create default recipients
-  async _createDefaultRecipients() {
+  _createDefaultRecipients() {
     const {keyAgreementKey} = this;
     return keyAgreementKey ? [{
       header: {
