@@ -26,7 +26,8 @@
     "esm": "^3.2.22",
     "http-signature-zcap-invoke": "github:digitalbazaar/http-signature-zcap-invoke#initial",
     "minimal-cipher": "github:digitalbazaar/minimal-cipher#key-agreement",
-    "split-string": "^6.1.0"
+    "split-string": "^6.1.0",
+    "web-streams-polyfill": "^2.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",

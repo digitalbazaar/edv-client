@@ -7,8 +7,12 @@ import axios from 'axios';
 import {Cipher} from 'minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
+import {ReadableStream, WritableStream} from './util.js';
 
 const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
+
+// 1 MiB = 1048576
+const DEFAULT_CHUNK_SIZE = 1048576;
 
 export class DataHubClient {
   /**
@@ -64,10 +68,17 @@ export class DataHubClient {
   /**
    * Encrypts and inserts a document into the data hub if it does not already
    * exist. If a document matching its ID already exists, a `DuplicateError` is
-   * thrown.
+   * thrown. If a `stream` is given, the document will be inserted, then
+   * the stream will be read, chunked, and stored. Finally, the document will
+   * be updated to include meta data about the stored data from the stream,
+   * including a message digest.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
+   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   *   from to associate chunked data with this document.
+   * @param {number} [chunkSize=1048576] the size, in bytes, of the chunks to
+   *   break the incoming stream data into.
    * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
    *   the document for; if not present, a default recipient will be added
    *   using `this.keyAgreementKey` and if no `keyAgreementKey` is set, an
@@ -86,7 +97,7 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the inserted document.
    */
   async insert({
-    doc, recipients = [], keyResolver = this.keyResolver,
+    doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac,
     capability, invocationSigner
   }) {
@@ -97,16 +108,35 @@ export class DataHubClient {
       this._getDocUrl(doc.id);
     // trim document ID and trailing slash, if present, to post to root
     // collection
+    // FIXME: remove need for encoding doc ID, verify it is a multibase
+    // base58-encoded chunk of 16 bytes
     const encodedDocId = encodeURIComponent(doc.id);
     if(url.endsWith(encodedDocId)) {
       url = url.substr(0, url.length - encodedDocId.length - 1);
     }
+    // track stream capability differently because the default is different;
+    // generally speaking, only the root capability will work cleanly with
+    // an `insert` call, calls that don't use the default, root zcap are
+    // expected to be done via `update` not `insert`
+    let streamCapability = capability;
     if(!capability) {
       capability = `${this.id}/zcaps/documents`;
     }
     // if no recipients specified, add default
     if(recipients.length === 0 && keyAgreementKey) {
       recipients = this._createDefaultRecipients(keyAgreementKey);
+    }
+    // if a stream was specified, indicate a new stream of data will be
+    // associated with this document
+    if(stream) {
+      if(!doc.meta) {
+        doc.meta = {};
+      }
+      // specify stream information
+      doc.meta.stream = {
+        pending: true
+      };
+      keyResolver = _createCachedKeyResolver(keyResolver);
     }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: false});
@@ -122,7 +152,22 @@ export class DataHubClient {
       await axios.post(url, encrypted, {headers, httpsAgent});
       encrypted.content = doc.content;
       encrypted.meta = doc.meta;
-      return encrypted;
+      let result = encrypted;
+
+      // if a `stream` was given, update it
+      if(stream) {
+        if(!streamCapability) {
+          // root stream capability is based off of document, not `/documents`
+          streamCapability = this._getRootDocCapability(encrypted.id);
+        }
+        result = await this._updateStream({
+          doc: encrypted, stream, chunkSize,
+          recipients: recipients.slice(), keyResolver,
+          keyAgreementKey, capability: streamCapability, invocationSigner
+        });
+      }
+
+      return result;
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -136,10 +181,17 @@ export class DataHubClient {
 
   /**
    * Encrypts and updates a document in the data hub. If the document does not
-   * already exist, it is created.
+   * already exist, it is created. If a `stream` is provided, the document
+   * will be updated twice, once using the given update and a second time
+   * once the stream has been read, chunked, and stored to include meta data
+   * information such as the stream data's message digest.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc the document to insert.
+   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   *   from to associate chunked data with this document.
+   * @param {number} [chunkSize=1048576] the size, in bytes, of the chunks to
+   *   break the incoming stream data into.
    * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
    *   the document for; if present, recipients will be added to any existing
    *   recipients; to remove existing recipients, modify the
@@ -158,7 +210,7 @@ export class DataHubClient {
    * @return {Promise<Object>} resolves to the updated document.
    */
   async update({
-    doc, recipients = [], keyResolver = this.keyResolver,
+    doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey,
     hmac = this.hmac, capability, invocationSigner
   }) {
@@ -168,6 +220,18 @@ export class DataHubClient {
     // if no recipients specified, add default
     if(recipients.length === 0 && keyAgreementKey) {
       recipients = this._createDefaultRecipients(keyAgreementKey);
+    }
+    // if a stream was specified, indicate a new stream of data will be
+    // associated with this document
+    if(stream) {
+      if(!doc.meta) {
+        doc.meta = {};
+      }
+      // specify stream information
+      doc.meta.stream = {
+        pending: true
+      };
+      keyResolver = _createCachedKeyResolver(keyResolver);
     }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: true});
@@ -197,7 +261,18 @@ export class DataHubClient {
     }
     encrypted.content = doc.content;
     encrypted.meta = doc.meta;
-    return encrypted;
+    let result = encrypted;
+
+    // if a `stream` was given, update it
+    if(stream) {
+      result = await this._updateStream({
+        doc: encrypted, stream, chunkSize,
+        recipients: recipients.slice(), keyResolver,
+        keyAgreementKey, hmac, capability, invocationSigner
+      });
+    }
+
+    return result;
   }
 
   /**
@@ -346,6 +421,58 @@ export class DataHubClient {
       throw e;
     }
     return this._decrypt({encryptedDoc: response.data, keyAgreementKey});
+  }
+
+  /**
+   * Gets a `ReadableStream` to read the chunked data associated with a
+   * document.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.doc the document to get a stream for.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
+   *   encryption key.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @return {Promise<ReadableStream>} resolves to a `ReadableStream` to read
+   *   the chunked data from.
+   */
+  async getStream({
+    doc, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
+  }) {
+    _assertObject(doc, '"doc" must be an object.');
+    _assertString(doc.id, '"doc.id" must be a string.');
+    _assertObject(doc.meta, '"doc.meta" must be an object.');
+    _assertInvocationSigner(invocationSigner);
+
+    const self = this;
+    const {cipher} = this;
+    const state = doc.meta.stream;
+    if(!state) {
+      throw new Error('"Document has no associated chunked data."');
+    }
+    let chunkIndex = 0;
+    const stream = new ReadableStream({
+      async pull(controller) {
+        // Note: user will call `read` on the decrypt stream... which will
+        // trigger a pull here
+        if(chunkIndex >= state.chunks) {
+          // done
+          controller.close();
+          return;
+        }
+        // get next chunk and enqueue it for reading
+        const chunk = await self._getChunk(
+          {doc, chunkIndex, capability, invocationSigner});
+        chunkIndex++;
+        controller.enqueue(chunk);
+      }
+    });
+    const decryptStream = await cipher.createDecryptStream({keyAgreementKey});
+    return stream.pipeThrough(decryptStream);
   }
 
   /**
@@ -717,6 +844,127 @@ export class DataHubClient {
     return `${this.id}/zcaps/documents/${encodeURIComponent(id)}`;
   }
 
+  // helper that creates or updates a stream of data associated with a doc
+  async _updateStream({
+    doc, stream, chunkSize = DEFAULT_CHUNK_SIZE,
+    recipients, keyResolver, keyAgreementKey, hmac,
+    capability, invocationSigner
+  }) {
+    const {cipher} = this;
+    const encryptStream = await cipher.createEncryptStream(
+      {recipients, keyResolver, chunkSize});
+
+    // // TODO: tee `stream` to digest stream as well
+    // const [forDigest, forStorage] = stream.tee();
+    // const digestPromise = forDigest.pipeTo(_createDigestStream());
+
+    // pipe user supplied `stream` through the encrypt stream
+    //const readable = forStorage.pipeThrough(encryptStream);
+    const readable = stream.pipeThrough(encryptStream);
+    const reader = readable.getReader();
+
+    // continually read from encrypt stream and upload result
+    let value;
+    let done;
+    let chunks = 0;
+    while(!done) {
+      // read next encrypted chunk
+      ({value, done} = await reader.read());
+      if(!value) {
+        break;
+      }
+
+      // create chunk
+      chunks++;
+      const chunk = {
+        sequence: doc.sequence,
+        ...value,
+      };
+
+      // TODO: in theory could do encryption and sending in parallel, they
+      // are safely independent operations, consider this optimization
+      await this._storeChunk({doc, chunk, capability, invocationSigner});
+    }
+
+    // TODO: await digest from tee'd stream
+    // const contentHash = await digestPromise();
+
+    // write total number of chunks and digest of plaintext in doc update
+    doc.meta.stream = {
+      sequence: doc.sequence,
+      chunks,
+      //contentHash
+    };
+    return this.update({
+      doc, recipients, keyResolver, keyAgreementKey, hmac,
+      capability, invocationSigner
+    });
+  }
+
+  async _storeChunk({doc, chunk, capability, invocationSigner}) {
+    let url = DataHubClient._getInvocationTarget({capability}) ||
+      this._getDocUrl(doc.id);
+    if(!capability) {
+      capability = this._getRootDocCapability(doc.id);
+    }
+    // append `/chunks/<chunkIndex>`
+    const {index} = chunk;
+    url += `/chunks/${index}`;
+    try {
+      // sign HTTP header
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: chunk, capability, invocationSigner,
+        capabilityAction: 'write'
+      });
+      // send request
+      const {httpsAgent} = this;
+      await axios.post(url, chunk, {headers, httpsAgent});
+    } catch(e) {
+      const {response = {}} = e;
+      if(response.status === 409) {
+        const err = new Error('Conflict error.');
+        err.name = 'InvalidStateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  async _getChunk({doc, chunkIndex, capability, invocationSigner}) {
+    let url = DataHubClient._getInvocationTarget({capability}) ||
+      this._getDocUrl(doc.id);
+    if(!capability) {
+      capability = this._getRootDocCapability(doc.id);
+    }
+    // append `/chunks/<chunkIndex>`
+    url += `/chunks/${chunkIndex}`;
+    let response;
+    try {
+      // sign HTTP header
+      const headers = await signCapabilityInvocation({
+        url, method: 'get', headers: DEFAULT_HEADERS,
+        capability, invocationSigner,
+        capabilityAction: 'read'
+      });
+      // send request
+      const {httpsAgent} = this;
+      response = await axios.get(url, {headers, httpsAgent});
+    } catch(e) {
+      response = e.response || {};
+      if(response.status === 404) {
+        const err = new Error('Document chunk not found.');
+        err.name = 'NotFoundError';
+        throw err;
+      }
+      throw e;
+    }
+    // TODO: validate response.data
+
+    // return chunk
+    return response.data;
+  }
+
   static _getInvocationTarget({capability}) {
     // TODO: use ocapld.getTarget() utility function?
     if(!(capability && typeof capability === 'object')) {
@@ -780,4 +1028,19 @@ function _findRecipient(recipients, recipient) {
   const {kid, alg} = recipient.header;
   return recipients.find(
     r => r.header.kid === kid && r.header.alg === alg);
+}
+
+function _createCachedKeyResolver(keyResolver) {
+  const cache = {};
+  return async id => {
+    let key = cache[id];
+    if(key) {
+      return key;
+    }
+    key = await keyResolver(id);
+    if(key) {
+      cache[id] = key;
+    }
+    return key;
+  };
 }
