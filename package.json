@@ -16,6 +16,8 @@
     "DataHubClient.js",
     "DataHubDocument.js",
     "IndexHelper.js",
+    "base58.js",
+    "baseN.js",
     "index.js",
     "main.js",
     "util-browser.js",

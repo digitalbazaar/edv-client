@@ -18,3 +18,9 @@ if(!WritableStream) {
   self.WritableStream = WritableStream = Writable;
 }
 export {ReadableStream, WritableStream};
+
+const crypto = (self.crypto || self.msCrypto);
+
+export async function getRandomBytes(buf) {
+  return crypto.getRandomValues(buf);
+}

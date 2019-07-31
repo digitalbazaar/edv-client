@@ -4,10 +4,11 @@
 'use strict';
 
 import axios from 'axios';
+import * as base58 from './base58';
 import {Cipher} from 'minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
-import {ReadableStream, WritableStream} from './util.js';
+import {ReadableStream, getRandomBytes} from './util.js';
 
 const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
 
@@ -22,7 +23,7 @@ export class DataHubClient {
    * documents), Secure Data Hub storage MUST expose an HTTPS API with a URL
    * structure that is partitioned like so:
    *
-   * <authority>/<URI encoded data hub ID>/documents/<URI encoded document ID>
+   * <authority>/<datahubID>/documents/<documentID>
    *
    * @param {Object} options - The options to use.
    * @param {string} [id=undefined] the ID of the data hub that must be a URL
@@ -104,15 +105,17 @@ export class DataHubClient {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
 
+    // auto generate document ID
+    if(doc.id === undefined) {
+      doc.id = await DataHubClient.generateId();
+    }
+
     let url = DataHubClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
     // trim document ID and trailing slash, if present, to post to root
     // collection
-    // FIXME: remove need for encoding doc ID, verify it is a multibase
-    // base58-encoded chunk of 16 bytes
-    const encodedDocId = encodeURIComponent(doc.id);
-    if(url.endsWith(encodedDocId)) {
-      url = url.substr(0, url.length - encodedDocId.length - 1);
+    if(url.endsWith(doc.id)) {
+      url = url.substr(0, url.length - doc.id.length - 1);
     }
     // track stream capability differently because the default is different;
     // generally speaking, only the root capability will work cleanly with
@@ -215,6 +218,7 @@ export class DataHubClient {
     hmac = this.hmac, capability, invocationSigner
   }) {
     _assertDocument(doc);
+    _assertString(doc.id, '"doc.id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
     // if no recipients specified, add default
@@ -299,6 +303,7 @@ export class DataHubClient {
    */
   async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
+    _assertString(doc.id, '"doc.id" must be a string.');
     _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
 
@@ -738,6 +743,23 @@ export class DataHubClient {
       `${id}/status`, {status}, {headers: DEFAULT_HEADERS, httpsAgent});
   }
 
+  /**
+   * Generates a multibase encoded random 128-bit identifier for a document.
+   *
+   * @return {Promise<string>} resolves to the identifier.
+   */
+  static async generateId() {
+    // 128-bit random number, multibase encoded
+    // 0x00 = identity tag, 0x10 = length (16 bytes) + 16 random bytes
+    const buf = new Uint8Array(18);
+    buf[0] = 0x00;
+    buf[1] = 0x10;
+    const random = new Uint8Array(buf.buffer, buf.byteOffset + 2, 16);
+    getRandomBytes(random);
+    // multibase encoding for base58 starts with 'z'
+    return 'z' + base58.encode(buf);
+  }
+
   // helper to create default recipients
   _createDefaultRecipients(keyAgreementKey) {
     return keyAgreementKey ? [{
@@ -836,12 +858,12 @@ export class DataHubClient {
 
   // helper that gets a document URL from a document ID
   _getDocUrl(id) {
-    return `${this.id}/documents/${encodeURIComponent(id)}`;
+    return `${this.id}/documents/${id}`;
   }
 
   // helper that gets a root zcap document URL from a document ID
   _getRootDocCapability(id) {
-    return `${this.id}/zcaps/documents/${encodeURIComponent(id)}`;
+    return `${this.id}/zcaps/documents/${id}`;
   }
 
   // helper that creates or updates a stream of data associated with a doc
@@ -994,9 +1016,28 @@ function _checkIndexing(hmac) {
 function _assertDocument(doc) {
   _assertObject(doc, '"doc" must be an object.');
   const {id, content, meta = {}} = doc;
-  _assertString(id, '"doc.id" must be a string.');
+  if(id !== undefined) {
+    _assertDocId(doc.id);
+  }
   _assertObject(content, '"doc.content" must be an object.');
   _assertObject(meta, '"doc.meta" must be an object.');
+}
+
+function _assertDocId(id) {
+  try {
+    // verify ID is multibase base58-encoded 16 bytes
+    const buf = base58.decode(id.substr(1));
+    // multibase base58 (starts with 'z')
+    // 128-bit random number, multibase encoded
+    // 0x00 = identity tag, 0x10 = length (16 bytes) + 16 random bytes
+    if(!(id.startsWith('z') &&
+      buf.length === 18 && buf[0] === 0x00 && buf[1] === 0x10)) {
+      throw new Error('Invalid document ID.');
+    }
+  } catch(e) {
+    throw new Error(`Document ID "${id}" must be a multibase, base58-encoded ` +
+      'array of 16 random bytes.');
+  }
 }
 
 function _assertInvocationSigner(invocationSigner) {
