@@ -1,6 +1,6 @@
 {
   "name": "secure-data-hub-client",
-  "version": "1.0.0",
+  "version": "1.0.1-0",
   "description": "JavaScript Secure Data Hub client",
   "license": "BSD-3-Clause",
   "main": "index.js",
