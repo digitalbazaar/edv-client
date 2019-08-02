@@ -34,7 +34,6 @@ export class DataHubDocument {
     id, capability, invocationSigner,
     recipients = [], keyResolver = null,
     keyAgreementKey = null, hmac = null,
-    // TODO: add `getKey`/`keyResolver`
     client = new DataHubClient()
   }) {
     this.id = id;
