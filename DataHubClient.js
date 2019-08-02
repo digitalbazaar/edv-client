@@ -132,11 +132,8 @@ export class DataHubClient {
     // if a stream was specified, indicate a new stream of data will be
     // associated with this document
     if(stream) {
-      if(!doc.meta) {
-        doc.meta = {};
-      }
       // specify stream information
-      doc.meta.stream = {
+      doc.stream = {
         pending: true
       };
       keyResolver = _createCachedKeyResolver(keyResolver);
@@ -155,6 +152,9 @@ export class DataHubClient {
       await axios.post(url, encrypted, {headers, httpsAgent});
       encrypted.content = doc.content;
       encrypted.meta = doc.meta;
+      if(doc.stream !== undefined) {
+        encrypted.stream = doc.stream;
+      }
       let result = encrypted;
 
       // if a `stream` was given, update it
@@ -265,6 +265,9 @@ export class DataHubClient {
     }
     encrypted.content = doc.content;
     encrypted.meta = doc.meta;
+    if(doc.stream !== undefined) {
+      encrypted.stream = doc.stream;
+    }
     let result = encrypted;
 
     // if a `stream` was given, update it
@@ -450,12 +453,12 @@ export class DataHubClient {
   }) {
     _assertObject(doc, '"doc" must be an object.');
     _assertString(doc.id, '"doc.id" must be a string.');
-    _assertObject(doc.meta, '"doc.meta" must be an object.');
+    _assertObject(doc.stream, '"doc.stream" must be an object.');
     _assertInvocationSigner(invocationSigner);
 
     const self = this;
     const {cipher} = this;
-    const state = doc.meta.stream;
+    const state = doc.stream;
     if(!state) {
       throw new Error('"Document has no associated chunked data."');
     }
@@ -786,13 +789,17 @@ export class DataHubClient {
     if(data === null) {
       throw new Error('Decryption failed.');
     }
-    const {content, meta} = data;
-    // append decrypted content and meta
-    return {...encryptedDoc, content, meta};
+    const {content, meta, stream} = data;
+    // append decrypted content, meta, and stream
+    const doc = {...encryptedDoc, content, meta};
+    if(stream !== undefined) {
+      doc.stream = stream;
+    }
+    return doc;
   }
 
-  // helper that creates an encrypted doc using a doc's (clear) content & meta
-  // and blinding any attributes for indexing
+  // helper that creates an encrypted doc using a doc's (clear) content,
+  // meta, and stream ... and blinding any attributes for indexing
   async _encrypt({doc, recipients, keyResolver, hmac, update}) {
     const encrypted = {...doc};
     if(!encrypted.meta) {
@@ -842,15 +849,20 @@ export class DataHubClient {
     }
 
     // update indexed entries and jwe
-    const {content, meta} = doc;
+    const {content, meta, stream} = doc;
+    const obj = {content, meta};
+    if(stream !== undefined) {
+      obj.stream = stream;
+    }
     const [indexed, jwe] = await Promise.all([
       hmac ? indexHelper.updateEntry({hmac, doc: encrypted}) :
         (doc.indexed || []),
-      cipher.encryptObject({obj: {content, meta}, recipients, keyResolver})
+      cipher.encryptObject({obj, recipients, keyResolver})
     ]);
 
     delete encrypted.content;
     delete encrypted.meta;
+    delete encrypted.stream;
     encrypted.indexed = indexed;
     encrypted.jwe = jwe;
     return encrypted;
@@ -912,7 +924,7 @@ export class DataHubClient {
     // const contentHash = await digestPromise();
 
     // write total number of chunks and digest of plaintext in doc update
-    doc.meta.stream = {
+    doc.stream = {
       sequence: doc.sequence,
       chunks,
       //contentHash
@@ -1015,12 +1027,15 @@ function _checkIndexing(hmac) {
 
 function _assertDocument(doc) {
   _assertObject(doc, '"doc" must be an object.');
-  const {id, content, meta = {}} = doc;
+  const {id, content, meta = {}, stream} = doc;
   if(id !== undefined) {
     _assertDocId(doc.id);
   }
   _assertObject(content, '"doc.content" must be an object.');
   _assertObject(meta, '"doc.meta" must be an object.');
+  if(stream !== undefined) {
+    _assertObject(stream, '"doc.stream" must be an object if present.');
+  }
 }
 
 function _assertDocId(id) {
