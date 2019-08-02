@@ -1,5 +1,7 @@
 # secure-data-hub-client ChangeLog
 
+## 1.0.0 - 2019-08-02
+
 ## 0.1.0 - 2019-08-02
 
 ### Added
