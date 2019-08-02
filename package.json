@@ -26,7 +26,7 @@
   "dependencies": {
     "axios": "^0.18.0",
     "esm": "^3.2.22",
-    "http-signature-zcap-invoke": "github:digitalbazaar/http-signature-zcap-invoke#initial",
+    "http-signature-zcap-invoke": "^1.0.0",
     "minimal-cipher": "github:digitalbazaar/minimal-cipher#key-agreement",
     "split-string": "^6.1.0",
     "web-streams-polyfill": "^2.0.3"
