@@ -1,6 +1,6 @@
 # secure-data-hub-client ChangeLog
 
-## 1.0.2 - 2019-08-xx
+## 1.0.2 - 2019-08-05
 
 ### Fixed
 - Await random byte generation.
