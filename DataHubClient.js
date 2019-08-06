@@ -758,7 +758,7 @@ export class DataHubClient {
     buf[0] = 0x00;
     buf[1] = 0x10;
     const random = new Uint8Array(buf.buffer, buf.byteOffset + 2, 16);
-    getRandomBytes(random);
+    await getRandomBytes(random);
     // multibase encoding for base58 starts with 'z'
     return 'z' + base58.encode(buf);
   }
