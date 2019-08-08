@@ -1,5 +1,10 @@
 # secure-data-hub-client ChangeLog
 
+## 1.0.3 - 2019-08-08
+
+### Fixed
+- Fix API when extending the keyResolver in cached key resolver.
+
 ## 1.0.2 - 2019-08-05
 
 ### Fixed
