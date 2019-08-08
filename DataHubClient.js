@@ -1088,12 +1088,12 @@ function _findRecipient(recipients, recipient) {
 
 function _createCachedKeyResolver(keyResolver) {
   const cache = {};
-  return async id => {
+  return async ({id}) => {
     let key = cache[id];
     if(key) {
       return key;
     }
-    key = await keyResolver(id);
+    key = await keyResolver({id});
     if(key) {
       cache[id] = key;
     }
