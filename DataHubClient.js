@@ -704,25 +704,28 @@ export class DataHubClient {
   }
 
   /**
-   * Updates a data hub configuration via a JSON patch as specified by:
-   * [json patch format]{@link https://tools.ietf.org/html/rfc6902}
-   * [we use fast-json]{@link https://www.npmjs.com/package/fast-json-patch}
-   * to apply json patches.
+   * Updates a data hub configuration. The new configuration `sequence` must
+   * be incremented by `1` over the previous configuration or the update will
+   * fail.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id - The data hub's ID.
-   * @param {Number} options.sequence - The data hub config's sequence number.
-   * @param {Array<Object>} options.patch - A JSON patch per RFC6902.
+   * @param {Object} options.config - The new data hub config.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async updateConfig({id, sequence, patch, httpsAgent}) {
+  static async updateConfig({id, config, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
-    const patchHeaders = {'Content-Type': 'application/json-patch+json'};
-    await axios.patch(id, {sequence, patch}, {
-      headers: {...DEFAULT_HEADERS, patchHeaders},
+    if(!(config && typeof config === 'object')) {
+      throw new TypeError('"config" must be an object.');
+    }
+    if(!(config.controller && typeof config.controller === 'string')) {
+      throw new TypeError('"config.controller" must be a string.');
+    }
+    await axios.post(id, config, {
+      headers: DEFAULT_HEADERS,
       httpsAgent
     });
   }
