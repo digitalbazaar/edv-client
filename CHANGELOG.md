@@ -1,6 +1,6 @@
 # secure-data-hub-client ChangeLog
 
-## 1.1.0 - 2019-08-xx
+## 1.1.0 - 2019-08-12
 
 ### Added
 - Fix and enable `updateConfig` API.
