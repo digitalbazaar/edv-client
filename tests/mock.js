@@ -4,7 +4,7 @@
 import {DataHubClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
-import {MockKek} from './MockKek.js';
+import {MockKeyAgreementKey} from './MockKeyAgreementKey.js';
 import {MockHmac} from './MockHmac.js';
 
 // FIXME use mock test data
@@ -24,24 +24,24 @@ class TestMock {
       // create mock keys
       this.keys = {};
 
-      // create KEK and HMAC keys for creating data hubs
-      this.keys.kek = await MockKek.create();
+      // create KAK and HMAC keys for creating data hubs
+      this.keys.keyAgreementKey = await MockKeyAgreementKey.create();
       this.keys.hmac = await MockHmac.create();
     }
   }
   async createDataHub({controller = this.accountId, referenceId} = {}) {
-    const {kek, hmac} = this.keys;
+    const {keyAgreementKey, hmac} = this.keys;
     let config = {
       sequence: 0,
       controller,
-      kek: {id: kek.id, type: kek.type},
+      keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
       hmac: {id: hmac.id, type: hmac.type}
     };
     if(referenceId) {
       config.referenceId = referenceId;
     }
     config = await DataHubClient.createDataHub({config});
-    return new DataHubClient({id: config.id, kek, hmac});
+    return new DataHubClient({id: config.id, keyAgreementKey, hmac});
   }
 }
 

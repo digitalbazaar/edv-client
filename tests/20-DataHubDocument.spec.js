@@ -19,7 +19,7 @@ describe('DataHubDocument', () => {
     await client.insert({doc: doc1});
     const doc = new DataHubDocument({
       id: doc1.id,
-      kek: client.kek,
+      keyAgreementKey: client.keyAgreementKey,
       capability: {
         id: `${client.id}`,
         invocationTarget: `${client.id}/documents/${doc1.id}`
