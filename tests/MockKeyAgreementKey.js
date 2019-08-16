@@ -6,7 +6,7 @@
 import crypto from '../crypto.js';
 import * as base64url from 'base64url-universal';
 
-export class MockKeyAgreement {
+export class MockKeyAgreementKey {
   constructor({id, type, algorithm, key}) {
     this.id = id;
     this.type = type;
@@ -16,7 +16,7 @@ export class MockKeyAgreement {
 
   static async create() {
     // random test data
-    const id = 'urn:mockkek:1';
+    const id = 'urn:mockkak:1';
     const type = 'AesKeyWrappingKey2019';
     const algorithm = 'A256KW';
     const data =
@@ -25,12 +25,12 @@ export class MockKeyAgreement {
     const key = await crypto.subtle.importKey(
       'raw', data, {name: 'AES-KW', length: 256}, extractable,
       ['wrapKey', 'unwrapKey']);
-    const kek = new MockKeyAgreement({id, type, algorithm, key});
-    return kek;
+    const kak = new MockKeyAgreementKey({id, type, algorithm, key});
+    return kak;
   }
 
   async wrapKey({unwrappedKey}) {
-    const kek = this.key;
+    const kak = this.key;
 
     // Note: algorithm name doesn't matter; will exported raw.
     // TODO: support other key lengths?
@@ -39,25 +39,25 @@ export class MockKeyAgreement {
       'raw', unwrappedKey, {name: 'AES-GCM', length: 256},
       extractable, ['encrypt']);
     const wrappedKey = await crypto.subtle.wrapKey(
-      'raw', unwrappedKey, kek, kek.algorithm);
+      'raw', unwrappedKey, kak, kak.algorithm);
     return base64url.encode(new Uint8Array(wrappedKey));
   }
 
   async unwrapKey({wrappedKey}) {
-    const kek = this.key;
+    const kak = this.key;
 
     let keyAlgorithm;
-    if(kek.algorithm.name === 'AES-KW') {
+    if(kak.algorithm.name === 'AES-KW') {
       // Note: algorithm name doesn't matter; will be exported raw
       keyAlgorithm = {name: 'AES-GCM'};
     } else {
-      throw new Error(`Unknown unwrapping algorithm "${kek.algorithm.name}".`);
+      throw new Error(`Unknown unwrapping algorithm "${kak.algorithm.name}".`);
     }
 
     wrappedKey = base64url.decode(wrappedKey);
     const extractable = true;
     const key = await crypto.subtle.unwrapKey(
-      'raw', wrappedKey, kek, kek.algorithm,
+      'raw', wrappedKey, kak, kak.algorithm,
       keyAlgorithm, extractable, ['encrypt']);
 
     const keyBytes = await crypto.subtle.exportKey('raw', key);

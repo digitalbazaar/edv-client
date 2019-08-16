@@ -13,29 +13,29 @@ describe('DataHubClient', () => {
   });
 
   it('should create a new data hub', async () => {
-    const {kek, hmac} = mock.keys;
+    const {keyAgreementKey, hmac} = mock.keys;
     const config = await DataHubClient.createDataHub({
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: kek.id, type: kek.type},
+        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
-    config.kek.should.be.an('object');
+    config.keyAgreementKey.should.be.an('object');
     config.hmac.should.be.an('object');
   });
 
   it('should get data hub storage', async () => {
-    const {kek, hmac} = mock.keys;
+    const {keyAgreementKey, hmac} = mock.keys;
     const {id} = await DataHubClient.createDataHub({
       config: {
         sequence: 0,
         controller: mock.accountId,
-        kek: {id: kek.id, type: kek.type},
+        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -43,17 +43,17 @@ describe('DataHubClient', () => {
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
-    config.kek.should.be.an('object');
+    config.keyAgreementKey.should.be.an('object');
     config.hmac.should.be.an('object');
   });
 
   it('should create "primary" data hub storage', async () => {
-    const {kek, hmac} = mock.keys;
+    const {keyAgreementKey, hmac} = mock.keys;
     const config = await DataHubClient.createDataHub({
       config: {
         sequence: 0,
         controller: mock.accountId,
-        kek: {id: kek.id, type: kek.type},
+        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
         hmac: {id: hmac.id, type: hmac.type},
         referenceId: 'primary'
       }
@@ -61,12 +61,12 @@ describe('DataHubClient', () => {
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
-    config.kek.should.be.an('object');
+    config.keyAgreementKey.should.be.an('object');
     config.hmac.should.be.an('object');
   });
 
   it('should get "primary" data hub storage', async () => {
-    const {kek, hmac} = mock.keys;
+    const {keyAgreementKey, hmac} = mock.keys;
     // note: Tests should run in isolation however this will return 409
     // DuplicateError when running in a suite.
     try {
@@ -74,7 +74,7 @@ describe('DataHubClient', () => {
         config: {
           sequence: 0,
           controller: mock.accountId,
-          kek: {id: kek.id, type: kek.type},
+          keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
           hmac: {id: hmac.id, type: hmac.type},
           referenceId: 'primary'
         }
@@ -87,7 +87,7 @@ describe('DataHubClient', () => {
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
-    config.kek.should.be.an('object');
+    config.keyAgreementKey.should.be.an('object');
     config.hmac.should.be.an('object');
   });
 
@@ -128,8 +128,8 @@ describe('DataHubClient', () => {
     inserted.jwe.recipients.length.should.equal(1);
     inserted.jwe.recipients[0].should.be.an('object');
     inserted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     inserted.jwe.iv.should.be.a('string');
     inserted.jwe.ciphertext.should.be.a('string');
@@ -162,8 +162,8 @@ describe('DataHubClient', () => {
     decrypted.jwe.recipients.length.should.equal(1);
     decrypted.jwe.recipients[0].should.be.an('object');
     decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
@@ -222,8 +222,8 @@ describe('DataHubClient', () => {
     updated.jwe.recipients.length.should.equal(1);
     updated.jwe.recipients[0].should.be.an('object');
     updated.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     updated.jwe.iv.should.be.a('string');
     updated.jwe.ciphertext.should.be.a('string');
@@ -258,8 +258,8 @@ describe('DataHubClient', () => {
     version2.jwe.recipients.length.should.equal(1);
     version2.jwe.recipients[0].should.be.an('object');
     version2.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     version2.jwe.iv.should.be.a('string');
     version2.jwe.ciphertext.should.be.a('string');
@@ -321,8 +321,8 @@ describe('DataHubClient', () => {
     decrypted.jwe.recipients.length.should.equal(1);
     decrypted.jwe.recipients[0].should.be.an('object');
     decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
@@ -378,8 +378,8 @@ describe('DataHubClient', () => {
     decrypted.jwe.recipients.length.should.equal(1);
     decrypted.jwe.recipients[0].should.be.an('object');
     decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.kek.id,
-      alg: client.kek.algorithm
+      kid: client.keyAgreementKey.id,
+      alg: client.keyAgreementKey.algorithm
     });
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
