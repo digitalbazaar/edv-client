@@ -18,7 +18,7 @@ describe('DataHubClient', () => {
       config: {
         sequence: 0,
         controller: mock.accountId,
-        kek: {id: kek.id, type: kek.type},
+        keyAgreementKey: {id: kek.id, type: kek.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -106,7 +106,7 @@ describe('DataHubClient', () => {
 
   it('should insert a document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const doc = {content: {someKey: 'someValue'}};
     const inserted = await client.insert({doc});
     should.exist(inserted);
     inserted.should.be.an('object');
