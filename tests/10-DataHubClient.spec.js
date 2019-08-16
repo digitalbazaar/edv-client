@@ -139,9 +139,10 @@ describe('DataHubClient', () => {
 
   it('should get a document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
     await client.insert({doc});
-    const expected = {id: 'foo', meta: {}, content: {someKey: 'someValue'}};
+    const expected = {id: testID, meta: {}, content: {someKey: 'someValue'}};
     const decrypted = await client.get({id: expected.id});
     decrypted.should.be.an('object');
     decrypted.id.should.equal('foo');
@@ -185,7 +186,8 @@ describe('DataHubClient', () => {
 
   it('should fail to insert a duplicate document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
     await client.insert({doc});
 
     let err;
@@ -200,7 +202,8 @@ describe('DataHubClient', () => {
 
   it('should upsert a document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
     const updated = await client.update({doc});
     should.exist(updated);
     updated.should.be.an('object');
@@ -233,7 +236,8 @@ describe('DataHubClient', () => {
 
   it('should update an existing document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
     const version1 = await client.insert({doc});
     version1.content = {someKey: 'aNewValue'};
     await client.update({doc: version1});
@@ -269,7 +273,8 @@ describe('DataHubClient', () => {
 
   it('should delete an existing document', async () => {
     const client = await mock.createDataHub();
-    const doc = {id: 'foo', content: {someKey: 'someValue'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
     await client.insert({doc});
     const decrypted = await client.get({id: doc.id});
     decrypted.should.be.an('object');
@@ -294,7 +299,8 @@ describe('DataHubClient', () => {
   it('should insert a document with attributes', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {indexedKey: 'value1'}};
     await client.insert({doc});
     const decrypted = await client.get({id: doc.id});
     should.exist(decrypted);
@@ -333,8 +339,10 @@ describe('DataHubClient', () => {
   it('should reject two documents with same unique attribute', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.uniqueKey', unique: true});
-    const doc1 = {id: 'hasAttributes1', content: {uniqueKey: 'value1'}};
-    const doc2 = {id: 'hasAttributes2', content: {uniqueKey: 'value1'}};
+    const doc1ID = await DataHubClient.generateId();
+    const doc2ID = await DataHubClient.generateId();
+    const doc1 = {id: doc1ID, content: {uniqueKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {uniqueKey: 'value1'}};
     await client.insert({doc: doc1});
     let err;
     try {
@@ -349,7 +357,8 @@ describe('DataHubClient', () => {
   it('should find a document that has an attribute', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {indexedKey: 'value1'}};
     await client.insert({doc});
     const docs = await client.find({has: 'content.indexedKey'});
     docs.should.be.an('array');
@@ -390,8 +399,10 @@ describe('DataHubClient', () => {
   it('should find two documents with an attribute', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1 = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
-    const doc2 = {id: 'hasAttributes2', content: {indexedKey: 'value2'}};
+    const doc1ID = await DataHubClient.generateId();
+    const doc2ID = await DataHubClient.generateId();
+    const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1});
     await client.insert({doc: doc2});
     const docs = await client.find({has: 'content.indexedKey'});
@@ -406,7 +417,8 @@ describe('DataHubClient', () => {
   it('should find a document that equals an attribute value', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const expected = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
+    const testID = await DataHubClient.generateId();
+    const expected = {id: testID, content: {indexedKey: 'value1'}};
     await client.insert({doc: expected});
     const docs = await client.find({equals: {'content.indexedKey': 'value1'}});
     docs.should.be.an('array');
@@ -419,8 +431,9 @@ describe('DataHubClient', () => {
     ' URL attribute', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.https://schema\\.org/'});
+    const testID = await DataHubClient.generateId();
     const expected = {
-      id: 'hasAttributes1',
+      id: testID,
       content: {
         'https://schema.org/': 'value1'
       }
@@ -440,8 +453,9 @@ describe('DataHubClient', () => {
   it('should find a document with a deep index on an array', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.nested.array.foo'});
+    const testID = await DataHubClient.generateId();
     const expected = {
-      id: 'hasDeepArrayAttributes',
+      id: testID,
       content: {
         nested: {
           array: [{
@@ -480,8 +494,10 @@ describe('DataHubClient', () => {
   it('should find two documents with attribute values', async () => {
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1 = {id: 'hasAttributes1', content: {indexedKey: 'value1'}};
-    const doc2 = {id: 'hasAttributes2', content: {indexedKey: 'value2'}};
+    const doc1ID = await DataHubClient.generateId();
+    const doc2ID = await DataHubClient.generateId();
+    const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1});
     await client.insert({doc: doc2});
     const docs = await client.find({
