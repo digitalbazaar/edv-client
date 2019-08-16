@@ -297,11 +297,12 @@ describe('DataHubClient', () => {
   });
 
   it('should insert a document with attributes', async () => {
+    const {invocationSigner, keyResolver} = mock;
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {indexedKey: 'value1'}};
-    await client.insert({doc});
+    await client.insert({keyResolver, invocationSigner, doc});
     const decrypted = await client.get({id: doc.id});
     should.exist(decrypted);
     decrypted.should.be.an('object');

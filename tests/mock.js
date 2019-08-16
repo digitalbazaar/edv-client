@@ -6,6 +6,7 @@ import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockKeyAgreementKey} from './MockKeyAgreementKey.js';
 import {MockHmac} from './MockHmac.js';
+import {MockControllerKey} from './MockControllerKey.js';
 
 // FIXME use mock test data
 
@@ -27,13 +28,20 @@ class TestMock {
       // create KAK and HMAC keys for creating data hubs
       this.keys.keyAgreementKey = await MockKeyAgreementKey.create();
       this.keys.hmac = await MockHmac.create();
+      this.keyResolver = ({id}) => {
+        if(this.keys.keyAgreementKey.id === id) {
+          return this.keys.keyAgreementKey;
+        }
+        return this.keys.hmac;
+      };
     }
+    this.invocationSigner = await MockControllerKey.create();
   }
   async createDataHub({controller = this.accountId, referenceId} = {}) {
     const {keyAgreementKey, hmac} = this.keys;
     let config = {
       sequence: 0,
-      controller,
+      controller: this.invocationSigner.id,
       keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
       hmac: {id: hmac.id, type: hmac.type}
     };
