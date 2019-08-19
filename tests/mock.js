@@ -24,9 +24,11 @@ class TestMock {
     if(!this.keys) {
       // create mock keys
       this.keys = {};
-
+      this.invocationSigner = await MockControllerKey.create();
       // create KAK and HMAC keys for creating data hubs
-      this.keys.keyAgreementKey = await MockKeyAgreementKey.create();
+      const {keyAgreement} = this.invocationSigner;
+      this.keys.keyAgreementKey = await MockKeyAgreementKey.create(
+        keyAgreement[0]);
       this.keys.hmac = await MockHmac.create();
       this.keyResolver = ({id}) => {
         if(this.keys.keyAgreementKey.id === id) {
@@ -35,7 +37,6 @@ class TestMock {
         return this.keys.hmac;
       };
     }
-    this.invocationSigner = await MockControllerKey.create();
   }
   async createDataHub({controller = this.accountId, referenceId} = {}) {
     const {keyAgreementKey, hmac} = this.keys;
