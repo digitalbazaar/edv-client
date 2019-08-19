@@ -42,6 +42,7 @@
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^5.2.0",
+    "did-method-key": "github:digitalbazaar/did-method-key#dev",
     "eslint": "^5.16.0",
     "eslint-config-digitalbazaar": "^2.0.0",
     "isomorphic-webcrypto": "^1.6.1",

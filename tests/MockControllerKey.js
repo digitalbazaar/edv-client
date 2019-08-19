@@ -1,20 +1,15 @@
-import crypto from '../crypto.js';
+import didKeyMethod from 'did-method-key';
 
+const didKeyDriver = didKeyMethod.driver();
+
+// TODO this needs to be an Ed25519 key pair from cryptold
+// which in turn is an ed25519 pair from lib-sodium
 export class MockControllerKey {
-  constructor(seed) {
-    this.seed = seed;
+  constructor() {
+    this.key = null;
   }
   static async create() {
-    const extractable = true;
-    const key = await crypto.subtle.importKey(
-      'raw', 'test', {name: 'HMAC', hash: {name: 'SHA-256'}}, extractable,
-      ['sign', 'verify']);
-    return {
-      id: `did:key:test`,
-      type: key.type,
-      sign({data}) {
-        return key.sign({data});
-      }
-    };
+    const controllerKey = await didKeyDriver.generate();
+    return controllerKey;
   }
 }

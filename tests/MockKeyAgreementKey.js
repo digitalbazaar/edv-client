@@ -7,25 +7,18 @@ import crypto from '../crypto.js';
 import * as base64url from 'base64url-universal';
 
 export class MockKeyAgreementKey {
-  constructor({id, type, algorithm, key}) {
+  constructor({id, type, key}) {
     this.id = id;
     this.type = type;
-    this.algorithm = algorithm;
     this.key = key;
   }
 
-  static async create() {
+  static async create(key) {
     // random test data
-    const id = 'urn:mockkak:1';
-    const type = 'AesKeyWrappingKey2019';
-    const algorithm = 'A256KW';
-    const data =
-      base64url.decode('AOaZ9uajdymvmWDkSPTllw68arl6fRrhLIVtECwhNWY');
-    const extractable = true;
-    const key = await crypto.subtle.importKey(
-      'raw', data, {name: 'AES-KW', length: 256}, extractable,
-      ['wrapKey', 'unwrapKey']);
-    const kak = new MockKeyAgreementKey({id, type, algorithm, key});
+    const id = key.id;
+    const type = key.type;
+    // this should be a tweet nacl ephemeral key.
+    const kak = new MockKeyAgreementKey({id, type, key});
     return kak;
   }
 
