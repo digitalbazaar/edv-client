@@ -62,10 +62,32 @@ export class DataHubDocument {
   }
 
   /**
+   * Gets a `ReadableStream` to read the chunked data associated with a
+   * document.
+   *
+   * @param {Object} options - The options to use.
+   * @param {string} options.doc the decrypted document to get a stream for;
+   *   call `read()` to get this.
+   *
+   * @return {Promise<ReadableStream>} resolves to a `ReadableStream` to read
+   *   the chunked data from.
+   */
+  async getStream({doc}) {
+    const {keyAgreementKey, capability, invocationSigner, client} = this;
+    return client.getStream({
+      doc, keyAgreementKey, capability, invocationSigner
+    });
+  }
+
+  /**
    * Encrypts and updates this document in its data hub.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc - The unencrypted document to update/insert.
+   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   *   from to associate chunked data with this document.
+   * @param {number} [chunkSize] the size, in bytes, of the chunks to
+   *   break the incoming stream data into.
    * @param {Array} [recipients=[]] an array of additional recipients for the
    *   encrypted content.
    * @param {function} keyResolver a function that returns a Promise
@@ -73,11 +95,13 @@ export class DataHubDocument {
    *
    * @returns {Promise<Object>} resolves to the inserted document.
    */
-  async write(
-    {doc, recipients = this.recipients, keyResolver = this.keyResolver}) {
+  async write({
+    doc, stream, chunkSize,
+    recipients = this.recipients, keyResolver = this.keyResolver
+  }) {
     const {keyAgreementKey, hmac, capability, invocationSigner, client} = this;
     return client.update({
-      doc, recipients, keyResolver,
+      doc, stream, chunkSize, recipients, keyResolver,
       keyAgreementKey, hmac, capability, invocationSigner
     });
   }

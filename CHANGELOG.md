@@ -1,5 +1,10 @@
 # secure-data-hub-client ChangeLog
 
+## 1.2.0 - 2019-08-xx
+
+### Added
+- Add stream support to `DataHubDocument`.
+
 ## 1.1.0 - 2019-08-12
 
 ### Added
