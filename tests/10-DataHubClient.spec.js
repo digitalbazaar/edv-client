@@ -3,6 +3,7 @@
  */
 import {DataHubClient} from '..';
 import mock from './mock.js';
+import {isRecipient} from './test-utils.js';
 
 describe('DataHubClient', () => {
   let invocationSigner, keyResolver = null;
@@ -130,11 +131,7 @@ describe('DataHubClient', () => {
     inserted.jwe.protected.should.be.a('string');
     inserted.jwe.recipients.should.be.an('array');
     inserted.jwe.recipients.length.should.equal(1);
-    inserted.jwe.recipients[0].should.be.an('object');
-    inserted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: inserted.jwe.recipients[0]});
     inserted.jwe.iv.should.be.a('string');
     inserted.jwe.ciphertext.should.be.a('string');
     inserted.jwe.tag.should.be.a('string');
@@ -165,11 +162,7 @@ describe('DataHubClient', () => {
     decrypted.jwe.protected.should.be.a('string');
     decrypted.jwe.recipients.should.be.an('array');
     decrypted.jwe.recipients.length.should.equal(1);
-    decrypted.jwe.recipients[0].should.be.an('object');
-    decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: decrypted.jwe.recipients[0]});
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
     decrypted.jwe.tag.should.be.a('string');
@@ -227,11 +220,7 @@ describe('DataHubClient', () => {
     updated.jwe.protected.should.be.a('string');
     updated.jwe.recipients.should.be.an('array');
     updated.jwe.recipients.length.should.equal(1);
-    updated.jwe.recipients[0].should.be.an('object');
-    updated.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: updated.jwe.recipients[0]});
     updated.jwe.iv.should.be.a('string');
     updated.jwe.ciphertext.should.be.a('string');
     updated.jwe.tag.should.be.a('string');
@@ -264,11 +253,7 @@ describe('DataHubClient', () => {
     version2.jwe.protected.should.be.a('string');
     version2.jwe.recipients.should.be.an('array');
     version2.jwe.recipients.length.should.equal(1);
-    version2.jwe.recipients[0].should.be.an('object');
-    version2.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: version2.jwe.recipients[0]});
     version2.jwe.iv.should.be.a('string');
     version2.jwe.ciphertext.should.be.a('string');
     version2.jwe.tag.should.be.a('string');
@@ -329,11 +314,7 @@ describe('DataHubClient', () => {
     decrypted.jwe.protected.should.be.a('string');
     decrypted.jwe.recipients.should.be.an('array');
     decrypted.jwe.recipients.length.should.equal(1);
-    decrypted.jwe.recipients[0].should.be.an('object');
-    decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: decrypted.jwe.recipients[0]});
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
     decrypted.jwe.tag.should.be.a('string');
@@ -390,11 +371,7 @@ describe('DataHubClient', () => {
     decrypted.jwe.protected.should.be.a('string');
     decrypted.jwe.recipients.should.be.an('array');
     decrypted.jwe.recipients.length.should.equal(1);
-    decrypted.jwe.recipients[0].should.be.an('object');
-    decrypted.jwe.recipients[0].header.should.deep.equal({
-      kid: client.keyAgreementKey.id,
-      alg: client.keyAgreementKey.algorithm
-    });
+    isRecipient({recipient: decrypted.jwe.recipients[0]});
     decrypted.jwe.iv.should.be.a('string');
     decrypted.jwe.ciphertext.should.be.a('string');
     decrypted.jwe.tag.should.be.a('string');

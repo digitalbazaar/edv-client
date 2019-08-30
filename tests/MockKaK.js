@@ -20,6 +20,7 @@ export class MockKaK {
     const remotePublicKey = base58.decode(publicKey.publicKeyBase58);
     return nacl.scalarMult(this.privateKey, remotePublicKey);
   }
+
   base58Encode(x) {
     return base58.encode(x);
   }

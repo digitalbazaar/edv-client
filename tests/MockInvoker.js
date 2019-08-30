@@ -16,6 +16,7 @@ export class MockInvoker {
     this.privateKey = base58.decode(privateKeyBase58);
     this.privateKey58 = base58.decode(publicKeyBase58);
   }
+
   async sign({data}) {
     const {privateKey} = this;
     return ed25519.sign({message: data, privateKey});
