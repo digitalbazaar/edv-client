@@ -13,12 +13,14 @@ describe('DataHubDocument', () => {
   });
 
   it('should read a document using DataHubDocument', async () => {
+    const {invocationSigner, keyResolver} = mock;
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
     const doc1Id = await DataHubClient.generateId();
     const doc1 = {id: doc1Id, content: {indexedKey: 'value1'}};
-    await client.insert({doc: doc1});
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
     const doc = new DataHubDocument({
+      invocationSigner,
       id: doc1.id,
       keyAgreementKey: client.keyAgreementKey,
       capability: {

@@ -5,8 +5,11 @@ import {DataHubClient} from '..';
 import mock from './mock.js';
 
 describe('DataHubClient', () => {
+  let invocationSigner, keyResolver = null;
   before(async () => {
     await mock.init();
+    invocationSigner = mock.invocationSigner;
+    keyResolver = mock.keyResolver;
   });
   after(async () => {
     await mock.server.shutdown();
@@ -106,11 +109,12 @@ describe('DataHubClient', () => {
 
   it('should insert a document', async () => {
     const client = await mock.createDataHub();
-    const doc = {content: {someKey: 'someValue'}};
-    const inserted = await client.insert({doc});
+    const testID = await DataHubClient.generateId();
+    const doc = {id: testID, content: {someKey: 'someValue'}};
+    const inserted = await client.insert({keyResolver, invocationSigner, doc});
     should.exist(inserted);
     inserted.should.be.an('object');
-    inserted.id.should.equal('foo');
+    inserted.id.should.equal(testID);
     inserted.sequence.should.equal(0);
     inserted.indexed.should.be.an('array');
     inserted.indexed.length.should.equal(1);
@@ -141,9 +145,9 @@ describe('DataHubClient', () => {
     const client = await mock.createDataHub();
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {someKey: 'someValue'}};
-    await client.insert({doc});
+    await client.insert({doc, invocationSigner, keyResolver});
     const expected = {id: testID, meta: {}, content: {someKey: 'someValue'}};
-    const decrypted = await client.get({id: expected.id});
+    const decrypted = await client.get({id: expected.id, invocationSigner});
     decrypted.should.be.an('object');
     decrypted.id.should.equal('foo');
     decrypted.sequence.should.equal(0);
@@ -188,11 +192,11 @@ describe('DataHubClient', () => {
     const client = await mock.createDataHub();
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {someKey: 'someValue'}};
-    await client.insert({doc});
+    await client.insert({doc, invocationSigner, keyResolver});
 
     let err;
     try {
-      await client.insert({doc});
+      await client.insert({doc, invocationSigner, keyResolver});
     } catch(e) {
       err = e;
     }
@@ -204,7 +208,7 @@ describe('DataHubClient', () => {
     const client = await mock.createDataHub();
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {someKey: 'someValue'}};
-    const updated = await client.update({doc});
+    const updated = await client.update({doc, invocationSigner, keyResolver});
     should.exist(updated);
     updated.should.be.an('object');
     updated.id.should.equal('foo');
@@ -238,10 +242,10 @@ describe('DataHubClient', () => {
     const client = await mock.createDataHub();
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {someKey: 'someValue'}};
-    const version1 = await client.insert({doc});
+    const version1 = await client.insert({doc, invocationSigner, keyResolver});
     version1.content = {someKey: 'aNewValue'};
-    await client.update({doc: version1});
-    const version2 = await client.get({id: doc.id});
+    await client.update({doc: version1, invocationSigner, keyResolver});
+    const version2 = await client.get({id: doc.id, invocationSigner});
     should.exist(version2);
     version2.should.be.an('object');
     version2.id.should.equal('foo');
@@ -275,10 +279,10 @@ describe('DataHubClient', () => {
     const client = await mock.createDataHub();
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {someKey: 'someValue'}};
-    await client.insert({doc});
-    const decrypted = await client.get({id: doc.id});
+    await client.insert({doc, invocationSigner, keyResolver});
+    const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    const result = await client.delete({id: doc.id});
+    const result = await client.delete({id: doc.id, invocationSigner});
     result.should.equal(true);
     let err;
     try {
@@ -292,21 +296,20 @@ describe('DataHubClient', () => {
 
   it('should fail to delete a non-existent document', async () => {
     const client = await mock.createDataHub();
-    const result = await client.delete({id: 'foo'});
+    const result = await client.delete({id: 'foo', invocationSigner});
     result.should.equal(false);
   });
 
   it('should insert a document with attributes', async () => {
-    const {invocationSigner, keyResolver} = mock;
     const client = await mock.createDataHub();
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {indexedKey: 'value1'}};
     await client.insert({keyResolver, invocationSigner, doc});
-    const decrypted = await client.get({id: doc.id});
+    const decrypted = await client.get({id: doc.id, invocationSigner});
     should.exist(decrypted);
     decrypted.should.be.an('object');
-    decrypted.id.should.equal('hasAttributes1');
+    decrypted.id.should.equal(testID);
     decrypted.sequence.should.equal(0);
     decrypted.indexed.should.be.an('array');
     decrypted.indexed.length.should.equal(1);
@@ -344,10 +347,10 @@ describe('DataHubClient', () => {
     const doc2ID = await DataHubClient.generateId();
     const doc1 = {id: doc1ID, content: {uniqueKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {uniqueKey: 'value1'}};
-    await client.insert({doc: doc1});
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
     let err;
     try {
-      await client.insert({doc: doc2});
+      await client.insert({doc: doc2, invocationSigner, keyResolver});
     } catch(e) {
       err = e;
     }
@@ -360,8 +363,9 @@ describe('DataHubClient', () => {
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testID = await DataHubClient.generateId();
     const doc = {id: testID, content: {indexedKey: 'value1'}};
-    await client.insert({doc});
-    const docs = await client.find({has: 'content.indexedKey'});
+    await client.insert({doc, invocationSigner, keyResolver});
+    const docs = await client.find(
+      {has: 'content.indexedKey', invocationSigner});
     docs.should.be.an('array');
     docs.length.should.equal(1);
     const decrypted = docs[0];
@@ -404,9 +408,12 @@ describe('DataHubClient', () => {
     const doc2ID = await DataHubClient.generateId();
     const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
-    await client.insert({doc: doc1});
-    await client.insert({doc: doc2});
-    const docs = await client.find({has: 'content.indexedKey'});
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
+    await client.insert({doc: doc2, invocationSigner, keyResolver});
+    const docs = await client.find({
+      invocationSigner,
+      has: 'content.indexedKey'
+    });
     docs.should.be.an('array');
     docs.length.should.equal(2);
     docs[0].should.be.an('object');
@@ -420,8 +427,11 @@ describe('DataHubClient', () => {
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testID = await DataHubClient.generateId();
     const expected = {id: testID, content: {indexedKey: 'value1'}};
-    await client.insert({doc: expected});
-    const docs = await client.find({equals: {'content.indexedKey': 'value1'}});
+    await client.insert({doc: expected, invocationSigner, keyResolver});
+    const docs = await client.find({
+      invocationSigner,
+      equals: {'content.indexedKey': 'value1'}
+    });
     docs.should.be.an('array');
     docs.length.should.equal(1);
     docs[0].should.be.an('object');
@@ -439,8 +449,9 @@ describe('DataHubClient', () => {
         'https://schema.org/': 'value1'
       }
     };
-    await client.insert({doc: expected});
+    await client.insert({doc: expected, invocationSigner, keyResolver});
     const docs = await client.find({
+      invocationSigner,
       equals: {
         'content.https://schema\\.org/': 'value1'
       }
@@ -467,10 +478,11 @@ describe('DataHubClient', () => {
         }
       }
     };
-    await client.insert({doc: expected});
+    await client.insert({doc: expected, keyResolver, invocationSigner});
 
     // find with first value
     let docs = await client.find({
+      invocationSigner,
       equals: {
         'content.nested.array.foo': 'bar'
       }
@@ -482,6 +494,7 @@ describe('DataHubClient', () => {
 
     // find with second value
     docs = await client.find({
+      invocationSigner,
       equals: {
         'content.nested.array.foo': 'baz'
       }
@@ -499,9 +512,10 @@ describe('DataHubClient', () => {
     const doc2ID = await DataHubClient.generateId();
     const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
-    await client.insert({doc: doc1});
-    await client.insert({doc: doc2});
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
+    await client.insert({doc: doc2, invocationSigner, keyResolver});
     const docs = await client.find({
+      invocationSigner,
       equals: [
         {'content.indexedKey': 'value1'},
         {'content.indexedKey': 'value2'}
