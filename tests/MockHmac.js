@@ -19,8 +19,8 @@ export class MockHmac {
     const id = 'urn:mockhmac:1';
     const type = 'Sha256HmacKey2019';
     const algorithm = 'HS256';
-    const data =
-      base64url.decode('49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');
+    const data = base64url.decode(
+      '49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');
     const extractable = true;
     const key = await crypto.subtle.importKey(
       'raw', data, {name: 'HMAC', hash: {name: 'SHA-256'}}, extractable,
