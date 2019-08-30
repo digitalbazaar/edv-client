@@ -5,7 +5,7 @@ import {DataHubClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
-import {MockKaK} from './MockKaK.js';
+import {MockKak} from './MockKak.js';
 import {MockInvoker} from './MockInvoker.js';
 
 class TestMock {
