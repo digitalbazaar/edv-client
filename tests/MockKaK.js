@@ -10,7 +10,7 @@ const nacl = require('tweetnacl');
 const _secretKey = new TextEncoder('utf-8').encode(
   'testKaK0123456789testKaK01234567');
 
-export class MockKaK {
+export class MockKak {
   constructor({secretKey = _secretKey} = {}) {
     const keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
     this.id = 'urn:123',
