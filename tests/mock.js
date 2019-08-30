@@ -22,15 +22,12 @@ class TestMock {
     if(!this.keys) {
       // create mock keys
       this.keys = {};
+      // this creates the same invocationSigner for each test.
+      this.invocationSigner = new MockInvoker();
       // create KAK and HMAC keys for creating data hubs
-      const privateKeyBase58 = '5RB6LPkGsS1nuSM7NRmdAiFLGnLvKXH3' +
-        'kYDPyEoAZXUjXaK6QxQC51kxH6vWUWNDGXkAYKLejbHHFTZXgA3LB8a3';
-      const publicKeyBase58 = '3n6stGrydgUEQSXA4zxWbvdUvpiVwHDgZp2H9SxqY6gw';
-      this.invocationSigner = new MockInvoker(
-        {privateKeyBase58, publicKeyBase58});
-      const secretKey = new TextEncoder('utf-8').encode(
-        'testKaK0123456789testKaK01234567');
-      this.keys.keyAgreementKey = new MockKaK({secretKey});
+      // this creates the same keyAgreementKey for each test.
+      this.keys.keyAgreementKey = new MockKaK();
+      // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
       this.keyResolver = ({id}) => {
         if(this.keys.keyAgreementKey.id === id) {

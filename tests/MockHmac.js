@@ -5,6 +5,8 @@
 
 import crypto from '../crypto.js';
 import * as base64url from 'base64url-universal';
+const _secret = base64url.decode(
+  '49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');
 
 export class MockHmac {
   constructor({id, type, algorithm, key}) {
@@ -14,13 +16,11 @@ export class MockHmac {
     this.key = key;
   }
 
-  static async create() {
+  static async create({data = _secret} = {}) {
     // random test data
     const id = 'urn:mockhmac:1';
     const type = 'Sha256HmacKey2019';
     const algorithm = 'HS256';
-    const data = base64url.decode(
-      '49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');
     const extractable = true;
     const key = await crypto.subtle.importKey(
       'raw', data, {name: 'HMAC', hash: {name: 'SHA-256'}}, extractable,
