@@ -1,5 +1,5 @@
 import forge from 'node-forge';
-const base58 = require('../base58');
+import {decode} from '../base58';
 
 const {pki: {ed25519}} = forge;
 
@@ -21,8 +21,8 @@ export class MockInvoker {
       this.privateKey = privateKey;
       return this;
     }
-    this.privateKey = base58.decode(privateKeyBase58);
-    this.privateKey58 = base58.decode(publicKeyBase58);
+    this.privateKey = decode(privateKeyBase58);
+    this.privateKey58 = decode(publicKeyBase58);
   }
 
   async sign({data}) {
