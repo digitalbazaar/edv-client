@@ -28,7 +28,9 @@ class TestMock {
       const publicKeyBase58 = '3n6stGrydgUEQSXA4zxWbvdUvpiVwHDgZp2H9SxqY6gw';
       this.invocationSigner = new MockInvoker(
         {privateKeyBase58, publicKeyBase58});
-      this.keys.keyAgreementKey = new MockKaK();
+      const secretKey = new TextEncoder('utf-8').encode(
+        'testKaK0123456789testKaK01234567');
+      this.keys.keyAgreementKey = new MockKaK({secretKey});
       this.keys.hmac = await MockHmac.create();
       this.keyResolver = ({id}) => {
         if(this.keys.keyAgreementKey.id === id) {
