@@ -1,13 +1,13 @@
 import {expect} from 'chai';
 
-const x25519Expected = {
+const _x25519Expected = {
   kid: 'urn:123',
   alg: 'ECDH-ES+A256KW',
   crv: 'X25519',
   kty: 'OKP'
 };
 
-export function isRecipient({recipient, expected = x25519Expected}) {
+export function isRecipient({recipient, expected = _x25519Expected}) {
   const {kid, alg, crv, kty} = expected;
   expect(recipient, 'Expected recipient to be an object').to.be.an('object');
 

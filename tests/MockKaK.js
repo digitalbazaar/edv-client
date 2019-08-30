@@ -6,8 +6,12 @@
 const base58 = require('../base58');
 const nacl = require('tweetnacl');
 
+// ensures tests use the same KaK for each test.
+const _secretKey = new TextEncoder('utf-8').encode(
+  'testKaK0123456789testKaK01234567');
+
 export class MockKaK {
-  constructor({secretKey}) {
+  constructor({secretKey = _secretKey} = {}) {
     const keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
     this.id = 'urn:123',
     this.type = 'X25519KeyAgreementKey2019';
