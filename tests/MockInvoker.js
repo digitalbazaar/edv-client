@@ -1,6 +1,7 @@
 import forge from 'node-forge';
+const base58 = require('../base58');
 
-const {pki: {ed25519}, util: {binary: {base58}}} = forge;
+const {pki: {ed25519}} = forge;
 
 export class MockInvoker {
   constructor({publicKeyBase58, privateKeyBase58} = {}) {

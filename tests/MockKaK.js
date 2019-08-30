@@ -7,8 +7,8 @@ const base58 = require('../base58');
 const nacl = require('tweetnacl');
 
 export class MockKaK {
-  constructor() {
-    const keyPair = nacl.box.keyPair();
+  constructor({secretKey}) {
+    const keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
     this.id = 'urn:123',
     this.type = 'X25519KeyAgreementKey2019';
     this.privateKey = keyPair.secretKey;
