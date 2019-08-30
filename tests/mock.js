@@ -33,7 +33,7 @@ class TestMock {
         if(this.keys.keyAgreementKey.id === id) {
           return this.keys.keyAgreementKey;
         }
-        return this.keys.hmac;
+        throw new Error(`Key ${id} not found`);
       };
     }
   }
