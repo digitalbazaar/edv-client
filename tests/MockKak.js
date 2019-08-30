@@ -3,8 +3,9 @@
  */
 'use strict';
 
-const base58 = require('../base58');
-const nacl = require('tweetnacl');
+import {encode, decode} from '../base58';
+import nacl from 'tweetnacl';
+import {TextEncoder} from '../util.js';
 
 // ensures tests use the same KaK for each test.
 const _secretKey = new TextEncoder('utf-8').encode(
@@ -17,15 +18,11 @@ export class MockKak {
     this.type = 'X25519KeyAgreementKey2019';
     this.privateKey = keyPair.secretKey;
     this.publicKey = keyPair.publicKey;
-    this.publicKeyBase58 = this.base58Encode(this.publicKey);
+    this.publicKeyBase58 = encode(this.publicKey);
   }
 
   async deriveSecret({publicKey}) {
-    const remotePublicKey = base58.decode(publicKey.publicKeyBase58);
+    const remotePublicKey = decode(publicKey.publicKeyBase58);
     return nacl.scalarMult(this.privateKey, remotePublicKey);
-  }
-
-  base58Encode(x) {
-    return base58.encode(x);
   }
 }
