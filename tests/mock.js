@@ -26,7 +26,7 @@ class TestMock {
       this.invocationSigner = new MockInvoker();
       // create KAK and HMAC keys for creating data hubs
       // this creates the same keyAgreementKey for each test.
-      this.keys.keyAgreementKey = new MockKaK();
+      this.keys.keyAgreementKey = new MockKak();
       // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
       this.keyResolver = ({id}) => {
