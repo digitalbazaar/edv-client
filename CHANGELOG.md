@@ -1,4 +1,8 @@
-# secure-data-hub-client ChangeLog
+# edv-client ChangeLog
+
+## 2.0.0 - 2019-09-xx
+
+- Renamed to edv-client.
 
 ## 1.2.0 - 2019-08-29
 
