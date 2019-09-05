@@ -1,11 +1,11 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-import {DataHubClient} from '..';
+import {EdvClient} from '..';
 import mock from './mock.js';
 import {isRecipient} from './test-utils.js';
 
-describe('DataHubClient', () => {
+describe('EdvClient', () => {
   let invocationSigner, keyResolver = null;
   before(async () => {
     await mock.init();
@@ -16,9 +16,9 @@ describe('DataHubClient', () => {
     await mock.server.shutdown();
   });
 
-  it('should create a new data hub', async () => {
+  it('should create a new encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
-    const config = await DataHubClient.createDataHub({
+    const config = await EdvClient.createEdv({
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -33,9 +33,9 @@ describe('DataHubClient', () => {
     config.hmac.should.be.an('object');
   });
 
-  it('should get data hub storage', async () => {
+  it('should get an encrypted data vault config', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
-    const {id} = await DataHubClient.createDataHub({
+    const {id} = await EdvClient.createEdv({
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -43,7 +43,7 @@ describe('DataHubClient', () => {
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
-    const config = await DataHubClient.getConfig({id});
+    const config = await EdvClient.getConfig({id});
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
@@ -51,9 +51,9 @@ describe('DataHubClient', () => {
     config.hmac.should.be.an('object');
   });
 
-  it('should create "primary" data hub storage', async () => {
+  it('should create "primary" encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
-    const config = await DataHubClient.createDataHub({
+    const config = await EdvClient.createEdv({
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -69,12 +69,12 @@ describe('DataHubClient', () => {
     config.hmac.should.be.an('object');
   });
 
-  it('should get "primary" data hub storage', async () => {
+  it('should get "primary" encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     // note: Tests should run in isolation however this will return 409
     // DuplicateError when running in a suite.
     try {
-      await DataHubClient.createDataHub({
+      await EdvClient.createEdv({
         config: {
           sequence: 0,
           controller: invocationSigner.id,
@@ -84,9 +84,9 @@ describe('DataHubClient', () => {
         }
       });
     } catch(e) {
-      // do nothing we just need to ensure that primary datahub was created.
+      // do nothing we just need to ensure that primary edv was created.
     }
-    const config = await DataHubClient.findConfig(
+    const config = await EdvClient.findConfig(
       {controller: mock.accountId, referenceId: 'primary'});
     config.should.be.an('object');
     config.id.should.be.a('string');
@@ -98,7 +98,7 @@ describe('DataHubClient', () => {
   // TODO: add more tests: getAll, update, setStatus
 
   it('should ensure two new indexes', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     const {indexHelper} = client;
     const indexCount = indexHelper.indexes.size;
     client.ensureIndex({attribute: ['content', 'content.index1']});
@@ -109,8 +109,8 @@ describe('DataHubClient', () => {
   });
 
   it('should insert a document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     const inserted = await client.insert({keyResolver, invocationSigner, doc});
     should.exist(inserted);
@@ -139,8 +139,8 @@ describe('DataHubClient', () => {
   });
 
   it('should get a document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     await client.insert({doc, invocationSigner, keyResolver});
     const expected = {id: testId, meta: {}, content: {someKey: 'someValue'}};
@@ -170,7 +170,7 @@ describe('DataHubClient', () => {
   });
 
   it('should fail to get a non-existent document', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     let err;
     try {
       await client.get({id: 'doesNotExist', invocationSigner});
@@ -182,8 +182,8 @@ describe('DataHubClient', () => {
   });
 
   it('should fail to insert a duplicate document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     await client.insert({doc, invocationSigner, keyResolver});
 
@@ -198,8 +198,8 @@ describe('DataHubClient', () => {
   });
 
   it('should upsert a document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     const updated = await client.update({doc, invocationSigner, keyResolver});
     should.exist(updated);
@@ -228,8 +228,8 @@ describe('DataHubClient', () => {
   });
 
   it('should update an existing document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     const version1 = await client.insert({doc, invocationSigner, keyResolver});
     version1.content = {someKey: 'aNewValue'};
@@ -261,8 +261,8 @@ describe('DataHubClient', () => {
   });
 
   it('should delete an existing document', async () => {
-    const client = await mock.createDataHub();
-    const testId = await DataHubClient.generateId();
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
@@ -280,15 +280,15 @@ describe('DataHubClient', () => {
   });
 
   it('should fail to delete a non-existent document', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     const result = await client.delete({id: 'foo', invocationSigner});
     result.should.equal(false);
   });
 
   it('should insert a document with attributes', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const testId = await DataHubClient.generateId();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {indexedKey: 'value1'}};
     await client.insert({keyResolver, invocationSigner, doc});
     const decrypted = await client.get({id: doc.id, invocationSigner});
@@ -322,10 +322,10 @@ describe('DataHubClient', () => {
   });
 
   it('should reject two documents with same unique attribute', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.uniqueKey', unique: true});
-    const doc1ID = await DataHubClient.generateId();
-    const doc2ID = await DataHubClient.generateId();
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
     const doc1 = {id: doc1ID, content: {uniqueKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {uniqueKey: 'value1'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});
@@ -340,9 +340,9 @@ describe('DataHubClient', () => {
   });
 
   it('should find a document that has an attribute', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const testId = await DataHubClient.generateId();
+    const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {indexedKey: 'value1'}};
     await client.insert({doc, invocationSigner, keyResolver});
     const docs = await client.find(
@@ -379,10 +379,10 @@ describe('DataHubClient', () => {
   });
 
   it('should find two documents with an attribute', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1ID = await DataHubClient.generateId();
-    const doc2ID = await DataHubClient.generateId();
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
     const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});
@@ -400,9 +400,9 @@ describe('DataHubClient', () => {
   });
 
   it('should find a document that equals an attribute value', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const testId = await DataHubClient.generateId();
+    const testId = await EdvClient.generateId();
     const expected = {id: testId, content: {indexedKey: 'value1'}};
     await client.insert({doc: expected, invocationSigner, keyResolver});
     const docs = await client.find({
@@ -417,9 +417,9 @@ describe('DataHubClient', () => {
 
   it('should find a document that equals the value of a' +
     ' URL attribute', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.https://schema\\.org/'});
-    const testId = await DataHubClient.generateId();
+    const testId = await EdvClient.generateId();
     const expected = {
       id: testId,
       content: {
@@ -440,9 +440,9 @@ describe('DataHubClient', () => {
   });
 
   it('should find a document with a deep index on an array', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.nested.array.foo'});
-    const testId = await DataHubClient.generateId();
+    const testId = await EdvClient.generateId();
     const expected = {
       id: testId,
       content: {
@@ -483,10 +483,10 @@ describe('DataHubClient', () => {
   });
 
   it('should find two documents with attribute values', async () => {
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1ID = await DataHubClient.generateId();
-    const doc2ID = await DataHubClient.generateId();
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
     const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});

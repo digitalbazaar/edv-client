@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-import {DataHubClient} from '..';
+import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
@@ -13,8 +13,8 @@ class TestMock {
     // create mock server
     this.server = server;
     const accountId = this.accountId = 'test';
-    // mock data hub storage
-    this.dataHubStorage = new MockStorage(
+    // mock edv storage
+    this.edvStorage = new MockStorage(
       {server: this.server, controller: accountId});
   }
   async init() {
@@ -24,7 +24,7 @@ class TestMock {
       this.keys = {};
       // this creates the same invocationSigner for each test.
       this.invocationSigner = new MockInvoker();
-      // create KAK and HMAC keys for creating data hubs
+      // create KAK and HMAC keys for creating edvs
       // this creates the same keyAgreementKey for each test.
       this.keys.keyAgreementKey = new MockKak();
       // the creates the same hmac for each test.
@@ -37,7 +37,7 @@ class TestMock {
       };
     }
   }
-  async createDataHub({controller, referenceId} = {}) {
+  async createEdv({controller, referenceId} = {}) {
     const {keyAgreementKey, hmac} = this.keys;
     let config = {
       sequence: 0,
@@ -48,8 +48,8 @@ class TestMock {
     if(referenceId) {
       config.referenceId = referenceId;
     }
-    config = await DataHubClient.createDataHub({config});
-    return new DataHubClient({id: config.id, keyAgreementKey, hmac});
+    config = await EdvClient.createEdv({config});
+    return new EdvClient({id: config.id, keyAgreementKey, hmac});
   }
 }
 

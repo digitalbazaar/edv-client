@@ -15,19 +15,23 @@ const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
 // 1 MiB = 1048576
 const DEFAULT_CHUNK_SIZE = 1048576;
 
-export class DataHubClient {
+export class EdvClient {
   /**
-   * Creates a new DataHub instance.
+   * Creates a new EdvClient instance. An EDV is an Encrypted Data Vault.
    *
    * In order to support portability (e.g., the use of DID URLs to reference
-   * documents), Secure Data Hub storage MUST expose an HTTPS API with a URL
-   * structure that is partitioned like so:
+   * documents), Encrypted Data Vault storage MUST expose an HTTPS API with a
+   * URL structure that is partitioned like so:
    *
-   * <authority>/<datahubID>/documents/<documentID>
+   * <edvID>/documents/<documentID>
+   *
+   * The <edvID> must take the form:
+   *
+   * <authority>/edvs/<random multibase base58 encoded ID>
    *
    * @param {Object} options - The options to use.
-   * @param {string} [id=undefined] the ID of the data hub that must be a URL
-   *   that refers to the data hub's root storage location; if not given, then
+   * @param {string} [id=undefined] the ID of the EDV that must be a URL
+   *   that refers to the EDV's root storage location; if not given, then
    *   a separate capability must be given to each method called on the client
    *   instance.
    * @param {function} [keyResolver=this.keyResolver] a default function that
@@ -39,7 +43,7 @@ export class DataHubClient {
    * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
    *   use to handle HTTPS requests.
    *
-   * @return {DataHubClient}.
+   * @return {EdvClient}.
    */
   constructor({id, keyResolver, keyAgreementKey, hmac, httpsAgent} = {}) {
     this.id = id;
@@ -53,7 +57,7 @@ export class DataHubClient {
   }
 
   /**
-   * Ensures that future documents inserted or updated using this DataHub
+   * Ensures that future documents inserted or updated using this Edv
    * instance will be indexed according to the given attribute, provided that
    * they contain that attribute.
    *
@@ -67,7 +71,7 @@ export class DataHubClient {
   }
 
   /**
-   * Encrypts and inserts a document into the data hub if it does not already
+   * Encrypts and inserts a document into the EDV if it does not already
    * exist. If a document matching its ID already exists, a `DuplicateError` is
    * thrown. If a `stream` is given, the document will be inserted, then
    * the stream will be read, chunked, and stored. Finally, the document will
@@ -107,10 +111,10 @@ export class DataHubClient {
 
     // auto generate document ID
     if(doc.id === undefined) {
-      doc.id = await DataHubClient.generateId();
+      doc.id = await EdvClient.generateId();
     }
 
-    let url = DataHubClient._getInvocationTarget({capability}) ||
+    let url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
     // trim document ID and trailing slash, if present, to post to root
     // collection
@@ -183,7 +187,7 @@ export class DataHubClient {
   }
 
   /**
-   * Encrypts and updates a document in the data hub. If the document does not
+   * Encrypts and updates a document in the EDV. If the document does not
    * already exist, it is created. If a `stream` is provided, the document
    * will be updated twice, once using the given update and a second time
    * once the stream has been read, chunked, and stored to include meta data
@@ -239,7 +243,7 @@ export class DataHubClient {
     }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: true});
-    const url = DataHubClient._getInvocationTarget({capability}) ||
+    const url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(encrypted.id);
     if(!capability) {
       capability = this._getRootDocCapability(encrypted.id);
@@ -284,11 +288,10 @@ export class DataHubClient {
 
   /**
    * Updates an index for the given document, without updating the document
-   * contents itself. An index entry will be updated and sent to the data
-   * hub storage system; its sequence number must match the document's current
-   * sequence number or the update will be rejected with an
-   * `InvalidStateError`. Recovery from this error requires fetching the
-   * latest document and trying again.
+   * contents itself. An index entry will be updated and sent to the EDV; its
+   * sequence number must match the document's current sequence number or the
+   * update will be rejected with an `InvalidStateError`. Recovery from this
+   * error requires fetching the latest document and trying again.
    *
    * Note: If the index does not exist or the document does not have an
    * existing entry for the index, it will be added.
@@ -311,7 +314,7 @@ export class DataHubClient {
     _checkIndexing(hmac);
 
     // TODO: is appending `/index` the right way to accomplish this?
-    const url = (DataHubClient._getInvocationTarget({capability}) ||
+    const url = (EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id)) + '/index';
     if(!capability) {
       capability = this._getRootDocCapability(doc.id) + '/index';
@@ -340,7 +343,7 @@ export class DataHubClient {
   }
 
   /**
-   * Deletes a document from the data hub.
+   * Deletes a document from the EDV.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id the ID of the document to delete.
@@ -356,7 +359,7 @@ export class DataHubClient {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    const url = DataHubClient._getInvocationTarget({capability}) ||
+    const url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
     if(!capability) {
       capability = this._getRootDocCapability(id);
@@ -383,7 +386,7 @@ export class DataHubClient {
   }
 
   /**
-   * Gets a document from data hub storage by its ID.
+   * Gets a document from the EDV by its ID.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.id the ID of the document to get.
@@ -403,7 +406,7 @@ export class DataHubClient {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    const url = DataHubClient._getInvocationTarget({capability}) ||
+    const url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(id);
     if(!capability) {
       capability = this._getRootDocCapability(id);
@@ -522,7 +525,7 @@ export class DataHubClient {
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
     // get results and decrypt them
-    const url = (DataHubClient._getInvocationTarget({capability}) || this.id) +
+    const url = (EdvClient._getInvocationTarget({capability}) || this.id) +
       '/query';
     if(!capability) {
       capability = `${this.id}/zcaps/query`;
@@ -542,7 +545,7 @@ export class DataHubClient {
   }
 
   /**
-   * Stores a delegated authorization capability for this data hub, enabling
+   * Stores a delegated authorization capability for this EDV, enabling
    * it to be invoked by its designated invoker.
    *
    * @param {Object} options - The options to use.
@@ -580,7 +583,7 @@ export class DataHubClient {
 
   /**
    * Removes a previously stored delegated authorization capability from this
-   * data hub, preventing it from being invoked by its designated invoker.
+   * EDV, preventing it from being invoked by its designated invoker.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.id the ID of the capability to revoke.
@@ -617,18 +620,18 @@ export class DataHubClient {
   }
 
   /**
-   * Creates a new data hub using the given configuration.
+   * Creates a new EDV using the given configuration.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
-   * @param {string} options.config - The data hub's configuration.
+   * @param {string} options.config - The EDV's configuration.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the newly
-   *   created data hub.
+   *   created EDV.
    */
-  static async createDataHub({url = '/data-hubs', config, httpsAgent}) {
+  static async createEdv({url = '/edvs', config, httpsAgent}) {
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
@@ -643,7 +646,7 @@ export class DataHubClient {
   }
 
   /**
-   * Gets the data hub config for the given controller and reference ID.
+   * Gets the EDV config for the given controller and reference ID.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.url - The url to query.
@@ -652,32 +655,32 @@ export class DataHubClient {
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
-   * @return {Promise<Object>} resolves to the data hub configuration
+   * @return {Promise<Object>} resolves to the EDV configuration
    *   containing the given controller and reference ID.
    */
   static async findConfig(
-    {url = '/data-hubs', controller, referenceId, httpsAgent}) {
+    {url = '/edvs', controller, referenceId, httpsAgent}) {
     const results = await this.findConfigs(
       {url, controller, referenceId, httpsAgent});
     return results[0] || null;
   }
 
   /**
-   * Get all data hub configurations matching a query.
+   * Get all EDV configurations matching a query.
    *
    * @param {Object} options - The options to use.
    * @param {string} options.url - The url to query.
-   * @param {string} options.controller - The data hub's controller.
+   * @param {string} options.controller - The EDV's controller.
    * @param {string} [options.referenceId] - A controller-unique reference ID.
-   * @param {string} [options.after] - A data hub's ID.
-   * @param {number} [options.limit] - How many data hub configs to return.
+   * @param {string} [options.after] - A EDV's ID.
+   * @param {number} [options.limit] - How many EDV configs to return.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
-   * @return {Promise<Array>} resolves to the matching data hub configurations.
+   * @return {Promise<Array>} resolves to the matching EDV configurations.
    */
   static async findConfigs(
-    {url = '/data-hubs', controller, referenceId, after, limit, httpsAgent}) {
+    {url = '/edvs', controller, referenceId, after, limit, httpsAgent}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
       headers: DEFAULT_HEADERS,
@@ -687,14 +690,14 @@ export class DataHubClient {
   }
 
   /**
-   * Gets the configuration for a data hub.
+   * Gets the configuration for an EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id the data hub's ID.
+   * @param {string} options.id the EDV's ID.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
-   * @return {Promise<Object>} resolves to the configuration for the data hub.
+   * @return {Promise<Object>} resolves to the configuration for the EDV.
    */
   static async getConfig({id, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
@@ -704,13 +707,13 @@ export class DataHubClient {
   }
 
   /**
-   * Updates a data hub configuration. The new configuration `sequence` must
+   * Updates an EDV configuration. The new configuration `sequence` must
    * be incremented by `1` over the previous configuration or the update will
    * fail.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id - The data hub's ID.
-   * @param {Object} options.config - The new data hub config.
+   * @param {string} options.id - The EDV's ID.
+   * @param {Object} options.config - The new EDV config.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    *
@@ -731,10 +734,10 @@ export class DataHubClient {
   }
 
   /**
-   * Sets the status of a data hub.
+   * Sets the status of an EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id - A data hub ID.
+   * @param {string} options.id - A EDV ID.
    * @param {string} options.status - Either `active` or `deleted`.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
@@ -743,7 +746,7 @@ export class DataHubClient {
    */
   static async setStatus({id, status, httpsAgent}) {
     // TODO: add `capability` and `invocationSigner` support?
-    // FIXME: add ability to disable data hub access or to revoke all ocaps
+    // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
     await axios.post(
       `${id}/status`, {status}, {headers: DEFAULT_HEADERS, httpsAgent});
@@ -809,14 +812,13 @@ export class DataHubClient {
       encrypted.meta = {};
     }
 
-    /* Note: There is an assumption that data hubs will be ported in their
-    entirety. If the contents of a single data hub document is to be copied to
-    another data hub, it should receive a new data hub document ID on the
-    target data hub system. No data hub document with the same ID should live
-    on more than one data hub unless those data hubs are intended to be mirrors
-    of one another. This reduces synchronization issues to a sequence number
-    instead of something more complicated involving digests and other
-    synchronization complexities. */
+    /* Note: There is an assumption that EDVs will be ported in their
+    entirety. If the contents of a single EDV document is to be copied to
+    another EDV, it should receive a new EDV document ID on the target EDV. No
+    EDV document with the same ID should live on more than one EDV unless those
+    EDVs are intended to be mirrors of one another. This reduces
+    synchronization issues to a sequence number instead of something more
+    complicated involving digests and other synchronization complexities. */
 
     if(update) {
       if('sequence' in encrypted) {
@@ -939,7 +941,7 @@ export class DataHubClient {
   }
 
   async _storeChunk({doc, chunk, capability, invocationSigner}) {
-    let url = DataHubClient._getInvocationTarget({capability}) ||
+    let url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
     if(!capability) {
       capability = this._getRootDocCapability(doc.id);
@@ -969,7 +971,7 @@ export class DataHubClient {
   }
 
   async _getChunk({doc, chunkIndex, capability, invocationSigner}) {
-    let url = DataHubClient._getInvocationTarget({capability}) ||
+    let url = EdvClient._getInvocationTarget({capability}) ||
       this._getDocUrl(doc.id);
     if(!capability) {
       capability = this._getRootDocCapability(doc.id);

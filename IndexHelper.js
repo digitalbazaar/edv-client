@@ -10,7 +10,7 @@ const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
 export class IndexHelper {
   /**
-   * Creates a new IndexHelper instance that can be used to blind data hub
+   * Creates a new IndexHelper instance that can be used to blind EDV
    * document attributes to enable indexing.
    *
    * @return {IndexHelper}.
@@ -135,7 +135,7 @@ export class IndexHelper {
   }
 
   /**
-   * Builds a query that can be submitted to a data hub index service.
+   * Builds a query that can be submitted to an EDV index service.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`

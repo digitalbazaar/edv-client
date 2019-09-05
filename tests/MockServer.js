@@ -34,7 +34,7 @@ export class MockServer {
     /**
      * This is a function curried to a stub.
      *
-     * @param {string} path - A valid express route path ex: data-hubs/:id
+     * @param {string} path - A valid express route path ex: edvs/:id
      * @param {Function} callback - A function that accepts the route params
      * and then produces mock data for a test.
      *

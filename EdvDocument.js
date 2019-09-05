@@ -3,16 +3,16 @@
  */
 'use strict';
 
-import {DataHubClient} from './DataHubClient.js';
+import {EdvClient} from './EdvClient.js';
 
-export class DataHubDocument {
+export class EdvDocument {
   /**
-   * Creates a new instance of a DataHubDocument.
+   * Creates a new instance of a EdvDocument.
    *
    * @param {Object} options - The options to use.
    * @param {string} [options.id=undefined] the ID of the document; this is
    *   only necessary if the capability's `invocationTarget` is not for the
-   *   document itself (but is for the entire data hub).
+   *   document itself (but is for the entire EDV).
    * @param {Array} [recipients=[]] an array of additional recipients for the
    *   encrypted content.
    * @param {function} [keyResolver=this.keyResolver] a default function that
@@ -22,19 +22,19 @@ export class DataHubDocument {
    * @param {Object} [hmac=null] an HMAC API for blinding indexable
    *   attributes.
    * @param {Object} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of DataHubClient methods.
+   *   capability to use to authorize the invocation of EdvClient methods.
    * @param {Object} options.invocationSigner - An API for signing
    *   a capability invocation.
-   * @param {DataHubClient} [options.client] - An optional DataHubClient
+   * @param {EdvClient} [options.client] - An optional EdvClient
    *   to use.
    *
-   * @returns {DataHubDocument} The new DataHubDocument instance.
+   * @returns {EdvDocument} The new EdvDocument instance.
    */
   constructor({
     id, capability, invocationSigner,
     recipients = [], keyResolver = null,
     keyAgreementKey = null, hmac = null,
-    client = new DataHubClient()
+    client = new EdvClient()
   }) {
     this.id = id;
     this.recipients = recipients;
@@ -45,14 +45,14 @@ export class DataHubDocument {
     if(!this.id) {
       // TODO: determine if there's a cleaner way to do this that maintains
       // portability
-      this.id = _parseDataHubDocId(capability);
+      this.id = _parseEdvDocId(capability);
     }
     this.invocationSigner = invocationSigner;
     this.client = client;
   }
 
   /**
-   * Retrieves and decrypts this document from its data hub.
+   * Retrieves and decrypts this document from its EDV.
    *
    * @returns {Promise<Object>} resolves to the decrypted document.
    */
@@ -80,7 +80,7 @@ export class DataHubDocument {
   }
 
   /**
-   * Encrypts and updates this document in its data hub.
+   * Encrypts and updates this document in its EDV.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.doc - The unencrypted document to update/insert.
@@ -107,7 +107,7 @@ export class DataHubDocument {
   }
 
   /**
-   * Deletes this document from the data hub.
+   * Deletes this document from the EDV.
    *
    * @return {Promise<Boolean>} resolves to `true` if the document was deleted
    *   and `false` if it did not exist.
@@ -118,8 +118,8 @@ export class DataHubDocument {
   }
 }
 
-function _parseDataHubDocId(capability) {
-  const target = DataHubClient._getInvocationTarget({capability});
+function _parseEdvDocId(capability) {
+  const target = EdvClient._getInvocationTarget({capability});
   if(!target) {
     throw new TypeError('"capability" must be an object.');
   }

@@ -3,5 +3,5 @@
  */
 'use strict';
 
-export {DataHubClient} from './DataHubClient.js';
-export {DataHubDocument} from './DataHubDocument.js';
+export {EdvClient} from './EdvClient.js';
+export {EdvDocument} from './EdvDocument.js';

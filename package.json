@@ -13,8 +13,8 @@
     "lint": "eslint ."
   },
   "files": [
-    "DataHubClient.js",
-    "DataHubDocument.js",
+    "EdvClient.js",
+    "EdvDocument.js",
     "IndexHelper.js",
     "base58.js",
     "baseN.js",
@@ -69,6 +69,10 @@
     "url": "https://github.com/digitalbazaar/edv-client"
   },
   "keywords": [
+    "edv",
+    "edv client",
+    "encrypted data vault",
+    "encrypted data vault client",
     "data hub",
     "datahub"
   ],

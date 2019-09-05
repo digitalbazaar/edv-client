@@ -7,105 +7,105 @@ import uuid from 'uuid-random';
 
 export class MockStorage {
   constructor({server}) {
-    this.dataHubs = new Map();
-    this.referenceHubs = new Map();
+    this.edvs = new Map();
+    this.referenceEdvs = new Map();
     this.documents = new Map();
 
     const baseUrl = 'http://localhost:9876';
-    const root = '/data-hubs';
+    const root = '/edvs';
     const routes = this.routes = {
-      dataHubs: root,
-      dataHub: `${baseUrl}${root}/:dataHubId`,
-      documents: `${baseUrl}${root}/:dataHubId/documents`,
-      query: `${baseUrl}${root}/:dataHubId/query`
+      edvs: root,
+      edv: `${baseUrl}${root}/:edvId`,
+      documents: `${baseUrl}${root}/:edvId/documents`,
+      query: `${baseUrl}${root}/:edvId/query`
     };
 
-    // create a new data hub
-    server.post(routes.dataHubs, request => {
+    // create a new edv
+    server.post(routes.edvs, request => {
       const config = JSON.parse(request.requestBody);
       // TODO: validate `config`
       config.id = `${baseUrl}${root}/${uuid()}`;
-      const dataHub = {
+      const edv = {
         config,
         documents: new Map(),
         indexes: new Map()
       };
-      this.dataHubs.set(config.id, dataHub);
-      this.mapDocumentHandlers({server, dataHub});
+      this.edvs.set(config.id, edv);
+      this.mapDocumentHandlers({server, edv});
       if(config.referenceId) {
         const key = _getReferenceKey(config.controller, config.referenceId);
-        const refHub = this.referenceHubs.get(key);
-        if(refHub) {
+        const refEdv = this.referenceEdvs.get(key);
+        if(refEdv) {
           return [409];
         }
-        this.referenceHubs.set(key, dataHub);
+        this.referenceEdvs.set(key, edv);
       }
       const location = config.id;
       return [201, {location, json: true}, config];
     });
 
-    // get data hubs by query
-    server.get(routes.dataHubs, request => {
+    // get edvs by query
+    server.get(routes.edvs, request => {
       const {controller, referenceId} = request.queryParams;
       if(!referenceId) {
-        // query for all data hubs controlled by controller not implemented yet
+        // query for all edvs controlled by controller not implemented yet
         // TODO: implement
         return [500, {json: true}, new Error('Not implemented.')];
       }
       const key = _getReferenceKey(controller, referenceId);
-      const refHub = this.referenceHubs.get(key);
-      if(!refHub) {
+      const refEdv = this.referenceEdvs.get(key);
+      if(!refEdv) {
         return [200, {json: true}, []];
       }
-      return [200, {json: true}, [refHub.config]];
+      return [200, {json: true}, [refEdv.config]];
     });
 
-    // get a data hub
-    server.get(routes.dataHub, request => {
-      const dataHubId = request.route;
-      const dataHub = this.dataHubs.get(dataHubId);
-      if(!dataHub) {
+    // get an edv
+    server.get(routes.edv, request => {
+      const edvId = request.route;
+      const edv = this.edvs.get(edvId);
+      if(!edv) {
         return [404];
       }
-      return [200, {json: true}, dataHub.config];
+      return [200, {json: true}, edv.config];
     });
 
-    // insert a document into a data hub
+    // insert a document into an edv
     server.post(routes.documents, request => {
       const idx = request.route.lastIndexOf('/documents');
-      const dataHubId = request.route.substr(0, idx);
-      const dataHub = this.dataHubs.get(dataHubId);
-      if(!dataHub) {
-        // data hub does not exist
+      const edvId = request.route.substr(0, idx);
+      const edv = this.edvs.get(edvId);
+      if(!edv) {
+        // edv does not exist
         return [404];
       }
 
       const doc = JSON.parse(request.requestBody);
-      if(dataHub.documents.has(doc.id)) {
+      if(edv.documents.has(doc.id)) {
         return [409];
       }
 
       try {
-        this.store({dataHub, doc, create: true});
+        this.store({edv, doc, create: true});
       } catch(e) {
         return [409];
       }
-      const location = `${dataHubId}/documents/${doc.id}`;
+      const location = `${edvId}/documents/${doc.id}`;
       return [201, {location}];
     });
 
-    // query a data hub
+    // query an edv
     server.post(routes.query, request => {
       const idx = request.route.lastIndexOf('/query');
-      const dataHubId = request.route.substr(0, idx);
-      const dataHub = this.dataHubs.get(dataHubId);
-      if(!dataHub) {
-        // data hub does not exist
+      const edvId = request.route.substr(0, idx);
+      const edv = this.edvs.get(edvId);
+      if(!edv) {
+        // edv does not exist
         return [404];
       }
 
       const query = JSON.parse(request.requestBody);
-      const index = dataHub.indexes.get(query.index);
+      const index = edv.indexes.get(query.index);
       if(!index) {
         // index does not exist
         return [404];
@@ -161,11 +161,11 @@ export class MockStorage {
     });
   }
 
-  store({dataHub, doc, create = false}) {
+  store({edv, doc, create = false}) {
     if(create) {
       // check uniqueness constraint
       for(const entry of doc.indexed) {
-        const index = dataHub.indexes.get(entry.hmac.id);
+        const index = edv.indexes.get(entry.hmac.id);
         if(!index) {
           continue;
         }
@@ -181,15 +181,15 @@ export class MockStorage {
       }
     }
 
-    dataHub.documents.set(doc.id, doc);
+    edv.documents.set(doc.id, doc);
     for(const entry of doc.indexed) {
-      let index = dataHub.indexes.get(entry.hmac.id);
+      let index = edv.indexes.get(entry.hmac.id);
       if(!index) {
         index = {
           equals: new Map(),
           has: new Map()
         };
-        dataHub.indexes.set(entry.hmac.id, index);
+        edv.indexes.set(entry.hmac.id, index);
       }
       for(const attribute of entry.attributes) {
         this.addToIndex({
@@ -219,9 +219,9 @@ export class MockStorage {
     docSet.add(doc);
   }
 
-  unindex({dataHub, doc}) {
+  unindex({edv, doc}) {
     for(const entry of doc.indexed) {
-      const index = dataHub.indexes.get(entry.hmac.id);
+      const index = edv.indexes.get(entry.hmac.id);
       for(const attribute of entry.attributes) {
         this.removeFromIndex({
           index: index.equals,
@@ -250,8 +250,8 @@ export class MockStorage {
     return [...docSet];
   }
 
-  mapDocumentHandlers({server, dataHub}) {
-    const route = `${dataHub.config.id}/documents/:docId`;
+  mapDocumentHandlers({server, edv}) {
+    const route = `${edv.config.id}/documents/:docId`;
 
     function getDocId(route) {
       const dir = '/documents/';
@@ -266,14 +266,14 @@ export class MockStorage {
       if(docId !== doc.id) {
         return [400];
       }
-      this.store({dataHub, doc});
+      this.store({edv, doc});
       return [204];
     });
 
     // get a document
     server.get(route, request => {
       const docId = getDocId(request.route);
-      const doc = dataHub.documents.get(docId);
+      const doc = edv.documents.get(docId);
       if(!doc) {
         return [404];
       }
@@ -283,12 +283,12 @@ export class MockStorage {
     // delete a document
     server.delete(route, request => {
       const docId = getDocId(request.route);
-      if(!dataHub.documents.has(docId)) {
+      if(!edv.documents.has(docId)) {
         return [404];
       }
-      const doc = dataHub.documents.get(docId);
-      this.unindex({dataHub, doc});
-      dataHub.documents.delete(docId);
+      const doc = edv.documents.get(docId);
+      this.unindex({edv, doc});
+      edv.documents.delete(docId);
       return [204];
     });
   }

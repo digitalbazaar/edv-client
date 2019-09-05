@@ -1,9 +1,9 @@
-# JavaScript Secure Data Hub Client _(secure-data-hub-client)_
+# JavaScript Encrypted Data Vault Client _(edv-client)_
 
-[![Build Status](https://travis-ci.org/digitalbazaar/secure-data-hub-client.png?branch=master)](https://travis-ci.org/digitalbazaar/secure-data-hub-client)
+[![Build Status](https://travis-ci.org/digitalbazaar/edv-client.png?branch=master)](https://travis-ci.org/digitalbazaar/edv-client)
 
 > A JavaScript library for Web and node.js apps for interfacing with a remote
-> Secure Data Hub server
+> Encrypted Data Vault server
 
 ## Table of Contents
 
@@ -18,29 +18,29 @@
 ## Background
 
 This library provides a client that Web and node.js apps can use to interface
-with remote Secure Data Hub servers.
+with remote Encrypted Data Vault (EDV) servers.
 
 It consists of one main class:
 
-1. `DataHubClient` - instances provide a CRUD (+ find) interface to a specific
-  configured Data Hub server and ensure appropriate database indexes are
-  set up. Static methods allow for the creation of data hubs with a remote
-  storage service, e.g.
-    [Data Hub storage server](https://github.com/digitalbazaar/bedrock-data-hub-storage).
+1. `EdvClient` - instances provide a CRUD (+ find) interface to a specific
+  configured Encrypted Data Vault server and ensure appropriate database
+  indexes are set up. Static methods allow for the creation of EDVs with a
+  remote storage service, e.g.
+    [Encrypted Data Vault storage server](https://github.com/digitalbazaar/bedrock-data-hub-storage).
 
 ## Install
 
 To install locally (for development):
 
 ```
-git clone https://github.com/digitalbazaar/secure-data-hub-client.git
-cd secure-data-hub-client
+git clone https://github.com/digitalbazaar/edv-client.git
+cd edv-client
 npm install
 ```
 
 ## Usage
 
-### Creating and registering a secure data hub
+### Creating and registering an Encrypted Data Vault (EDV)
 
 First, create a key agreement key and an HMAC (hash-based message authentication
 code) key for encrypting your documents and blinding any indexed attributes in
@@ -50,12 +50,13 @@ locally or via a KMS system. The current example shows using a KMS system
 
 ```js
 import {ControllerKey, KmsClient} from 'web-kms-client';
-import {DataHubClient} from 'secure-data-hub-client';
+import {EdvClient} from 'edv-client';
 
 ```
-Although Secure Data Hubs are not bound to any particular key management system,
-we recommend that you set up a Key Management Service using an implementation
-such as [`web-kms-switch`](https://github.com/digitalbazaar/web-kms-switch)
+Although Encrypted Data Vaults are not bound to any particular key management
+system, we recommend that you set up a Key Management Service using an
+implementation such as
+[`web-kms-switch`](https://github.com/digitalbazaar/web-kms-switch)
 which you can connect to using
 [`web-kms-client`](https://github.com/digitalbazaar/web-kms-client).
 
@@ -74,11 +75,10 @@ const keyAgreementKey = await controllerKey.generateKey({type: 'keyAgreement'});
 const hmac = await controllerKey.generateKey({type: 'hmac'});
 ```
 
-Now you can create and register a new data hub configuration:
+Now you can create and register a new EDV configuration:
 
 ```js
-// TODO: explain data hub service must be able to authenticate user against this
-// using http signatures
+// TODO: explain EDV service must be able to authenticate user
 const controller = 'account id goes here';
 
 const config = {
@@ -90,47 +90,47 @@ const config = {
   hmac: {id: hmac.id, type: hmac.type}
 };
 
-// sends a POST request to the remote service to create a data hub
-const remoteConfig = await DataHubClient.createDataHub({config});
+// sends a POST request to the remote service to create an EDV
+const remoteConfig = await EdvClient.createEdv({config});
 
-// connect to the new data hub via a `DataHubClient`
-const hub = new DataHubClient({id: remoteConfig.id, keyAgreementKey, hmac});
+// connect to the new EDV via a `EdvClient`
+const client = new EdvClient({id: remoteConfig.id, keyAgreementKey, hmac});
 ```
 
-### Loading a saved data hub config
+### Loading a saved EDV config
 
-If you have previously registered a data hub config (via `createDataHub()`),
+If you have previously registered an EDV config (via `createEdv()`),
 and you know its `id`, you can fetch its config via `get()`:
 
 ```js
 // registered config
-const {id} = await DataHubClient.createDataHub({config});
+const {id} = await EdvClient.createEdv({config});
 
 // later, it can be fetched via the id
-const remoteConfig = await DataHubClient.getConfig({id});
+const remoteConfig = await EdvClient.getConfig({id});
 
-// connect to the existing data hub via a `DataHubClient` instance
-const hub = new DataHubClient({id: remoteConfig.id, keyAgreementKey, hmac});
+// connect to the existing EDV via an `EdvClient` instance
+const client = new EdvClient({id: remoteConfig.id, keyAgreementKey, hmac});
 ```
 
-If you know a controller/`accountId` but do not know a specific hub `id`, you
-can request a data hub by a controller-scoped custom `referenceId`:
+If you know a controller/`accountId` but do not know a specific EDV `id`, you
+can create a client for an EDV by a controller-scoped custom `referenceId`:
 
 ```js
-// get the account's 'primary' data hub config to connect to the data hub
+// get the account's 'primary' EDV config to connect to the EDV
 // note that a referenceId can be any string but must be unique per controller
-const config = await DataHub.findConfig(
+const config = await EdvClient.findConfig(
   {controller: accountId, referenceId: 'primary'});
-const hub = new DataHubClient({id: config.id, keyAgreementKey, hmac});
+const client = new EdvClient({id: config.id, keyAgreementKey, hmac});
 ```
 
-### Using a DataHubClient instance for document storage
+### Using a EdvClient instance for document storage
 
 See the API section below.
 
 ## API
 
-### `DataHubClient`
+### `EdvClient`
 
 #### `constructor`
 

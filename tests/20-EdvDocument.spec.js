@@ -1,10 +1,10 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-import {DataHubDocument, DataHubClient} from '..';
+import {EdvDocument, EdvClient} from '..';
 import mock from './mock.js';
 
-describe('DataHubDocument', () => {
+describe('EdvDocument', () => {
   before(async () => {
     await mock.init();
   });
@@ -12,14 +12,14 @@ describe('DataHubDocument', () => {
     await mock.server.shutdown();
   });
 
-  it('should read a document using DataHubDocument', async () => {
+  it('should read a document using EdvDocument', async () => {
     const {invocationSigner, keyResolver} = mock;
-    const client = await mock.createDataHub();
+    const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1Id = await DataHubClient.generateId();
+    const doc1Id = await EdvClient.generateId();
     const doc1 = {id: doc1Id, content: {indexedKey: 'value1'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});
-    const doc = new DataHubDocument({
+    const doc = new EdvDocument({
       invocationSigner,
       id: doc1.id,
       keyAgreementKey: client.keyAgreementKey,
