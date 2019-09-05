@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 2.0.0 - 2019-09-xx
+## 2.0.0 - 2019-09-05
 
 - Renamed to edv-client.
 
