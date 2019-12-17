@@ -864,7 +864,6 @@ export class EdvClient {
         (doc.indexed || []),
       cipher.encryptObject({obj, recipients, keyResolver})
     ]);
-
     delete encrypted.content;
     delete encrypted.meta;
     delete encrypted.stream;
