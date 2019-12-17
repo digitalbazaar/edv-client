@@ -16,6 +16,106 @@ describe('EdvClient', () => {
     await mock.server.shutdown();
   });
 
+  it('should only contain one indexed document after 3 updates', async () => {
+    const getLatestDocsByIndexHas = async (client, invocationSigner, index) => {
+      const indexedDocs = await client.find({
+        has: index,
+        invocationSigner
+      });
+      const uniqueIds = [...new Set(indexedDocs.map(item => item.id))];
+
+      const docsFromGet = await Promise.all(
+        uniqueIds.map(id => {
+          return client.get({id, invocationSigner});
+        })
+      );
+      return docsFromGet;
+    };
+
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const testId = await EdvClient.generateId();
+    const doc = {
+      id: testId,
+      content: {someKey: '111111', indexedKey: 'value1'}
+    };
+    let version1 = await client.insert({
+      doc,
+      invocationSigner,
+      keyResolver
+    });
+    version1 = await client.get({id: doc.id, invocationSigner});
+
+    // console.log("version: 1", version1);
+    await client.update({
+      doc: {
+        ...version1,
+        content: {
+          ...version1.content,
+          someKey: '22222'
+        }
+      },
+      invocationSigner,
+      keyResolver
+    });
+    const version2 = await client.get({id: doc.id, invocationSigner});
+    // console.log("version: 2", version2);
+    await client.update({
+      doc: {
+        ...version2,
+        content: {
+          ...version2.content,
+          someKey: '33333'
+        }
+      },
+      invocationSigner,
+      keyResolver
+    });
+
+    const docsFromGet = await getLatestDocsByIndexHas(
+      client,
+      invocationSigner,
+      'content.indexedKey'
+    );
+
+    docsFromGet.should.be.an('array');
+    docsFromGet.length.should.equal(1);
+  });
+
+  it('should have matching sequence numbers in indexes', async () => {
+    const {keyAgreementKey, hmac} = mock.keys;
+    let docs = [];
+    const config = await EdvClient.createEdv({
+      config: {
+        sequence: 0,
+        controller: mock.accountId,
+        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+        hmac: {id: hmac.id, type: hmac.type},
+        referenceId: 'web'
+      }
+    });
+    const client = new EdvClient({id: config.id, keyAgreementKey, hmac});
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const testId = await EdvClient.generateId();
+    const doc = {
+      id: testId,
+      content: {someKey: 'someValue', indexedKey: 'value1'}
+    };
+    const version1 = await client.insert({
+      doc,
+      invocationSigner,
+      keyResolver
+    });
+    version1.content = {someKey: 'aNewValue'};
+    await client.update({doc: version1, invocationSigner, keyResolver});
+    const version2 = await client.get({id: doc.id, invocationSigner});
+    docs = await client.find({
+      has: 'content.indexedKey',
+      invocationSigner
+    });
+    version2.indexed[0].sequence.should.equal(docs[0].sequence);
+  });
+
   it('should create a new encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     const config = await EdvClient.createEdv({
