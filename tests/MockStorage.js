@@ -180,8 +180,18 @@ export class MockStorage {
         }
       }
     }
-
+    const oldDoc = edv.documents.get(doc.id);
     edv.documents.set(doc.id, doc);
+    if(oldDoc) {
+      // if an indexed value was not updated
+      // it's attributes is an empty array.
+      // so we need to use the last attributes.
+      for(const index in doc.indexed) {
+        if(doc.indexed[index].attributes.length === 0) {
+          doc.indexed[index].attributes = oldDoc.indexed[index].attributes;
+        }
+      }
+    }
     for(const entry of doc.indexed) {
       let index = edv.indexes.get(entry.hmac.id);
       if(!index) {
@@ -216,6 +226,13 @@ export class MockStorage {
     if(unique) {
       docSet.clear();
     }
+    // This emulates an update in the database.
+    docSet.forEach(d => {
+      const older = (d.id === doc.id) && (d.sequence < doc.sequence);
+      if(older) {
+        docSet.delete(d);
+      }
+    });
     docSet.add(doc);
   }
 
