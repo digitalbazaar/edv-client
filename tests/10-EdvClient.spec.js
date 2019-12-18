@@ -46,7 +46,6 @@ describe('EdvClient', () => {
     });
     version1 = await client.get({id: doc.id, invocationSigner});
 
-    // console.log("version: 1", version1);
     await client.update({
       doc: {
         ...version1,
@@ -59,7 +58,6 @@ describe('EdvClient', () => {
       keyResolver
     });
     const version2 = await client.get({id: doc.id, invocationSigner});
-    // console.log("version: 2", version2);
     await client.update({
       doc: {
         ...version2,
