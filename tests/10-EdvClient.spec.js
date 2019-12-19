@@ -16,21 +16,7 @@ describe('EdvClient', () => {
     await mock.server.shutdown();
   });
 
-  it('should only contain one indexed document after 3 updates', async () => {
-    const getLatestDocsByIndexHas = async (client, invocationSigner, index) => {
-      const indexedDocs = await client.find({
-        has: index,
-        invocationSigner
-      });
-      const uniqueIds = [...new Set(indexedDocs.map(item => item.id))];
-
-      const docsFromGet = await Promise.all(
-        uniqueIds.map(id => {
-          return client.get({id, invocationSigner});
-        })
-      );
-      return docsFromGet;
-    };
+  it('should find document by index after updates', async () => {
 
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
@@ -70,17 +56,16 @@ describe('EdvClient', () => {
       keyResolver
     });
 
-    const docsFromGet = await getLatestDocsByIndexHas(
-      client,
-      invocationSigner,
-      'content.indexedKey'
-    );
+    const docs = await client.find({
+      has: 'content.indexedKey',
+      invocationSigner
+    });
 
-    docsFromGet.should.be.an('array');
-    docsFromGet.length.should.equal(1);
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
   });
 
-  it('should have matching sequence numbers in indexes', async () => {
+  it('should not find document by index after update', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     let docs = [];
     const config = await EdvClient.createEdv({
@@ -104,14 +89,15 @@ describe('EdvClient', () => {
       invocationSigner,
       keyResolver
     });
+    // the content no longer has the indexed property.
     version1.content = {someKey: 'aNewValue'};
     await client.update({doc: version1, invocationSigner, keyResolver});
-    const version2 = await client.get({id: doc.id, invocationSigner});
     docs = await client.find({
       has: 'content.indexedKey',
       invocationSigner
     });
-    version2.indexed[0].sequence.should.equal(docs[0].sequence);
+    docs.should.be.an('array');
+    docs.length.should.equal(0);
   });
 
   it('should create a new encrypted data vault', async () => {
