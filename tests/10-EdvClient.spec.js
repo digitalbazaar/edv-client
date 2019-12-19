@@ -17,7 +17,6 @@ describe('EdvClient', () => {
   });
 
   it('should find document by index after updates', async () => {
-
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testId = await EdvClient.generateId();
