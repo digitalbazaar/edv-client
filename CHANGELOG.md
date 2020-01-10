@@ -1,5 +1,12 @@
 # edv-client ChangeLog
 
+## 2.1.0 - 2020-01-09
+
+### Added
+- Do not assume invocation target matches the document URL; handle
+  cases where invocation target may be for the document collection.
+- Allow capabilities to be used to enable/disable other capabilities.
+
 ## 2.0.0 - 2019-09-05
 
 - Renamed to edv-client.

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
 'use strict';
 
@@ -114,8 +114,7 @@ export class EdvClient {
       doc.id = await EdvClient.generateId();
     }
 
-    let url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(doc.id);
+    let url = this._getDocUrl(doc.id, capability);
     // trim document ID and trailing slash, if present, to post to root
     // collection
     if(url.endsWith(doc.id)) {
@@ -243,8 +242,7 @@ export class EdvClient {
     }
     const encrypted = await this._encrypt(
       {doc, recipients, keyResolver, hmac, update: true});
-    const url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(encrypted.id);
+    const url = this._getDocUrl(encrypted.id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(encrypted.id);
     }
@@ -313,9 +311,7 @@ export class EdvClient {
     _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
 
-    // TODO: is appending `/index` the right way to accomplish this?
-    const url = (EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(doc.id)) + '/index';
+    const url = this._getDocUrl(doc.id, capability) + '/index';
     if(!capability) {
       capability = this._getRootDocCapability(doc.id) + '/index';
     }
@@ -359,8 +355,7 @@ export class EdvClient {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    const url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(id);
+    const url = this._getDocUrl(id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(id);
     }
@@ -406,8 +401,7 @@ export class EdvClient {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    const url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(id);
+    const url = this._getDocUrl(id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(id);
     }
@@ -525,8 +519,12 @@ export class EdvClient {
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
     // get results and decrypt them
-    const url = (EdvClient._getInvocationTarget({capability}) || this.id) +
-      '/query';
+    let url = EdvClient._getInvocationTarget({capability}) ||
+      `${this.id}/query`;
+    // capability with a target of `/documents` can be used to query
+    if(url.endsWith('/documents')) {
+      url = url.substr(0, url.length - 10) + '/query';
+    }
     if(!capability) {
       capability = `${this.id}/zcaps/query`;
     }
@@ -550,16 +548,21 @@ export class EdvClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.capabilityToEnable the capability to enable.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Object>} resolves once the operation completes.
    */
-  async enableCapability({capabilityToEnable, invocationSigner}) {
+  async enableCapability({capabilityToEnable, capability, invocationSigner}) {
     _assertObject(capabilityToEnable);
 
-    const url = `${this.id}/authorizations`;
-    const capability = `${this.id}/zcaps/authorizations`;
+    const url = EdvClient._getInvocationTarget({capability}) ||
+      `${this.id}/authorizations`;
+    if(!capability) {
+      capability = `${this.id}/zcaps/authorizations`;
+    }
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
@@ -587,17 +590,25 @@ export class EdvClient {
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.id the ID of the capability to revoke.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
    * @return {Promise<Boolean>} resolves to `true` if the capability was
    *   disabled and `false` if it did not exist.
    */
-  async disableCapability({id, invocationSigner}) {
+  async disableCapability({id, capability, invocationSigner}) {
     _assertString(id);
 
-    const url = `${this.id}/authorizations?id=${encodeURIComponent(id)}`;
-    const capability = `${this.id}/zcaps/authorizations`;
+    let url = EdvClient._getInvocationTarget({capability}) ||
+      `${this.id}/authorizations`;
+    if(url.endsWith('/authorizations')) {
+      url += `?id=${encodeURIComponent(id)}`;
+    }
+    if(!capability) {
+      capability = `${this.id}/zcaps/authorizations`;
+    }
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
@@ -873,7 +884,15 @@ export class EdvClient {
   }
 
   // helper that gets a document URL from a document ID
-  _getDocUrl(id) {
+  _getDocUrl(id, capability) {
+    if(capability && !this.id) {
+      const target = EdvClient._getInvocationTarget({capability});
+      // target is the entire documents collection
+      if(target.endsWith('/documents')) {
+        return `${target}/${id}`;
+      }
+      return target;
+    }
     return `${this.id}/documents/${id}`;
   }
 
@@ -940,8 +959,7 @@ export class EdvClient {
   }
 
   async _storeChunk({doc, chunk, capability, invocationSigner}) {
-    let url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(doc.id);
+    let url = this._getDocUrl(doc.id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(doc.id);
     }
@@ -970,8 +988,7 @@ export class EdvClient {
   }
 
   async _getChunk({doc, chunkIndex, capability, invocationSigner}) {
-    let url = EdvClient._getInvocationTarget({capability}) ||
-      this._getDocUrl(doc.id);
+    let url = this._getDocUrl(doc.id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(doc.id);
     }
