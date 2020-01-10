@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 2.1.0 - 2020-01-09
+## 2.1.0 - 2020-01-10
 
 ### Added
 - Do not assume invocation target matches the document URL; handle
