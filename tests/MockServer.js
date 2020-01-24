@@ -1,6 +1,8 @@
 /*!
- * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
+'use strict';
+
 import axios from 'axios';
 import sinon from 'sinon';
 import pathToRegexp from 'path-to-regexp';

@@ -1,0 +1,18 @@
+{
+  "name": "edv-client-tests",
+  "version": "1.0.0",
+  "private": true,
+  "description": "",
+  "main": ".eslintrc.js",
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "web-streams-polyfill": "^2.0.6"
+  },
+  "browser": {
+    "./util.js": "./util-browser.js"
+  }
+}
