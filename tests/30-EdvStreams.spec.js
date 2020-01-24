@@ -40,11 +40,14 @@ describe('EDV Stream Tests', function() {
     should.exist(inserted);
     inserted.should.be.an('object');
     inserted.id.should.equal(testId);
-    inserted.sequence.should.equal(0);
+    // Streams are added in an update
+    // after the initial document has been written
+    // hence the sequence is 1 and not 0.
+    inserted.sequence.should.equal(1);
     inserted.indexed.should.be.an('array');
     inserted.indexed.length.should.equal(1);
     inserted.indexed[0].should.be.an('object');
-    inserted.indexed[0].sequence.should.equal(0);
+    inserted.indexed[0].sequence.should.equal(1);
     inserted.indexed[0].hmac.should.be.an('object');
     inserted.indexed[0].hmac.should.deep.equal({
       id: client.hmac.id,
