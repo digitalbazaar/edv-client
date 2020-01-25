@@ -1,5 +1,8 @@
 # edv-client ChangeLog
 
+### Changed
+- Update dependencies.
+
 ## 2.1.0 - 2020-01-10
 
 ### Added
