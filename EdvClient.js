@@ -4,7 +4,7 @@
 'use strict';
 
 import axios from 'axios';
-import * as base58 from './base58';
+import * as base58 from 'base58-universal';
 import {Cipher} from 'minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';

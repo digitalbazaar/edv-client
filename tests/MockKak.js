@@ -3,7 +3,7 @@
  */
 'use strict';
 
-import {encode, decode} from '../base58';
+import {encode, decode} from 'base58-universal';
 import nacl from 'tweetnacl';
 import {TextEncoder} from '../util.js';
 
