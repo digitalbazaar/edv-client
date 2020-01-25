@@ -1,5 +1,5 @@
 import forge from 'node-forge';
-import {decode} from '../base58';
+import {decode} from 'base58-universal';
 
 const {pki: {ed25519}} = forge;
 
