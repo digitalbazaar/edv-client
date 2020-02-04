@@ -5,7 +5,7 @@
 
 import {EdvClient} from '..';
 import mock from './mock.js';
-import {isRecipient} from './test-utils.js';
+import {isRecipient, isNewEDV} from './test-utils.js';
 import {ReadableStream} from '../util';
 
 function getRandomUint8({size = 50} = {}) {
@@ -37,32 +37,18 @@ describe('EDV Stream Tests', function() {
     });
     const inserted = await client.insert(
       {keyResolver, invocationSigner, doc, stream});
-    should.exist(inserted);
-    inserted.should.be.an('object');
-    inserted.id.should.equal(testId);
+    const hmac = {
+      id: client.hmac.id,
+      type: client.hmac.type
+    };
     // Streams are added in an update
     // after the initial document has been written
     // hence the sequence is 1 and not 0.
-    inserted.sequence.should.equal(1);
-    inserted.indexed.should.be.an('array');
-    inserted.indexed.length.should.equal(1);
-    inserted.indexed[0].should.be.an('object');
-    inserted.indexed[0].sequence.should.equal(1);
-    inserted.indexed[0].hmac.should.be.an('object');
-    inserted.indexed[0].hmac.should.deep.equal({
-      id: client.hmac.id,
-      type: client.hmac.type
-    });
-    inserted.indexed[0].attributes.should.be.an('array');
-    inserted.jwe.should.be.an('object');
-    inserted.jwe.protected.should.be.a('string');
-    inserted.jwe.recipients.should.be.an('array');
-    inserted.jwe.recipients.length.should.equal(1);
+    isNewEDV({hmac, inserted, testId, sequence: 1});
     isRecipient({recipient: inserted.jwe.recipients[0]});
-    inserted.jwe.iv.should.be.a('string');
-    inserted.jwe.ciphertext.should.be.a('string');
-    inserted.jwe.tag.should.be.a('string');
     inserted.content.should.deep.equal({someKey: 'someValue'});
+    should.exist(inserted.stream);
+    inserted.stream.should.be.an('object');
   });
 
 });
