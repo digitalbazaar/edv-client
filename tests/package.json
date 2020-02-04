@@ -1,0 +1,15 @@
+{
+  "name": "edv-client-tests",
+  "version": "0.0.1",
+  "description": "Tests for the edv-client.",
+  "main": ".eslintrc.js",
+  "dependencies": {},
+  "devDependencies": {
+    "did-method-key": "^0.4.0"
+  },
+  "scripts": {
+    "test": "mocha"
+  },
+  "author": "DigitalBazaar",
+  "license": "BSD-3-Clause"
+}
