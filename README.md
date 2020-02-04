@@ -49,30 +49,30 @@ locally or via a KMS system. The current example shows using a KMS system
 (TODO: show a simpler local example):
 
 ```js
-import {ControllerKey, KmsClient} from 'web-kms-client';
+import {CapabilityAgent, KeystoreAgent, KmsClient} from 'webkms-client';
 import {EdvClient} from 'edv-client';
 
 ```
 Although Encrypted Data Vaults are not bound to any particular key management
 system, we recommend that you set up a Key Management Service using an
 implementation such as
-[`web-kms-switch`](https://github.com/digitalbazaar/web-kms-switch)
+[`webkms-switch`](https://github.com/digitalbazaar/webkms-switch)
 which you can connect to using
-[`web-kms-client`](https://github.com/digitalbazaar/web-kms-client).
+[`webkms-client`](https://github.com/digitalbazaar/webkms-client).
 
 Optional:
 
 ```js
-// Create a Controller Key (via a key management service)
-const kmsService = new KmsService();
-const controllerKey = await ControllerKey.fromSecret({secret, handle});
+// create a CapabilityAgent (for invoking zcaps)
+const capabilityAgent = await CapabilityAgent.fromSecret({secret, handle});
 
-// TODO: create keystore for controllerKey and update
-// controllerKey.kmsClient.keystore, or improve API to do this automatically
+// create a keystore and an agent for working with it
+const keystore = KmsClient.createKeystore(...);
+const keystoreAgent = new KeystoreAgent({keystore, capabilityAgent});
 
-// Use the Controller Key to create key agreement and HMAC keys
-const keyAgreementKey = await controllerKey.generateKey({type: 'keyAgreement'});
-const hmac = await controllerKey.generateKey({type: 'hmac'});
+// use the keystore agent to create key agreement and HMAC keys
+const keyAgreementKey = await keystoreAgent.generateKey({type: 'keyAgreement'});
+const hmac = await keystoreAgent.generateKey({type: 'hmac'});
 ```
 
 Now you can create and register a new EDV configuration:
