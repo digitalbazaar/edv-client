@@ -11,9 +11,12 @@ const _publicKeyBase58 = '3n6stGrydgUEQSXA4zxWbvdUvpiVwHDgZp2H9SxqY6gw';
 export class MockInvoker {
   constructor({
     publicKeyBase58 = _publicKeyBase58,
-    privateKeyBase58 = _privateKeyBase58
+    privateKeyBase58 = _privateKeyBase58,
+    id,
+    controller
   } = {}) {
-    this.id = 'did:key:controller#assertionMethodId';
+    this.controller = controller;
+    this.id = id || 'did:key:controller#assertionMethodId';
     this.type = 'Ed25519VerificationKey2018';
     if(!publicKeyBase58 && !privateKeyBase58) {
       const {publicKey, privateKey} = ed25519.generateKeyPair();

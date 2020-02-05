@@ -3,7 +3,7 @@
  */
 'use strict';
 
-import{Ed25519KeyPair} from 'crypto-ld';
+import {Ed25519KeyPair} from 'crypto-ld';
 import didContext from 'did-context';
 import didMethodKey from 'did-method-key';
 import {EdvClient} from '..';
@@ -82,8 +82,15 @@ export class TestMock {
     config = await EdvClient.createEdv({config});
     return new EdvClient({id: config.id, keyAgreementKey, hmac});
   }
-  async createKeyAgreementKey() {
-    const didKey = await driver.generate();
+  async createCapabilityAgent() {
+    const keyPair = await Ed25519KeyPair.generate();
+    const didKey = await this.createKeyAgreementKey(keyPair);
+    keyPair.id = didKey.id;
+    return {capabilityAgent: new MockInvoker(keyPair), didKey};
+  }
+  async createKeyAgreementKey(keyMaterial) {
+    const didKey = keyMaterial ?
+      driver.keyToDidDoc(keyMaterial) : await driver.generate();
     const [kaK] = didKey.keyAgreement;
     this.keyStorage.set(
       didKey.id, {'@context': 'https://w3id.org/security/v2', ...kaK});
