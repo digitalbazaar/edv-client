@@ -13,7 +13,7 @@ export class MockInvoker {
     publicKeyBase58 = _publicKeyBase58,
     privateKeyBase58 = _privateKeyBase58
   } = {}) {
-    this.id = 'did:mock:invoker';
+    this.id = 'did:key:controller#assertionMethodId';
     this.type = 'Ed25519VerificationKey2018';
     if(!publicKeyBase58 && !privateKeyBase58) {
       const {publicKey, privateKey} = ed25519.generateKeyPair();
