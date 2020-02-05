@@ -12,13 +12,24 @@ import routeParams from 'route-params';
  */
 export class MockServer {
   constructor() {
+    this.sandbox = sinon.createSandbox();
     this.stubs = new Map();
-    this.stubs.set('post', sinon.stub(axios, 'post'));
-    this.stubs.set('get', sinon.stub(axios, 'get'));
-    this.stubs.set('delete', sinon.stub(axios, 'delete'));
+    this.cleanAxios();
+    this.stubs.set('post', this.sandbox.stub(axios, 'post'));
+    this.stubs.set('get', this.sandbox.stub(axios, 'get'));
+    this.stubs.set('delete', this.sandbox.stub(axios, 'delete'));
     this.post = this.route(this.stubs.get('post'));
     this.get = this.route(this.stubs.get('get'));
     this.delete = this.route(this.stubs.get('delete'));
+  }
+  // this loops through axios' various http methods
+  // and removes any stubs. it makes mocha --watch possible
+  cleanAxios() {
+    ['post', 'get', 'delete', 'put', 'options'].forEach(method => {
+      if(axios[method] && axios[method].restore) {
+        axios[method].restore();
+      }
+    });
   }
   /**
    * This is the core of the sinon axios mock server.

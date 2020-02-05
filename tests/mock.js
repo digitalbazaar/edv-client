@@ -8,7 +8,7 @@ import {MockHmac} from './MockHmac.js';
 import {MockKak} from './MockKak.js';
 import {MockInvoker} from './MockInvoker.js';
 
-class TestMock {
+export class TestMock {
   constructor(server = new MockServer()) {
     // create mock server
     this.server = server;
