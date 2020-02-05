@@ -1,8 +1,15 @@
 import {expect} from 'chai';
+export const JWE_ALG = 'ECDH-ES+A256KW';
+
+// takes a did key and makes a jwe header
+export const createRecipient = didKey => {
+  const {id: kid} = didKey;
+  return {header: {kid, alg: JWE_ALG}};
+};
 
 const _x25519Expected = {
   kid: 'urn:123',
-  alg: 'ECDH-ES+A256KW',
+  alg: JWE_ALG,
   crv: 'X25519',
   kty: 'OKP'
 };
