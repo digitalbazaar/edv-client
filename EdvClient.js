@@ -557,7 +557,6 @@ export class EdvClient {
    */
   async enableCapability({capabilityToEnable, capability, invocationSigner}) {
     _assertObject(capabilityToEnable);
-
     const url = EdvClient._getInvocationTarget({capability}) ||
       `${this.id}/authorizations`;
     if(!capability) {
@@ -572,7 +571,7 @@ export class EdvClient {
       });
       // send request
       const {httpsAgent} = this;
-      await axios.post(url, capabilityToEnable, {headers, httpsAgent});
+      return await axios.post(url, capabilityToEnable, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {

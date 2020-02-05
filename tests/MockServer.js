@@ -71,6 +71,7 @@ export class MockServer {
             queryParams
           };
           const result = await callback(request);
+          // the first argument from a handler is the statusCode in express.
           const [statusCode] = result;
           if(statusCode > 300) {
             const error = new Error(statusCode);
@@ -86,6 +87,9 @@ export class MockServer {
                 throw error;
             }
           }
+          // this might look weird, but express really does
+          // reserve the last argument from a handler for the data.
+          // this formats that data into a axios like response
           return {data: result[result.length - 1], status: statusCode};
         });
     };

@@ -1,6 +1,7 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
+import didContext from 'did-context';
 import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
@@ -41,6 +42,23 @@ export class TestMock {
           return key;
         }
         throw new Error(`Key ${id} not found`);
+      };
+      this.documentLoader = async url => {
+        if(url.startsWith('did:key:')) {
+          const id = url.replace('did:key:');
+          return {
+            contextUrl: null,
+            documentUrl: url,
+            document: this.keyResolver({id})
+          };
+        }
+        if(url === 'https://www.w3.org/ns/did/v1') {
+          return {
+            contextUrl: null,
+            documentUrl: url,
+            document: didContext.contexts.get('https://w3id.org/did/v0.11')
+          };
+        }
       };
     }
   }

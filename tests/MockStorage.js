@@ -17,8 +17,33 @@ export class MockStorage {
       edvs: root,
       edv: `${baseUrl}${root}/:edvId`,
       documents: `${baseUrl}${root}/:edvId/documents`,
-      query: `${baseUrl}${root}/:edvId/query`
+      query: `${baseUrl}${root}/:edvId/query`,
+      authorizations: `${baseUrl}${root}/:edvId/authorizations`
     };
+
+    // this handles enableCapability post requests.
+    server.post(routes.authorizations, request => {
+      const capability = JSON.parse(request.requestBody);
+      if(!capability) {
+        throw new TypeError('"capability" is required');
+      }
+      if(!capability.id) {
+        throw new TypeError('"capability.id" is required');
+      }
+      if(typeof capability.id !== 'string') {
+        throw new TypeError('"capability.id" must be a string');
+      }
+      if(!capability['@context']) {
+        throw new TypeError('"capability[@context]" is required');
+      }
+      if(!capability.invoker) {
+        throw new TypeError('"capability.invoker" is required');
+      }
+      if(!capability.parentCapability) {
+        throw new TypeError('"capability.parentCapability" is required');
+      }
+      return [201, {json: true}, capability];
+    });
 
     // create a new edv
     server.post(routes.edvs, request => {
