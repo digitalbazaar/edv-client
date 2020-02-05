@@ -1,6 +1,8 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
+'use strict';
+
 import didContext from 'did-context';
 import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';

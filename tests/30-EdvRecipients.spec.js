@@ -175,11 +175,11 @@ describe('Edv Recipients', () => {
       isRecipient({recipient, expected});
     });
     const unsignedCapability = {
-      id: `did:zcap:${uuid()}`,
-      invocationTarget: `${client.id}/documents/${inserted.id}`,
       '@context': SECURITY_CONTEXT_V2_URL,
+      id: `urn:uuid:${uuid()}`,
+      invocationTarget: `${client.id}/documents/${inserted.id}`,
       // the invoker is not the creator of the document
-      invoker: didKeys[0],
+      invoker: didKeys[0].id,
       // the invoker will only be allowed to read the document
       // no write access
       allowedAction: 'read',
@@ -197,8 +197,7 @@ describe('Edv Recipients', () => {
       {capabilityChain: [unsignedCapability.parentCapability]});
     const capabilityToEnable = await sign(
       unsignedCapability, {documentLoader, suite, purpose});
-    const result = await client.enableCapability({capabilityToEnable});
-    console.log('result', result);
+    await client.enableCapability({capabilityToEnable});
   });
 
 });
