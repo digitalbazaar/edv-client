@@ -22,10 +22,12 @@ export class MockServer {
     this.get = this.route(this.stubs.get('get'));
     this.delete = this.route(this.stubs.get('delete'));
   }
-  // this loops through axios' various http methods
+  // this loops through axios' various HTTP methods
   // and removes any stubs. it makes mocha --watch possible
   cleanAxios() {
-    ['post', 'get', 'delete', 'put', 'options'].forEach(method => {
+    const methods = [
+      'post', 'get', 'delete', 'put', 'options', 'head', 'patch'];
+    methods.forEach(method => {
       if(axios[method] && axios[method].restore) {
         axios[method].restore();
       }
