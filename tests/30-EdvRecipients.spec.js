@@ -1,6 +1,8 @@
 /*!
 * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
 */
+'use strict';
+
 import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
 import {CapabilityDelegation} from 'ocapld';
@@ -100,12 +102,10 @@ describe('Edv Recipients', () => {
     inserted.content.should.deep.equal({someKey: 'someValue'});
     inserted.jwe.recipients.forEach((recipient, index) => {
       const expected = recipients[index].header;
-      // the curve should a 25519 curve
+      // the curve should be a 25519 curve
       expected.crv = 'X25519';
-      // key type should be Octet Key Pair
+      // key type should be an Octet Key Pair
       expected.kty = 'OKP';
-      // recipient should be JOSE
-      // @see https://tools.ietf.org/html/rfc8037
       isRecipient({recipient, expected});
     });
   });
@@ -165,9 +165,8 @@ describe('Edv Recipients', () => {
       // the invoker is not the creator of the document
       invoker: didKeys[0].id,
       // the invoker will only be allowed to read the document
-      // no write access
       allowedAction: 'read',
-      // this will be the zCap of the document
+      // this is the zCap of the document
       parentCapability: `${client.id}/zcaps/documents/${inserted.id}`
     };
     // this is a little confusing but this is the private key
@@ -220,12 +219,10 @@ describe('Edv Recipients', () => {
     inserted.content.should.deep.equal({someKey: 'someValue'});
     inserted.jwe.recipients.forEach((recipient, index) => {
       const expected = recipients[index].header;
-      // the curve should a 25519 curve
+      // the curve should be a 25519 curve
       expected.crv = 'X25519';
-      // key type should be Octet Key Pair
+      // key type should be an Octet Key Pair
       expected.kty = 'OKP';
-      // recipient should be JOSE
-      // @see https://tools.ietf.org/html/rfc8037
       isRecipient({recipient, expected});
     });
     const unsignedCapability = {
@@ -235,13 +232,12 @@ describe('Edv Recipients', () => {
       // the invoker is not the creator of the document
       invoker: didKey.id,
       // the invoker will only be allowed to read the document
-      // no write access
       allowedAction: 'read',
-      // this will be the zCap of the document
+      // this is the zCap of the document
       parentCapability: `${client.id}/zcaps/documents/${inserted.id}`
     };
     // this is a little confusing but this is the private key
-    // of the EDV owner.
+    // of the user that created the document.
     const signer = mock.invocationSigner;
     const {documentLoader} = mock;
     const suite = new Ed25519Signature2018(
