@@ -14,6 +14,8 @@ const _x25519Expected = {
   kty: 'OKP'
 };
 
+// recipient should be JOSE
+// @see https://tools.ietf.org/html/rfc8037
 export function isRecipient({recipient, expected = _x25519Expected}) {
   const {kid, alg, crv, kty} = expected;
   expect(recipient, 'Expected recipient to be an object').to.be.an('object');
