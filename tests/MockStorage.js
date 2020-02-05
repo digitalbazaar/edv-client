@@ -8,6 +8,7 @@ import uuid from 'uuid-random';
 export class MockStorage {
   constructor({server}) {
     this.edvs = new Map();
+    this.zcaps = new Map();
     this.referenceEdvs = new Map();
     this.documents = new Map();
 
@@ -42,6 +43,7 @@ export class MockStorage {
       if(!capability.parentCapability) {
         throw new TypeError('"capability.parentCapability" is required');
       }
+      this.zcaps.set(capability.id, capability);
       return [201, {json: true}, capability];
     });
 
