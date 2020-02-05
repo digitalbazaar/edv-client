@@ -108,10 +108,11 @@ describe('Edv Recipients', () => {
     inserted.content.should.deep.equal({someKey: 'someValue'});
     inserted.jwe.recipients.forEach((recipient, index) => {
       const expected = recipients[index].header;
+      // the curve should a 25519 curve
       expected.crv = 'X25519';
+      // key type should be Octet Key Pair
       expected.kty = 'OKP';
       isRecipient({recipient, expected});
     });
-
   });
 });
