@@ -5,7 +5,10 @@
   "main": ".eslintrc.js",
   "dependencies": {},
   "devDependencies": {
-    "did-method-key": "^0.4.0"
+    "did-context": "^2.0.0",
+    "did-method-key": "^0.4.0",
+    "jsonld-signatures": "^4.6.0",
+    "ocapld": "^1.6.1"
   },
   "scripts": {
     "test": "mocha"
