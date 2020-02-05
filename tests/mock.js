@@ -16,9 +16,12 @@ export class TestMock {
     // mock edv storage
     this.edvStorage = new MockStorage(
       {server: this.server, controller: accountId});
+    // this is used to store recipient keys
+    this.keyStorage = new Map();
   }
   async init() {
     // only init keys once
+    // this is used for the edv controller's keys in the tests
     if(!this.keys) {
       // create mock keys
       this.keys = {};
@@ -29,9 +32,13 @@ export class TestMock {
       this.keys.keyAgreementKey = new MockKak();
       // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
+      // only store the KaK in the recipients' keyStorage.
+      this.keyStorage.set(
+        this.keys.keyAgreementKey.id, this.keys.keyAgreementKey);
       this.keyResolver = ({id}) => {
-        if(this.keys.keyAgreementKey.id === id) {
-          return this.keys.keyAgreementKey;
+        const key = this.keyStorage.get(id);
+        if(key) {
+          return key;
         }
         throw new Error(`Key ${id} not found`);
       };
