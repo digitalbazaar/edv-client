@@ -11,8 +11,7 @@
     "test-watch": "cross-env NODE_ENV=test mocha -r esm --watch --preserve-symlinks -t 30000 -A -R ${REPORTER:-spec} --require tests/test-mocha.js tests/*.spec.js",
     "coverage": "cross-env NODE_ENV=test nyc --reporter=lcov --reporter=text npm run test-node",
     "coverage-report": "nyc report",
-    "lint": "eslint .",
-    "deleteCache": "rm -rf ./node_modules/.cache"
+    "lint": "eslint ."
   },
   "files": [
     "EdvClient.js",
