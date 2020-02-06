@@ -553,7 +553,7 @@ export class EdvClient {
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Object>} resolves once the operation completes.
+   * @returns {undefined} resolves once the operation completes.
    */
   async enableCapability({capabilityToEnable, capability, invocationSigner}) {
     _assertObject(capabilityToEnable);
@@ -571,7 +571,7 @@ export class EdvClient {
       });
       // send request
       const {httpsAgent} = this;
-      return await axios.post(url, capabilityToEnable, {headers, httpsAgent});
+      await axios.post(url, capabilityToEnable, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
