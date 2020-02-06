@@ -211,7 +211,7 @@ describe('EDV Recipients', () => {
     inserted.jwe.should.be.an('object');
     inserted.jwe.protected.should.be.a('string');
     inserted.jwe.recipients.should.be.an('array');
-    // we should have 5 recipients including the EDV owner.
+    // we should have 2 recipients including the EDV owner.
     inserted.jwe.recipients.length.should.equal(2);
     inserted.jwe.iv.should.be.a('string');
     inserted.jwe.ciphertext.should.be.a('string');
