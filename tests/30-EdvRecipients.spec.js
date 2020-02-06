@@ -179,6 +179,7 @@ describe('EDV Recipients', () => {
       {capabilityChain: [unsignedCapability.parentCapability]});
     const capabilityToEnable = await sign(
       unsignedCapability, {documentLoader, suite, purpose});
+    // FIXME: enableCapability is being deprecated.
     await client.enableCapability({capabilityToEnable});
   });
 
@@ -246,6 +247,7 @@ describe('EDV Recipients', () => {
       {capabilityChain: [unsignedCapability.parentCapability]});
     const capabilityToEnable = await sign(
       unsignedCapability, {documentLoader, suite, purpose});
+    // FIXME: enableCapability is being deprecated.
     await client.enableCapability({capabilityToEnable});
     const delegatedDoc = new EdvDocument({
       client,
