@@ -553,7 +553,7 @@ export class EdvClient {
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @returns {undefined} resolves once the operation completes.
+   * @returns {Promise<undefined>} resolves once the operation completes.
    */
   async enableCapability({capabilityToEnable, capability, invocationSigner}) {
     _assertObject(capabilityToEnable);
