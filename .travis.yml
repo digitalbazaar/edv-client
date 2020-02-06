@@ -4,8 +4,6 @@ node_js:
   - "10"
   - "12"
 sudo: false
-before_script:
-  - cd ./tests && npm i
 script:
   - if [ "x$KARMA" = "x" ]; then npm run test; fi
   - if [ "x$KARMA" != "x" ]; then npm run test-karma; fi
