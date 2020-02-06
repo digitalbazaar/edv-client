@@ -1,7 +1,6 @@
 /*!
 * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
 */
-'use strict';
 
 import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
@@ -115,8 +114,7 @@ describe('EDV Recipients', () => {
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const didKeys = await Promise.all(
-      [1].map(() => mock.createKeyAgreementKey()));
+    const didKeys = [await mock.createKeyAgreementKey()];
     const recipients = didKeys.map(createRecipient);
     // note: when passing recipients it is important to remember
     // to pass in the document creator. EdvClient will use the
