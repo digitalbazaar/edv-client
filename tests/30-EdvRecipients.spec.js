@@ -13,7 +13,7 @@ import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
 const {SECURITY_CONTEXT_V2_URL, sign, suites} = jsigs;
 const {Ed25519Signature2018} = suites;
 
-describe('Edv Recipients', () => {
+describe('EDV Recipients', () => {
   let invocationSigner, keyResolver = null;
 
   before(async () => {
