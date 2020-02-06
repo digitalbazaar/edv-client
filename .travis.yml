@@ -2,8 +2,7 @@ language: node_js
 node_js:
   - "8"
   - "10"
-  # re-enable when pre-built sodium-native is available
-  #- "12"
+  - "12"
 sudo: false
 script:
   - if [ "x$KARMA" = "x" ]; then npm run test; fi
@@ -12,7 +11,7 @@ script:
 matrix:
   include:
   - name: "Browser Unit Tests"
-    node_js: "10"
+    node_js: "12"
     env: KARMA=true
 notifications:
   email:
