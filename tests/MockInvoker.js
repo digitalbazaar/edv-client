@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
+ */
 import forge from 'node-forge';
 import {decode} from 'base58-universal';
 

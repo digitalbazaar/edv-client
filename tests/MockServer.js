@@ -1,3 +1,6 @@
+/*!
+ * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
+ */
 import axios from 'axios';
 import sinon from 'sinon';
 import pathToRegexp from 'path-to-regexp';

@@ -1,7 +1,6 @@
 /*!
 * Copyright (c) 2020 Digital Bazaar, Inc. All rights reserved.
 */
-
 import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
 import {CapabilityDelegation} from 'ocapld';

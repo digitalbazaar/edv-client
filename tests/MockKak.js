@@ -1,8 +1,6 @@
 /*!
  * Copyright (c) 2019 Digital Bazaar, Inc. All rights reserved.
  */
-'use strict';
-
 import {encode, decode} from 'base58-universal';
 import nacl from 'tweetnacl';
 import {TextEncoder} from '../util.js';
