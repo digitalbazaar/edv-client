@@ -1,7 +1,6 @@
 /*!
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
-
 import {EdvDocument, EdvClient} from '..';
 import mock from './mock.js';
 
