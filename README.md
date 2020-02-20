@@ -67,7 +67,23 @@ Optional:
 const capabilityAgent = await CapabilityAgent.fromSecret({secret, handle});
 
 // create a keystore and an agent for working with it
-const keystore = KmsClient.createKeystore(...);
+// the baseUrl can be set to a dev API or production API
+const kmsBaseUrl = `${config.server.baseUri}/kms`;
+const keystore = KmsClient.createKeystore({
+  // the url for the keystore is configurable
+  url: `${kmsBaseUrl}/keystores`,
+  config: {
+    // on init the sequence must be 0
+    sequence: 0,
+    controller: capabilityAgent.id,
+    invoker: capabilityAgent.id,
+    // this allows the capabilityAgent to delegate zCaps
+    delegator: capabilityAgent.id
+  },
+  // this can be axios for client side code
+  // or a node https.Agent for back end code
+  httpsAgent
+});
 const keystoreAgent = new KeystoreAgent({keystore, capabilityAgent});
 
 // use the keystore agent to create key agreement and HMAC keys
