@@ -80,8 +80,13 @@ const keystore = KmsClient.createKeystore({
     // this allows the capabilityAgent to delegate zCaps
     delegator: capabilityAgent.id
   },
-  // this can be axios for client side code
-  // or a node https.Agent for back end code
+  /**
+   * optional `httpsAgent`,
+   * usually not applicable for front-end (you may use axios),
+   * for back-end use cases a nodejs `https.Agent`
+   * may be used to allow the use of self signed certificates using
+   * the `rejectUnauthorized: false` flag in the contructor.
+  */
   httpsAgent
 });
 const keystoreAgent = new KeystoreAgent({keystore, capabilityAgent});
