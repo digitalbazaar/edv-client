@@ -4,6 +4,7 @@
 .cache
 .project
 .settings
+.vscode
 TAGS
 coverage
 dist
