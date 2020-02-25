@@ -44,7 +44,7 @@
     "cross-env": "^6.0.3",
     "crypto-ld": "^3.7.0",
     "did-context": "^2.0.0",
-    "did-method-key": "^0.4.0",
+    "did-method-key": "^0.5.0",
     "eslint": "^6.8.0",
     "eslint-config-digitalbazaar": "^2.1.0",
     "isomorphic-webcrypto": "^1.6.1",
