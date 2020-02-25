@@ -177,7 +177,10 @@ describe('EDV Recipients', () => {
     const capabilityToEnable = await sign(
       unsignedCapability, {documentLoader, suite, purpose});
     // FIXME: enableCapability is being deprecated.
-    await client.enableCapability({capabilityToEnable});
+    await client.enableCapability({
+      capabilityToEnable,
+      invocationSigner: signer,
+    });
   });
 
   it('should read a document using a delegated capability', async function() {
@@ -245,7 +248,10 @@ describe('EDV Recipients', () => {
     const capabilityToEnable = await sign(
       unsignedCapability, {documentLoader, suite, purpose});
     // FIXME: enableCapability is being deprecated.
-    await client.enableCapability({capabilityToEnable});
+    await client.enableCapability({
+      capabilityToEnable,
+      invocationSigner: signer,
+    });
     const delegatedDoc = new EdvDocument({
       client,
       // this is the delegated invoker's key
