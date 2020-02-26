@@ -9,6 +9,7 @@ export class MockStorage {
     this.zcaps = new Map();
     this.referenceEdvs = new Map();
     this.documents = new Map();
+    this.revocations = new Map();
 
     const baseUrl = 'http://localhost:9876';
     const root = '/edvs';
@@ -17,7 +18,8 @@ export class MockStorage {
       edv: `${baseUrl}${root}/:edvId`,
       documents: `${baseUrl}${root}/:edvId/documents`,
       query: `${baseUrl}${root}/:edvId/query`,
-      authorizations: `${baseUrl}${root}/:edvId/authorizations`
+      authorizations: `${baseUrl}${root}/:edvId/authorizations`,
+      revocations: `${baseUrl}${root}/:edvId/revocations`,
     };
 
     // this handles enableCapability post requests.
@@ -42,6 +44,38 @@ export class MockStorage {
         throw new TypeError('"capability.parentCapability" is required');
       }
       this.zcaps.set(capability.id, capability);
+      return [201, {json: true}, capability];
+    });
+
+    // this handles enableCapability post requests.
+    server.post(routes.revocations, request => {
+      const capability = JSON.parse(request.requestBody);
+
+      // FIXME: headers should not be nested like this, see issue #37
+      const {headers} = request.headers;
+      if(!headers.authorization) {
+        throw new TypeError('An http-signature header is required.');
+      }
+
+      if(!capability) {
+        throw new TypeError('"capability" is required');
+      }
+      if(!capability.id) {
+        throw new TypeError('"capability.id" is required');
+      }
+      if(typeof capability.id !== 'string') {
+        throw new TypeError('"capability.id" must be a string');
+      }
+      if(!capability['@context']) {
+        throw new TypeError('"capability[@context]" is required');
+      }
+      if(!capability.invoker) {
+        throw new TypeError('"capability.invoker" is required');
+      }
+      if(!capability.parentCapability) {
+        throw new TypeError('"capability.parentCapability" is required');
+      }
+      this.revocations.set(capability.id, capability);
       return [201, {json: true}, capability];
     });
 

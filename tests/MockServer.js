@@ -97,7 +97,13 @@ export class MockServer {
         });
     };
   }
-  shutdown() {return true;}
-  prepareHeaders() {return true;}
-  prepareBody() {return true;}
+  shutdown() {
+    return true;
+  }
+  prepareHeaders() {
+    return true;
+  }
+  prepareBody() {
+    return true;
+  }
 }

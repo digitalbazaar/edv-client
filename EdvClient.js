@@ -829,6 +829,48 @@ export class EdvClient {
     return 'z' + base58.encode(buf);
   }
 
+  /**
+   * Store a capability revocation.
+   *
+   * @param {object} options - The options to use.
+   * @param {object} options.capabilityToRevoke - The capability to revoke.
+   * @param {string} [options.capability=undefined] - The zcap authorization
+   *   capability to use to authorize the invocation of this operation.
+   * @param {object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @returns {Promise<object>} Resolves once the operation completes.
+   */
+  async revokeCapability({capabilityToRevoke, capability, invocationSigner}) {
+    _assertObject(capabilityToRevoke, 'capabilityToRevoke');
+    _assertObject(invocationSigner, 'invocationSigner');
+
+    const url = EdvClient._getInvocationTarget({capability}) ||
+      `${this.id}/revocations`;
+    if(!capability) {
+      capability = `${this.id}/zcaps/revocations`;
+    }
+    try {
+      // sign HTTP header
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: DEFAULT_HEADERS,
+        json: capabilityToRevoke, capability, invocationSigner,
+        capabilityAction: 'write'
+      });
+      // send request
+      const {httpsAgent} = this;
+      await axios.post(url, capabilityToRevoke, {headers, httpsAgent});
+    } catch(e) {
+      const {response = {}} = e;
+      if(response.status === 409) {
+        const err = new Error('Duplicate error.');
+        err.name = 'DuplicateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
   // helper to create default recipients
   _createDefaultRecipients(keyAgreementKey) {
     return keyAgreementKey ? [{
