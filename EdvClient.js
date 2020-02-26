@@ -659,7 +659,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     const response = await axios.post(
-      url, config, {headers: { ...(defaultHeaders || {}), ...DEFAULT_HEADERS}, httpsAgent});
+      url, config, {headers: { ...defaultHeaders, ...DEFAULT_HEADERS}, httpsAgent});
     return response.data;
   }
 
@@ -703,7 +703,7 @@ export class EdvClient {
     {url = '/edvs', controller, referenceId, after, limit, httpsAgent, defaultHeaders}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: {...(defaultHeaders || {}), ...DEFAULT_HEADERS},
+      headers: {...defaultHeaders, ...DEFAULT_HEADERS},
       httpsAgent
     });
     return response.data;
@@ -724,7 +724,7 @@ export class EdvClient {
   static async getConfig({id, httpsAgent, defaultHeaders}) {
     // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(
-      id, {headers: {...(defaultHeaders || {}), ...DEFAULT_HEADERS}, httpsAgent});
+      id, {headers: {...defaultHeaders, ...DEFAULT_HEADERS}, httpsAgent});
     return response.data;
   }
 
@@ -752,7 +752,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     await axios.post(id, config, {
-      headers: {...(defaultHeaders || {}), ...DEFAULT_HEADERS},
+      headers: {...defaultHeaders, ...DEFAULT_HEADERS},
       httpsAgent
     });
   }
