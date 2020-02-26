@@ -643,13 +643,19 @@ export class EdvClient {
    * @param {string} options.config - The EDV's configuration.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {headers} [options.headers=undefined] - An optional
-   *   headers object to use when making requests.
-   *
+
+   * @param {object} [options.invocationSigner] - An object with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {string|object} [options.capability] - A zCap authorizing the
+   *   creation of an EDV. Defaults to a root capability derived from
+   *   the `url` parameter.
    * @return {Promise<Object>} resolves to the configuration for the newly
    *   created EDV.
    */
-  static async createEdv({url = '/edvs', config, httpsAgent, headers}) {
+  static async createEdv({
+    url = '/edvs', config, httpsAgent, invocationSigner, capability
+  }) {
+
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
@@ -658,8 +664,39 @@ export class EdvClient {
     if(!(config.controller && typeof config.controller === 'string')) {
       throw new TypeError('"config.controller" must be a string.');
     }
-    const response = await axios.post(
-      url, config, {headers: { ...headers, ...DEFAULT_HEADERS}, httpsAgent});
+
+    // no invocationSigner was provided, submit the request without a zCap
+    if(!invocationSigner) {
+      const response = await axios.post(
+        url, config, {headers: DEFAULT_HEADERS, httpsAgent});
+      return response.data;
+    }
+
+    _assertInvocationSigner(invocationSigner);
+
+    if(!capability) {
+      if(url.indexOf(':')) {
+        capability = `${url}/zcaps/configs`;
+      // eslint-disable-next-line no-undef
+      } else if(self) {
+        // eslint-disable-next-line no-undef
+        capability = `${self.location.origin}/${url}/zcaps/configs`;
+      } else {
+        throw new Error('"url" must be an absolute URL.');
+      }
+    }
+
+    // sign HTTP header
+    const headers = await signCapabilityInvocation({
+      url,
+      method: 'post',
+      headers: DEFAULT_HEADERS,
+      capability,
+      invocationSigner,
+      capabilityAction: 'write',
+      json: config,
+    });
+    const response = await axios.post(url, config, {headers, httpsAgent});
     return response.data;
   }
 
