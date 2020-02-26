@@ -57,8 +57,8 @@ export class EdvClient {
     this.indexHelper = new IndexHelper();
     this.httpsAgent = httpsAgent;
     this.defaultHeaders = {
+      ...DEFAULT_HEADERS,
       ...defaultHeaders,
-      ...DEFAULT_HEADERS
     };
   }
 
@@ -659,7 +659,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     const response = await axios.post(
-      url, config, {headers: { ...headers, ...DEFAULT_HEADERS}, httpsAgent});
+      url, config, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
     return response.data;
   }
 
@@ -703,7 +703,7 @@ export class EdvClient {
     {url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: {...headers, ...DEFAULT_HEADERS},
+      headers: {...DEFAULT_HEADERS, ...headers},
       httpsAgent
     });
     return response.data;
@@ -724,7 +724,7 @@ export class EdvClient {
   static async getConfig({id, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(
-      id, {headers: {...headers, ...DEFAULT_HEADERS}, httpsAgent});
+      id, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
     return response.data;
   }
 
@@ -752,7 +752,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     await axios.post(id, config, {
-      headers: {...headers, ...DEFAULT_HEADERS},
+      headers: {...DEFAULT_HEADERS, ...headers},
       httpsAgent
     });
   }
@@ -775,7 +775,7 @@ export class EdvClient {
     // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
     await axios.post(
-      `${id}/status`, {status}, {headers: {...headers, ...DEFAULT_HEADERS}, httpsAgent});
+      `${id}/status`, {status}, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
   }
 
   /**
