@@ -1,6 +1,6 @@
 {
   "name": "edv-client",
-  "version": "2.1.1-0",
+  "version": "2.2.0",
   "description": "JavaScript Encrypted Data Vault",
   "license": "BSD-3-Clause",
   "main": "index.js",
