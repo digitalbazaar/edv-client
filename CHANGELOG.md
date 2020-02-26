@@ -1,5 +1,12 @@
 # edv-client ChangeLog
 
+## 2.2.0 2020-02-26
+
+### Added
+- The `createEdv` API may now be called using a zCap. In this case, an
+  `invocationSigner` is required, and if not supplied a root capability will
+  be generated automatically.
+
 ### Changed
 - Update dependencies.
 - Use base58-universal.
