@@ -637,7 +637,7 @@ export class EdvClient {
    * @param {string} options.config - The EDV's configuration.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {async function} [options.invocationSigner] - An API with an
+   * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
    * @param {string|object} [options.capability] - A zCap authorizing the
    *   creation of an EDV. Defaults to a root capability derived from
