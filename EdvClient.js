@@ -643,13 +643,13 @@ export class EdvClient {
    * @param {string} options.config - The EDV's configuration.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {defaultHeaders} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use when making requests.
+   * @param {headers} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the newly
    *   created EDV.
    */
-  static async createEdv({url = '/edvs', config, httpsAgent, defaultHeaders}) {
+  static async createEdv({url = '/edvs', config, httpsAgent, headers}) {
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
@@ -659,7 +659,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     const response = await axios.post(
-      url, config, {headers: { ...defaultHeaders, ...DEFAULT_HEADERS}, httpsAgent});
+      url, config, {headers: { ...headers, ...DEFAULT_HEADERS}, httpsAgent});
     return response.data;
   }
 
@@ -694,16 +694,16 @@ export class EdvClient {
    * @param {number} [options.limit] - How many EDV configs to return.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {defaultHeaders} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use when making requests.
+   * @param {headers} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Array>} resolves to the matching EDV configurations.
    */
   static async findConfigs(
-    {url = '/edvs', controller, referenceId, after, limit, httpsAgent, defaultHeaders}) {
+    {url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: {...defaultHeaders, ...DEFAULT_HEADERS},
+      headers: {...headers, ...DEFAULT_HEADERS},
       httpsAgent
     });
     return response.data;
@@ -716,15 +716,15 @@ export class EdvClient {
    * @param {string} options.id the EDV's ID.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {defaultHeaders} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use when making requests.
+   * @param {headers} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the EDV.
    */
-  static async getConfig({id, httpsAgent, defaultHeaders}) {
+  static async getConfig({id, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(
-      id, {headers: {...defaultHeaders, ...DEFAULT_HEADERS}, httpsAgent});
+      id, {headers: {...headers, ...DEFAULT_HEADERS}, httpsAgent});
     return response.data;
   }
 
@@ -738,12 +738,12 @@ export class EdvClient {
    * @param {Object} options.config - The new EDV config.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {defaultHeaders} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use when making requests.
+   * @param {headers} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async updateConfig({id, config, httpsAgent, defaultHeaders}) {
+  static async updateConfig({id, config, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
@@ -752,7 +752,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     await axios.post(id, config, {
-      headers: {...defaultHeaders, ...DEFAULT_HEADERS},
+      headers: {...headers, ...DEFAULT_HEADERS},
       httpsAgent
     });
   }
@@ -765,17 +765,17 @@ export class EdvClient {
    * @param {string} options.status - Either `active` or `deleted`.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {defaultHeaders} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use when making requests.
+   * @param {headers} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async setStatus({id, status, httpsAgent, defaultHeaders}) {
+  static async setStatus({id, status, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
     await axios.post(
-      `${id}/status`, {status}, {headers: {...defaultHeaders, ...DEFAULT_HEADERS}, httpsAgent});
+      `${id}/status`, {status}, {headers: {...headers, ...DEFAULT_HEADERS}, httpsAgent});
   }
 
   /**
