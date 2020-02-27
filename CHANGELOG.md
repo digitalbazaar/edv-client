@@ -1,6 +1,11 @@
 # edv-client ChangeLog
 
-## 2.2.0 2020-02-26
+## 2.3.0 - 2020-02-27
+
+### Added
+- Add the ability to override/augment default HTTP headers in EdvClient API.
+
+## 2.2.0 - 2020-02-26
 
 ### Added
 - The `createEdv` API may now be called using a zCap. In this case, an
