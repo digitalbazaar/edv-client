@@ -860,7 +860,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: capabilityToRevoke, capability, invocationSigner,
         capabilityAction: 'write'
       });
