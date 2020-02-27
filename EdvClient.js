@@ -42,12 +42,14 @@ export class EdvClient {
    *   attributes.
    * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
    *   use to handle HTTPS requests.
-   * @param {Object} [defaultHeaders=undefined] an optional defaultHeaders object to
-   *   use with HTTP requests.
+   * @param {Object} [defaultHeaders=undefined] an optional defaultHeaders
+   *   object to use with HTTP requests.
    *
    * @return {EdvClient}.
    */
-  constructor({id, keyResolver, keyAgreementKey, hmac, httpsAgent, defaultHeaders} = {}) {
+  constructor({
+    id, keyResolver, keyAgreementKey, hmac, httpsAgent, defaultHeaders
+  } = {}) {
     this.id = id;
     this.keyResolver = keyResolver;
     this.keyAgreementKey = keyAgreementKey;
@@ -641,7 +643,7 @@ export class EdvClient {
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {Object} [options.headers=undefined] - An optional
-   *   headers object to use when making requests. 
+   *   headers object to use when making requests.
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
    * @param {string|object} [options.capability] - A zCap authorizing the
@@ -693,7 +695,9 @@ export class EdvClient {
       capabilityAction: 'write',
       json: config,
     });
-    const response = await axios.post(url, config, {headers: signedHeaders, httpsAgent});
+    const response = await axios.post(url, config, {
+      headers: signedHeaders, httpsAgent
+    });
     return response.data;
   }
 
@@ -733,8 +737,9 @@ export class EdvClient {
    *
    * @return {Promise<Array>} resolves to the matching EDV configurations.
    */
-  static async findConfigs(
-    {url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers}) {
+  static async findConfigs({
+    url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers
+  }) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
       headers: {...DEFAULT_HEADERS, ...headers},
@@ -809,7 +814,9 @@ export class EdvClient {
     // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
     await axios.post(
-      `${id}/status`, {status}, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
+      `${id}/status`, {status}, {
+        headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent
+      });
   }
 
   /**
