@@ -118,6 +118,32 @@ const remoteConfig = await EdvClient.createEdv({config});
 const client = new EdvClient({id: remoteConfig.id, keyAgreementKey, hmac});
 ```
 
+You can specify a url when you create and register a new EDV configuration:
+
+```js
+// TODO: explain EDV service must be able to authenticate user
+const controller = 'account id goes here';
+
+const config = {
+  sequence: 0,  // TODO: is sequence required?
+  controller,
+  // TODO: Explain what 'referenceId' is
+  referenceId: 'primary',
+  keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+  hmac: {id: hmac.id, type: hmac.type}
+};
+
+// sends a POST request to the remote service to create an EDV
+const remoteConfig = await EdvClient.createEdv({
+  url: 'http://localhost:9876/edvs',
+  config
+});
+
+// connect to the new EDV via a `EdvClient`
+const client = new EdvClient({id: remoteConfig.id, keyAgreementKey, hmac});
+```
+
+
 ### Loading a saved EDV config
 
 If you have previously registered an EDV config (via `createEdv()`),
