@@ -42,10 +42,12 @@ export class EdvClient {
    *   attributes.
    * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
    *   use to handle HTTPS requests.
+   * @param {Object} [defaultHeaders=undefined] an optional defaultHeaders object to
+   *   use with HTTP requests.
    *
    * @return {EdvClient}.
    */
-  constructor({id, keyResolver, keyAgreementKey, hmac, httpsAgent} = {}) {
+  constructor({id, keyResolver, keyAgreementKey, hmac, httpsAgent, defaultHeaders} = {}) {
     this.id = id;
     this.keyResolver = keyResolver;
     this.keyAgreementKey = keyAgreementKey;
@@ -54,6 +56,7 @@ export class EdvClient {
     this.cipher = new Cipher();
     this.indexHelper = new IndexHelper();
     this.httpsAgent = httpsAgent;
+    this.defaultHeaders = {...DEFAULT_HEADERS, ...defaultHeaders};
   }
 
   /**
@@ -146,7 +149,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: encrypted, capability, invocationSigner,
         capabilityAction: 'write'
       });
@@ -249,7 +252,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: encrypted, capability, invocationSigner,
         capabilityAction: 'write'
       });
@@ -319,7 +322,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: entry, capability, invocationSigner,
         capabilityAction: 'write'
       });
@@ -362,7 +365,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'delete', headers: DEFAULT_HEADERS,
+        url, method: 'delete', headers: this.defaultHeaders,
         capability, invocationSigner,
         // TODO: should `delete` be used here as a separate action?
         capabilityAction: 'write'
@@ -409,7 +412,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: DEFAULT_HEADERS,
+        url, method: 'get', headers: this.defaultHeaders,
         capability, invocationSigner,
         capabilityAction: 'read'
       });
@@ -530,7 +533,7 @@ export class EdvClient {
     }
     // sign HTTP header
     const headers = await signCapabilityInvocation({
-      url, method: 'post', headers: DEFAULT_HEADERS,
+      url, method: 'post', headers: this.defaultHeaders,
       json: query, capability, invocationSigner,
       capabilityAction: 'read'
     });
@@ -565,7 +568,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: capabilityToEnable, capability, invocationSigner,
         capabilityAction: 'write'
       });
@@ -611,7 +614,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'delete', headers: DEFAULT_HEADERS,
+        url, method: 'delete', headers: this.defaultHeaders,
         capability, invocationSigner,
         // TODO: should `delete` be used here as a separate action?
         capabilityAction: 'write'
@@ -637,6 +640,8 @@ export class EdvClient {
    * @param {string} options.config - The EDV's configuration.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {Object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests. 
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
    * @param {string|object} [options.capability] - A zCap authorizing the
@@ -646,7 +651,7 @@ export class EdvClient {
    *   created EDV.
    */
   static async createEdv({
-    url = '/edvs', config, httpsAgent, invocationSigner, capability
+    url = '/edvs', config, httpsAgent, headers, invocationSigner, capability
   }) {
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
@@ -660,7 +665,7 @@ export class EdvClient {
     // no invocationSigner was provided, submit the request without a zCap
     if(!invocationSigner) {
       const response = await axios.post(
-        url, config, {headers: DEFAULT_HEADERS, httpsAgent});
+        url, config, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
       return response.data;
     }
 
@@ -679,16 +684,16 @@ export class EdvClient {
     }
 
     // sign HTTP header
-    const headers = await signCapabilityInvocation({
+    const signedHeaders = await signCapabilityInvocation({
       url,
       method: 'post',
-      headers: DEFAULT_HEADERS,
+      headers: {...DEFAULT_HEADERS, ...headers},
       capability,
       invocationSigner,
       capabilityAction: 'write',
       json: config,
     });
-    const response = await axios.post(url, config, {headers, httpsAgent});
+    const response = await axios.post(url, config, {headers: signedHeaders, httpsAgent});
     return response.data;
   }
 
@@ -723,14 +728,16 @@ export class EdvClient {
    * @param {number} [options.limit] - How many EDV configs to return.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Array>} resolves to the matching EDV configurations.
    */
   static async findConfigs(
-    {url = '/edvs', controller, referenceId, after, limit, httpsAgent}) {
+    {url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers}) {
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: DEFAULT_HEADERS,
+      headers: {...DEFAULT_HEADERS, ...headers},
       httpsAgent
     });
     return response.data;
@@ -743,13 +750,15 @@ export class EdvClient {
    * @param {string} options.id the EDV's ID.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {Object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Object>} resolves to the configuration for the EDV.
    */
-  static async getConfig({id, httpsAgent}) {
+  static async getConfig({id, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     const response = await axios.get(
-      id, {headers: DEFAULT_HEADERS, httpsAgent});
+      id, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
     return response.data;
   }
 
@@ -763,10 +772,12 @@ export class EdvClient {
    * @param {Object} options.config - The new EDV config.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {Object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async updateConfig({id, config, httpsAgent}) {
+  static async updateConfig({id, config, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
@@ -775,7 +786,7 @@ export class EdvClient {
       throw new TypeError('"config.controller" must be a string.');
     }
     await axios.post(id, config, {
-      headers: DEFAULT_HEADERS,
+      headers: {...DEFAULT_HEADERS, ...headers},
       httpsAgent
     });
   }
@@ -788,15 +799,17 @@ export class EdvClient {
    * @param {string} options.status - Either `active` or `deleted`.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {Object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
    *
    * @return {Promise<Void>} resolves once the operation completes.
    */
-  static async setStatus({id, status, httpsAgent}) {
+  static async setStatus({id, status, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
     // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
     await axios.post(
-      `${id}/status`, {status}, {headers: DEFAULT_HEADERS, httpsAgent});
+      `${id}/status`, {status}, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
   }
 
   /**
@@ -1005,7 +1018,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: DEFAULT_HEADERS,
+        url, method: 'post', headers: this.defaultHeaders,
         json: chunk, capability, invocationSigner,
         capabilityAction: 'write'
       });
@@ -1034,7 +1047,7 @@ export class EdvClient {
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: DEFAULT_HEADERS,
+        url, method: 'get', headers: this.defaultHeaders,
         capability, invocationSigner,
         capabilityAction: 'read'
       });
