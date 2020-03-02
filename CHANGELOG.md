@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 2.4.0 - 2020-03-02
+
+### Added
+- Implement revokeCapability API.
+
 ## 2.3.0 - 2020-02-27
 
 ### Added
