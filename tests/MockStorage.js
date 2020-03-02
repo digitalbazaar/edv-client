@@ -47,7 +47,7 @@ export class MockStorage {
       return [201, {json: true}, capability];
     });
 
-    // this handles enableCapability post requests.
+    // this handles revokeCapability post requests.
     server.post(routes.revocations, request => {
       const capability = JSON.parse(request.requestBody);
 
