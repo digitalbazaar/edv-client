@@ -136,7 +136,10 @@ const config = {
 // sends a POST request to the remote service to create an EDV
 const remoteConfig = await EdvClient.createEdv({
   url: 'http://localhost:9876/edvs',
-  config
+  config,
+  // must pass `invocationSigner` and optional `capability` if `controller`
+  // is a DID
+  /* invocationSigner, capability */
 });
 
 // connect to the new EDV via a `EdvClient`
