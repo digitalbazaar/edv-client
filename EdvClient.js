@@ -674,12 +674,12 @@ export class EdvClient {
     _assertInvocationSigner(invocationSigner);
 
     if(!capability) {
-      if(url.indexOf(':')) {
+      if(url.includes(':')) {
         capability = `${url}/zcaps/configs`;
       // eslint-disable-next-line no-undef
       } else if(self) {
         // eslint-disable-next-line no-undef
-        capability = `${self.location.origin}/${url}/zcaps/configs`;
+        capability = `${self.location.origin}${url}/zcaps/configs`;
       } else {
         throw new Error('"url" must be an absolute URL.');
       }
