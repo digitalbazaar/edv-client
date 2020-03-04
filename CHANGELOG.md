@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-### 2.5.0 - TBD
+### 2.5.0 - 2020-03-04
 
 ### Added
 - Implement zCaps in `findConfig` and `findConfigs` APIs.
