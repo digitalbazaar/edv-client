@@ -655,6 +655,7 @@ export class EdvClient {
   static async createEdv({
     url = '/edvs', config, httpsAgent, headers, invocationSigner, capability
   }) {
+    url = _createAbsoluteUrl(url);
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
@@ -674,15 +675,7 @@ export class EdvClient {
     _assertInvocationSigner(invocationSigner);
 
     if(!capability) {
-      if(url.includes(':')) {
-        capability = `${url}/zcaps/configs`;
-      // eslint-disable-next-line no-undef
-      } else if(self) {
-        // eslint-disable-next-line no-undef
-        capability = `${self.location.origin}${url}/zcaps/configs`;
-      } else {
-        throw new Error('"url" must be an absolute URL.');
-      }
+      capability = `${url}/zcaps/configs`;
     }
 
     // sign HTTP header
@@ -725,6 +718,7 @@ export class EdvClient {
     url = '/edvs', controller, referenceId, httpsAgent, invocationSigner,
     headers, capability
   }) {
+    url = _createAbsoluteUrl(url);
     // no invocationSigner was provided, submit the request without a zCap
     if(!invocationSigner) {
       const results = await this.findConfigs(
@@ -735,15 +729,7 @@ export class EdvClient {
     _assertInvocationSigner(invocationSigner);
 
     if(!capability) {
-      if(url.includes(':')) {
-        capability = `${url}/zcaps/configs`;
-      // eslint-disable-next-line no-undef
-      } else if(self) {
-        // eslint-disable-next-line no-undef
-        capability = `${self.location.origin}${url}/zcaps/configs`;
-      } else {
-        throw new Error('"url" must be an absolute URL.');
-      }
+      capability = `${url}/zcaps/configs`;
     }
 
     // sign HTTP header
@@ -780,9 +766,11 @@ export class EdvClient {
   static async findConfigs({
     url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers
   }) {
+    url = _createAbsoluteUrl(url);
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      headers: {...DEFAULT_HEADERS, ...headers},
+      // headers: {...DEFAULT_HEADERS, ...headers},
+      headers,
       httpsAgent
     });
     return response.data;
@@ -1258,4 +1246,16 @@ function _createCachedKeyResolver(keyResolver) {
     }
     return key;
   };
+}
+
+function _createAbsoluteUrl(url) {
+  if(url.includes(':')) {
+    return url;
+  }
+  // eslint-disable-next-line no-undef
+  if(self) {
+    // eslint-disable-next-line no-undef
+    return `${self.location.origin}${url}`;
+  }
+  throw new Error('"url" must be an absolute URL.');
 }
