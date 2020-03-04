@@ -738,6 +738,11 @@ export class EdvClient {
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
+   * @param {object} [options.invocationSigner] - An object with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {string|object} [options.capability] - A zCap authorizing read
+   *   access to an EDV config. Defaults to a root capability derived from
+   *   the `url` parameter.
    *
    * @return {Promise<Array>} resolves to the matching EDV configurations.
    */

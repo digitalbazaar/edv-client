@@ -1,5 +1,13 @@
 # edv-client ChangeLog
 
+### 2.5.0 - TBD
+
+### Added
+- Implement zCaps in `findConfig` and `findConfigs` APIs.
+
+### Fixed
+- Properly construct absolute URLs where required.
+
 ## 2.4.1 - 2020-03-03
 
 ### Fixed
