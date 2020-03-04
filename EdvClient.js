@@ -718,32 +718,10 @@ export class EdvClient {
     url = '/edvs', controller, referenceId, httpsAgent, invocationSigner,
     headers, capability
   }) {
-    url = _createAbsoluteUrl(url);
-    // no invocationSigner was provided, submit the request without a zCap
-    if(!invocationSigner) {
-      const results = await this.findConfigs(
-        {url, controller, referenceId, httpsAgent});
-      return results[0] || null;
-    }
-
-    _assertInvocationSigner(invocationSigner);
-
-    if(!capability) {
-      capability = `${url}/zcaps/configs`;
-    }
-
-    // sign HTTP header
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'get',
-      headers: {...DEFAULT_HEADERS, ...headers},
-      capability,
-      invocationSigner,
-      capabilityAction: 'read',
+    const results = await this.findConfigs({
+      url, controller, referenceId, httpsAgent, headers, invocationSigner,
+      capability
     });
-
-    const results = await this.findConfigs(
-      {url, controller, referenceId, httpsAgent, headers: signedHeaders});
     return results[0] || null;
   }
 
@@ -764,13 +742,39 @@ export class EdvClient {
    * @return {Promise<Array>} resolves to the matching EDV configurations.
    */
   static async findConfigs({
-    url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers
+    url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers,
+    capability, invocationSigner
   }) {
     url = _createAbsoluteUrl(url);
+    // no invocationSigner was provided, submit the request without a zCap
+    if(!invocationSigner) {
+      const response = await axios.get(url, {
+        params: {controller, referenceId, after, limit},
+        headers: {...DEFAULT_HEADERS, ...headers},
+        httpsAgent
+      });
+      return response.data;
+    }
+
+    _assertInvocationSigner(invocationSigner);
+
+    if(!capability) {
+      capability = `${url}/zcaps/configs`;
+    }
+
+    // sign HTTP header
+    const signedHeaders = await signCapabilityInvocation({
+      url,
+      method: 'get',
+      headers: {...DEFAULT_HEADERS, ...headers},
+      capability,
+      invocationSigner,
+      capabilityAction: 'read',
+    });
+
     const response = await axios.get(url, {
       params: {controller, referenceId, after, limit},
-      // headers: {...DEFAULT_HEADERS, ...headers},
-      headers,
+      headers: signedHeaders,
       httpsAgent
     });
     return response.data;
