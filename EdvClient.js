@@ -710,14 +710,54 @@ export class EdvClient {
    * @param {string} options.referenceId - A controller-unique reference ID.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
+   * @param {Object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
+   * @param {object} [options.invocationSigner] - An object with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {string|object} [options.capability] - A zCap authorizing read
+   *   access to an EDV config. Defaults to a root capability derived from
+   *   the `url` parameter.
    *
    * @return {Promise<Object>} resolves to the EDV configuration
    *   containing the given controller and reference ID.
    */
-  static async findConfig(
-    {url = '/edvs', controller, referenceId, httpsAgent}) {
+  static async findConfig({
+    url = '/edvs', controller, referenceId, httpsAgent, invocationSigner,
+    headers, capability
+  }) {
+    // no invocationSigner was provided, submit the request without a zCap
+    if(!invocationSigner) {
+      const results = await this.findConfigs(
+        {url, controller, referenceId, httpsAgent});
+      return results[0] || null;
+    }
+
+    _assertInvocationSigner(invocationSigner);
+
+    if(!capability) {
+      if(url.includes(':')) {
+        capability = `${url}/zcaps/configs`;
+      // eslint-disable-next-line no-undef
+      } else if(self) {
+        // eslint-disable-next-line no-undef
+        capability = `${self.location.origin}${url}/zcaps/configs`;
+      } else {
+        throw new Error('"url" must be an absolute URL.');
+      }
+    }
+
+    // sign HTTP header
+    const signedHeaders = await signCapabilityInvocation({
+      url,
+      method: 'get',
+      headers: {...DEFAULT_HEADERS, ...headers},
+      capability,
+      invocationSigner,
+      capabilityAction: 'read',
+    });
+
     const results = await this.findConfigs(
-      {url, controller, referenceId, httpsAgent});
+      {url, controller, referenceId, httpsAgent, headers: signedHeaders});
     return results[0] || null;
   }
 
