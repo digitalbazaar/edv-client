@@ -763,6 +763,11 @@ export class EdvClient {
     }
 
     // sign HTTP header
+    const params = new URLSearchParams(Object.fromEntries(
+      Object.entries({controller, referenceId, after, limit})
+        // eslint-disable-next-line no-unused-vars
+        .filter(([k, v]) => v !== undefined)));
+    url += `?${params}`;
     const signedHeaders = await signCapabilityInvocation({
       url,
       method: 'get',
@@ -773,7 +778,6 @@ export class EdvClient {
     });
 
     const response = await axios.get(url, {
-      params: {controller, referenceId, after, limit},
       headers: signedHeaders,
       httpsAgent
     });
