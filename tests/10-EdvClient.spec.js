@@ -68,6 +68,7 @@ describe('EdvClient', () => {
     const {keyAgreementKey, hmac} = mock.keys;
     let docs = [];
     const config = await EdvClient.createEdv({
+      url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -102,6 +103,7 @@ describe('EdvClient', () => {
   it('should create a new encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     const config = await EdvClient.createEdv({
+      url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -119,6 +121,7 @@ describe('EdvClient', () => {
   it('should get an encrypted data vault config', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     const {id} = await EdvClient.createEdv({
+      url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -137,6 +140,7 @@ describe('EdvClient', () => {
   it('should create "primary" encrypted data vault', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     const config = await EdvClient.createEdv({
+      url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -158,6 +162,7 @@ describe('EdvClient', () => {
     // DuplicateError when running in a suite.
     try {
       await EdvClient.createEdv({
+        url: 'http://localhost:9876/edvs',
         config: {
           sequence: 0,
           controller: invocationSigner.id,
@@ -169,8 +174,10 @@ describe('EdvClient', () => {
     } catch(e) {
       // do nothing we just need to ensure that primary edv was created.
     }
-    const config = await EdvClient.findConfig(
-      {controller: mock.accountId, referenceId: 'primary'});
+    const config = await EdvClient.findConfig({
+      controller: mock.accountId, referenceId: 'primary',
+      url: 'http://localhost:9876/edvs'
+    });
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);

@@ -77,7 +77,8 @@ export class TestMock {
     if(referenceId) {
       config.referenceId = referenceId;
     }
-    config = await EdvClient.createEdv({config});
+    config = await EdvClient.createEdv(
+      {config, url: 'http://localhost:9876/edvs'});
     return new EdvClient({id: config.id, keyAgreementKey, hmac});
   }
   async createCapabilityAgent() {
