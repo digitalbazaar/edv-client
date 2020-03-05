@@ -1,5 +1,11 @@
 # edv-client ChangeLog
 
+### 2.5.1 - 2020-03-04
+
+### Fixed
+- Fix conditional for `self`.
+- Use absolute URL in test suite.
+
 ### 2.5.0 - 2020-03-04
 
 ### Added
