@@ -1266,7 +1266,7 @@ function _createAbsoluteUrl(url) {
     return url;
   }
   // eslint-disable-next-line no-undef
-  if(self) {
+  if(typeof self !== 'undefined') {
     // eslint-disable-next-line no-undef
     return `${self.location.origin}${url}`;
   }
