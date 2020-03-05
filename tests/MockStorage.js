@@ -14,7 +14,7 @@ export class MockStorage {
     const baseUrl = 'http://localhost:9876';
     const root = '/edvs';
     const routes = this.routes = {
-      edvs: root,
+      edvs: `${baseUrl}${root}`,
       edv: `${baseUrl}${root}/:edvId`,
       documents: `${baseUrl}${root}/:edvId/documents`,
       query: `${baseUrl}${root}/:edvId/query`,
