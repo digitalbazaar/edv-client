@@ -1,5 +1,7 @@
 # edv-client ChangeLog
 
+## 2.5.2 - 2020-03-18
+
 ### Fixed
 - Default parameters to the `EdvDocument` constructor to `undefined` instead
   of `null`.
