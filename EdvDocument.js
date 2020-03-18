@@ -10,30 +10,29 @@ export class EdvDocument {
    * Creates a new instance of a EdvDocument.
    *
    * @param {Object} options - The options to use.
-   * @param {string} [options.id=undefined] the ID of the document; this is
+   * @param {string} [options.id] the ID of the document; this is
    *   only necessary if the capability's `invocationTarget` is not for the
    *   document itself (but is for the entire EDV).
-   * @param {Array} [recipients=[]] an array of additional recipients for the
-   *   encrypted content.
-   * @param {function} [keyResolver=this.keyResolver] a default function that
+   * @param {Array} [options.recipients=[]] an array of additional recipients
+   *   for the encrypted content.
+   * @param {function} [options.keyResolver] a default function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [keyAgreementKey=null] a KeyAgreementKey API for deriving
-   *   KEKs for wrapping/unwrapping content encryption keys.
-   * @param {Object} [hmac=null] an HMAC API for blinding indexable
+   * @param {Object} [options.keyAgreementKey] a KeyAgreementKey API for
+   *   deriving KEKs for wrapping/unwrapping content encryption keys.
+   * @param {Object} [options.hmac] an HMAC API for blinding indexable
    *   attributes.
-   * @param {Object} [options.capability=undefined] - The OCAP-LD authorization
+   * @param {Object} [options.capability] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of EdvClient methods.
    * @param {Object} options.invocationSigner - An API for signing
    *   a capability invocation.
-   * @param {EdvClient} [options.client] - An optional EdvClient
-   *   to use.
+   * @param {EdvClient} [options.client] - An EdvClient to use.
    *
    * @returns {EdvDocument} The new EdvDocument instance.
    */
   constructor({
     id, capability, invocationSigner,
-    recipients = [], keyResolver = null,
-    keyAgreementKey = null, hmac = null,
+    recipients = [], keyResolver,
+    keyAgreementKey, hmac,
     client = new EdvClient()
   }) {
     this.id = id;
