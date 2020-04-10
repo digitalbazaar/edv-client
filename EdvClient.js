@@ -490,9 +490,12 @@ export class EdvClient {
    * performed using an `equals` or a `has` filter (but not both at once).
    *
    * The `equals` filter is an object with key-value attribute pairs. Any
-   * document that matches *all* key-value attribute pairs will be returned. If
-   * equals is an array, it may contain multiple such filters -- whereby the
-   * results will be all documents that matched any one of the filters.
+   * document that matches *all* given key-value attribute pairs will be
+   * returned. If equals is an array, it may contain multiple such filters --
+   * whereby the results will be all documents that matched any one of the
+   * filters. If the document's value for a matching a key is an array and
+   * the array contains a matching value, the document will be considered
+   * a match (provided that other key-value attribute pairs also match).
    *
    * The `has` filter is a string representing the attribute name or an
    * array of such strings. If an array is used, then the results will only
