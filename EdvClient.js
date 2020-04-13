@@ -64,11 +64,13 @@ export class EdvClient {
   /**
    * Ensures that future documents inserted or updated using this Edv
    * instance will be indexed according to the given attribute, provided that
-   * they contain that attribute.
+   * they contain that attribute. Compound indexes can be specified by
+   * providing an array for `attribute`.
    *
-   * @param {Array|Object} attribute the attribute name or an array of
-   *   attribute names.
-   * @param {Boolean} [unique=false] `true` if attribute values should be
+   * @param {Object} options - The options to use.
+   * @param {string|Array} options.attribute the attribute name or an array of
+   *   attribute names to create a unique compound index.
+   * @param {boolean} [options.unique=false] `true` if the index should be
    *   considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false}) {
