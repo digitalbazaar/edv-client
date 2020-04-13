@@ -1,8 +1,6 @@
 /*!
- * Copyright (c) 2019 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
-'use strict';
-
 import {TextEncoder} from './util.js';
 import split from 'split-string';
 
@@ -17,32 +15,53 @@ export class IndexHelper {
    */
   constructor() {
     this.indexes = new Map();
+    this.compoundIndexes = new Map();
   }
 
   /**
-   * Ensures that future documents inserted or updated using this IndexHelper
+   * Ensures that future documents inserted or updated using this Edv
    * instance will be indexed according to the given attribute, provided that
-   * they contain that attribute.
+   * they contain that attribute. Compound indexes can be specified by
+   * providing an array for `attribute`.
    *
    * @param {Object} options - The options to use.
-   * @param {Array|Object} options.attribute the attribute name or an array of
-   *   attribute names.
-   * @param {boolean} [options.unique=false] `true` if attribute values should
-   *   be considered unique, `false` if not.
+   * @param {string|Array} options.attribute the attribute name or an array of
+   *   attribute names to create a unique compound index.
+   * @param {boolean} [options.unique=false] `true` if the index should be
+   *   considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false}) {
+    let attributes = attribute;
     if(!Array.isArray(attribute)) {
-      attribute = [attribute];
+      attributes = [attribute];
     }
-    if(!attribute.every(x => typeof x === 'string')) {
+    if(!(attributes.length > 0 &&
+      attributes.every(x => typeof x === 'string'))) {
       throw new TypeError(
         '"attribute" must be a string or an array of strings.');
     }
-    attribute.forEach(x => {
-      // parse attribute to ensure it is valid before adding the index entry
-      this._parseAttribute(x);
-      this.indexes.set(x, unique);
+
+    // parse attributes to ensure validity and add a non-unique index for every
+    // attribute, taking care not to overwrite an existing unique index...
+    // ... this ensures that `has` queries will work on all attributes even
+    // if they are only participants in compound indexes
+    attributes.forEach(attr => {
+      this._parseAttribute(attr);
+      if(!this.indexes.has(attr)) {
+        this.indexes.set(attr, false);
+      }
     });
+
+    if(attributes.length === 1) {
+      // if index is not compound but unique, ensure it is marked as unique
+      if(unique) {
+        this.indexes.set(attributes[0], unique);
+      }
+    } else {
+      // add compound index
+      const key = attributes.map(x => encodeURIComponent(x)).join('|');
+      this.compoundIndexes.set(key, {attributes, unique});
+    }
   }
 
   /**
@@ -59,8 +78,7 @@ export class IndexHelper {
   async createEntry({hmac, doc}) {
     _assertHmac(hmac);
 
-    // handle prefix here
-    const {indexes} = this;
+    const {compoundIndexes, indexes} = this;
     const entry = {
       hmac: {
         id: hmac.id,
@@ -71,10 +89,14 @@ export class IndexHelper {
     // ensure current iteration/version matches doc's
     entry.sequence = doc.sequence;
 
-    // blind all attributes specifies in current index set
+    // build a map of attribute name to blinded attribute for all
+    // indexes (singular and compound)
+    const blindMap = new Map();
+
+    // blind all attributes that are part of any simple index
     const blindOps = [];
-    for(const [indexKey, unique] of indexes.entries()) {
-      let value = this._dereferenceAttribute({attribute: indexKey, doc});
+    for(const [attribute, unique] of indexes.entries()) {
+      let value = this._dereferenceAttribute({attribute, doc});
       if(value === undefined) {
         continue;
       }
@@ -82,11 +104,48 @@ export class IndexHelper {
         value = [value];
       }
       for(const v of value) {
-        blindOps.push(
-          this._blindAttribute({hmac, key: indexKey, value: v, unique}));
+        blindOps.push((async () => {
+          const blinded = await this._blindAttribute(
+            {hmac, key: attribute, value: v});
+          blindMap.set(attribute, blinded);
+          return {...blinded, unique};
+        })());
       }
     }
+
+    // get all blinded attribute and value pairs
     entry.attributes = await Promise.all(blindOps);
+
+    // build compound attributes (for every attribute after the first in the
+    // compound index, hash attribute names and values together)
+    const compoundOps = [];
+    for(const {attributes, unique} of compoundIndexes.values()) {
+      // get blinded attributes involved in the compound index, noting that
+      // the document may not have every attribute, so it only participates
+      // in the index up until an "undefined" attribute is encountered
+      const blindAttributes = [];
+      for(const attr of attributes) {
+        const blinded = blindMap.get(attr);
+        if(blinded) {
+          blindAttributes.push(blinded);
+        } else {
+          break;
+        }
+      }
+      for(let i = 1; i < blindAttributes.length; ++i) {
+        compoundOps.push((async () => {
+          const attribute = await this._blindCompoundAttribute(
+            {hmac, blindAttributes, length: i + 1});
+          // intentionally check `attributes.length` here not
+          // `blindAttributes.length`, uniqueness is defined by the full
+          // compound index and will not be set if the document only has
+          // some attributes in the compound index, not all
+          attribute.unique = unique && (i === attributes.length - 1);
+          return attribute;
+        })());
+      }
+    }
+    entry.attributes.push(...await Promise.all(compoundOps));
 
     return entry;
   }
@@ -186,13 +245,57 @@ export class IndexHelper {
       if(!Array.isArray(equals)) {
         equals = [equals];
       }
+      const {compoundIndexes} = this;
       query.equals = await Promise.all(equals.map(async equal => {
         const result = {};
-        for(const key in equal) {
-          const value = equal[key];
-          const attr = await this._blindAttribute({hmac, key, value});
-          result[attr.name] = attr.value;
+
+        // blind all attributes and then determine whether to submit them
+        // as compound attributes or not based on any compoound indexes set
+        const blindMap = new Map();
+        const blinded = await Promise.all(
+          Object.entries(equal).map(async ([key, value]) => {
+            const attribute = await this._blindAttribute({hmac, key, value});
+            blindMap.set(key, attribute);
+            return attribute;
+          }));
+
+        // build compound attributes and track which attributes were used
+        // in a compound index so they will not be used in a simple index
+        const used = new Set();
+        const compoundOps = [];
+        for(const {attributes} of compoundIndexes.values()) {
+          const blindAttributes = [];
+          for(const attr of attributes) {
+            const blindAttr = blindMap.get(attr);
+            if(blindAttr) {
+              blindAttributes.push(blindAttr);
+            } else {
+              break;
+            }
+          }
+          // if fewer than two attributes are present, then only a simple
+          // index can be used, skip
+          if(blindAttributes.length < 2) {
+            continue;
+          }
+          // mark all attributes in the compound index as used
+          blindAttributes.forEach(({name}) => used.add(name));
+          // create max length compound attribute
+          compoundOps.push((async () => {
+            const attribute = await this._blindCompoundAttribute(
+              {hmac, blindAttributes, length: blindAttributes.length});
+            result[attribute.name] = attribute.value;
+          })());
         }
+        await Promise.all(compoundOps);
+
+        // add any blinded attributes not used in a compound index
+        for(const {name, value} of blinded) {
+          if(!used.has(name)) {
+            result[name] = value;
+          }
+        }
+
         return result;
       }));
     } else if(has !== undefined) {
@@ -207,7 +310,7 @@ export class IndexHelper {
   }
 
   /**
-   * Blinds a single attribute using the internal HMAC API.
+   * Blinds a single attribute using the given HMAC API.
    *
    * @param {Object} options - The options to use.
    * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
@@ -215,25 +318,43 @@ export class IndexHelper {
    * @param {string} options.key a key associated with a value.
    * @param {Any} options.value the value associated with the key for the
    *   attribute.
-   * @param {boolean} options.unique `true` to include a unique flag on the
-   *   output.
    *
    * @return {Promise<Object>} resolves to an object `{name, value}`.
    */
-  async _blindAttribute({hmac, key, value, unique = false}) {
+  async _blindAttribute({hmac, key, value}) {
     // salt values with key to prevent cross-key leakage
     value = JSON.stringify({key: value});
     const [blindedName, blindedValue] = await Promise.all(
       [this._blindString(hmac, key), this._blindString(hmac, value)]);
-    const result = {name: blindedName, value: blindedValue};
-    if(unique) {
-      result.unique = true;
-    }
-    return result;
+    return {name: blindedName, value: blindedValue};
   }
 
   /**
-   * Blinds a string using the internal HMAC API.
+   * Builds a blind compound attribute from an array of blind attributes
+   * via the given HMAC API.
+   *
+   * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {Array} blindAttributes the blind attributes that comprise the
+   *   compound index.
+   * @param {Number} length the number of blind attributes to go into the
+   *   compound attribute (<= `blindAttributes.length`).
+   *
+   * @return {Promise<String>} resolves to the blinded compound attribute.
+   */
+  async _blindCompoundAttribute({hmac, blindAttributes, length}) {
+    const selection = blindAttributes.slice(0, length);
+    const nameInput = selection.map(x => x.name).join(':');
+    const valueInput = selection.map(x => x.value).join(':');
+    const [name, value] = await Promise.all([
+      this._blindString(hmac, nameInput),
+      this._blindString(hmac, valueInput)
+    ]);
+    return {name, value};
+  }
+
+  /**
+   * Blinds a string using the given HMAC API.
    *
    * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
    *   properties.

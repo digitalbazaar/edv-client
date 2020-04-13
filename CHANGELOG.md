@@ -1,5 +1,12 @@
 # edv-client ChangeLog
 
+## 2.6.0 - 2020-04-xx
+
+### Added
+- Add support for fully functional compound indexes. Partial support was
+  available before but it did not function properly; this is being marked
+  as an addition instead of a bug fix.
+
 ## 2.5.2 - 2020-03-18
 
 ### Fixed
