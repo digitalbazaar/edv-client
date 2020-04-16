@@ -2,6 +2,7 @@
 *.sw[nop]
 *~
 .cache
+.nyc_output
 .project
 .settings
 .vscode

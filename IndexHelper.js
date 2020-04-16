@@ -25,8 +25,8 @@ export class IndexHelper {
    * providing an array for `attribute`.
    *
    * @param {Object} options - The options to use.
-   * @param {string|string[]} options.attribute the attribute name or an array of
-   *   attribute names to create a unique compound index.
+   * @param {string|string[]} options.attribute the attribute name or an
+   *   array of attribute names to create a unique compound index.
    * @param {boolean} [options.unique=false] `true` if the index should be
    *   considered unique, `false` if not.
    */
