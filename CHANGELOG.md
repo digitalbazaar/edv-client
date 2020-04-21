@@ -1,5 +1,13 @@
 # edv-client ChangeLog
 
+## 2.7.0 - 2020-04-21
+
+### Added
+- Setup CI and coverage workflow.
+
+### Changed
+- Use axios@0.19.2.
+
 ## 2.6.0 - 2020-04-14
 
 ### Added
