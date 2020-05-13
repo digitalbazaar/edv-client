@@ -115,7 +115,7 @@ export class EdvClient {
   }) {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
-
+    doc = {...doc};
     // auto generate document ID
     if(doc.id === undefined) {
       doc.id = await EdvClient.generateId();
