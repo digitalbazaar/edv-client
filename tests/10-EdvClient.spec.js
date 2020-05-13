@@ -85,6 +85,72 @@ describe('EdvClient', () => {
     docs.length.should.equal(1);
   });
 
+  it('find a document using a multi property query', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.someKey'});
+
+    const testId = await EdvClient.generateId();
+    const doc = {
+      id: testId,
+      content: {
+        someKey: {
+          b: 5,
+          a: 4
+        },
+        indexedKey: 'value1'
+      }
+    };
+
+    await client.insert({
+      doc,
+      invocationSigner,
+      keyResolver
+    });
+
+    // it should find the document when property keys are in same order.
+    const docs = await client.find({
+      equals: {
+        'content.someKey': {
+          b: 5,
+          a: 4
+        }
+      },
+      invocationSigner
+    });
+
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+
+    // it should find the document when property keys are in a different order.
+    const docs2 = await client.find({
+      equals: {
+        'content.someKey': {
+          a: 4,
+          b: 5
+        }
+      },
+      invocationSigner
+    });
+
+    docs2.should.be.an('array');
+    docs2.length.should.equal(1);
+
+    // no results when attempting to find a document when
+    // property keys have values that do not match the stored document.
+    const docs3 = await client.find({
+      equals: {
+        'content.someKey': {
+          b: 11111,
+          a: 22222
+        }
+      },
+      invocationSigner
+    });
+
+    docs3.should.be.an('array');
+    docs3.length.should.equal(0);
+  });
+
   it('should not find document by index after update', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
     let docs = [];
