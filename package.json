@@ -26,6 +26,7 @@
   "dependencies": {
     "axios": "^0.19.2",
     "base58-universal": "^1.0.0",
+    "canonicalize": "^1.0.1",
     "esm": "^3.2.22",
     "http-signature-zcap-invoke": "^1.0.0",
     "minimal-cipher": "^1.0.0",

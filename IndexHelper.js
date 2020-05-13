@@ -3,6 +3,7 @@
  */
 import {TextEncoder} from './util.js';
 import split from 'split-string';
+import canonicalize from 'canonicalize';
 
 const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
@@ -323,7 +324,7 @@ export class IndexHelper {
    */
   async _blindAttribute({hmac, key, value}) {
     // salt values with key to prevent cross-key leakage
-    value = JSON.stringify({key: value});
+    value = canonicalize({key: value});
     const [blindedName, blindedValue] = await Promise.all(
       [this._blindString(hmac, key), this._blindString(hmac, value)]);
     return {name: blindedName, value: blindedValue};
