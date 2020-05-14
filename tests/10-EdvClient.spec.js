@@ -96,8 +96,7 @@ describe('EdvClient', () => {
         someKey: {
           b: 5,
           a: 4
-        },
-        indexedKey: 'value1'
+        }
       }
     };
 
