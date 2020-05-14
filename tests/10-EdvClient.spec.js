@@ -230,7 +230,7 @@ describe('EdvClient', () => {
     inserted.content.should.deep.equal({someKey: 'someValue'});
   });
 
-  it('should not mutate a document', async () => {
+  it('should not mutate a doc when config does not include id', async () => {
     const client = await mock.createEdv();
     const doc = {content: {someKey: 'someValue'}};
     const docCopy = {...doc};
