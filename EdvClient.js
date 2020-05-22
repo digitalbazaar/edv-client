@@ -522,12 +522,15 @@ export class EdvClient {
    */
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
-    capability, invocationSigner
+    capability, invocationSigner, count = false
   }) {
     _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
+    if(count) {
+      query.count = true;
+    }
     // get results and decrypt them
     let url = EdvClient._getInvocationTarget({capability}) ||
       `${this.id}/query`;
@@ -546,8 +549,13 @@ export class EdvClient {
     });
     // send request
     const {httpsAgent} = this;
+
     const response = await axios.post(url, query, {headers, httpsAgent});
+    if(count) {
+      return response.data;
+    }
     const docs = response.data;
+
     return Promise.all(docs.map(
       encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
   }
