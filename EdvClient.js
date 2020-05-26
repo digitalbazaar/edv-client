@@ -551,7 +551,7 @@ export class EdvClient {
     const {httpsAgent} = this;
 
     const response = await axios.post(url, query, {headers, httpsAgent});
-    if(count) {
+    if(count === true) {
       return response.data;
     }
     const docs = response.data;
