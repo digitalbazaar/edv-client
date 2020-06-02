@@ -6,22 +6,17 @@
 import {edvConfig} from './ConfigSchema';
 
 const Ajv = require('ajv');
-const ajv = new Ajv({verbose: true, removeAdditional: true});
+const ajv = new Ajv({verbose: true, removeAdditional: false});
 ajv.addSchema(edvConfig, 'edvConfig');
 
 // throws if validation fails
 export function validateSchema({payload}) {
   // validate payload against JSON schema
-  try {
-    const valid = ajv.validate('edvConfig', payload);
-    if(valid) {
-      return true;
-    }
-    const error = new SyntaxError('Validation error.');
-    error.errors = ajv.errors;
-    throw error;
-
-  } catch(e) {
-    console.log(e);
+  const valid = ajv.validate('edvConfig', payload);
+  if(valid) {
+    return true;
   }
+  const error = new SyntaxError('Validation error.');
+  error.errors = ajv.errors;
+  throw error;
 }
