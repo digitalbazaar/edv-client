@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2019 Digital Bazaar, Inc. All rights reserved.
  */
 import uuid from 'uuid-random';
+import {validateSchema} from './validator';
 
 export class MockStorage {
   constructor({server}) {
@@ -82,6 +83,7 @@ export class MockStorage {
     // create a new edv
     server.post(routes.edvs, request => {
       const config = JSON.parse(request.requestBody);
+      validateSchema({payload: config});
       // TODO: validate `config`
       config.id = `${baseUrl}${root}/${uuid()}`;
       const edv = {
