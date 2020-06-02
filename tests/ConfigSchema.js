@@ -4,7 +4,7 @@
 
 'use strict';
 
-const edvConfig = {
+export const edvConfig = {
   title: 'EDV Configuration',
   type: 'object',
   // TODO: do not require primary `keyAgreementKey` and `hmac` in the future
@@ -70,5 +70,3 @@ const edvConfig = {
   },
   additionalProperties: false,
 };
-
-module.exports.edvConfig = edvConfig;

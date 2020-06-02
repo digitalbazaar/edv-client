@@ -84,7 +84,6 @@ export class MockStorage {
     server.post(routes.edvs, request => {
       const config = JSON.parse(request.requestBody);
       validateSchema({payload: config});
-      // TODO: validate `config`
       config.id = `${baseUrl}${root}/${uuid()}`;
       const edv = {
         config,
