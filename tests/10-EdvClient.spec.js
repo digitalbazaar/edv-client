@@ -4,7 +4,6 @@
 import {EdvClient} from '..';
 import mock from './mock.js';
 import {isRecipient} from './test-utils.js';
-import {validateSchema} from './validator';
 
 describe('EdvClient', () => {
   let invocationSigner, keyResolver = null;
@@ -17,12 +16,18 @@ describe('EdvClient', () => {
     await mock.server.shutdown();
   });
 
-  it('validator should throw an error when config is invalid', async () => {
-    const config = {invalid: 'invalid'};
+  it('should throw an error when config is invalid', async () => {
     let result;
     let err;
     try {
-      result = validateSchema({payload: config});
+      result = await EdvClient.createEdv({
+        url: 'http://localhost:9876/edvs',
+        config: {
+          sequence: 0,
+          controller: mock.accountId,
+          invalid: 'invalid'
+        }
+      });
     } catch(e) {
       err = e;
     }
