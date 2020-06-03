@@ -14,7 +14,7 @@ export function validateSchema({payload}) {
   if(valid) {
     return true;
   }
-  const error = new SyntaxError('Validation error.');
+  const error = new Error('Validation error.');
   error.errors = ajv.errors;
   throw error;
 }
