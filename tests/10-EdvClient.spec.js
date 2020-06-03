@@ -4,6 +4,7 @@
 import {EdvClient} from '..';
 import mock from './mock.js';
 import {isRecipient} from './test-utils.js';
+import {validateSchema} from './validator';
 
 describe('EdvClient', () => {
   let invocationSigner, keyResolver = null;
@@ -14,6 +15,20 @@ describe('EdvClient', () => {
   });
   after(async () => {
     await mock.server.shutdown();
+  });
+
+  it('validator should throw an error when config is invalid', async () => {
+    const config = {invalid: 'invalid'};
+    let result;
+    let err;
+    try {
+      result = validateSchema({payload: config});
+    } catch(e) {
+      err = e;
+    }
+    should.not.exist(result);
+    should.exist(err);
+    err.message.should.equal('Validation error.');
   });
 
   it('should find document by index after updates', async () => {
