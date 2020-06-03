@@ -1,11 +1,10 @@
 /*
  * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
-'use strict';
 
 import {edvConfig} from './ConfigSchema';
+import Ajv from 'ajv';
 
-const Ajv = require('ajv');
 const ajv = new Ajv({verbose: true, removeAdditional: false});
 ajv.addSchema(edvConfig, 'edvConfig');
 

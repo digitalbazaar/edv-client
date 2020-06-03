@@ -2,13 +2,10 @@
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
 
-'use strict';
-
 export const edvConfig = {
   title: 'EDV Configuration',
   type: 'object',
-  // TODO: do not require primary `keyAgreementKey` and `hmac` in the future
-  required: ['controller', 'sequence', 'keyAgreementKey', 'hmac'],
+  required: ['controller', 'sequence'],
   properties: {
     id: {
       type: 'string'
