@@ -1,5 +1,16 @@
 # edv-client ChangeLog
 
+## 3.0.0 - 2020-06-04
+
+### Added
+- Add `count` feature to the `find` API.
+- Add validation to EDV configs.
+
+### Changed
+- **BREAKING**: Do not mutate the document in the insert API.
+- **BREAKING**: Serialize document values in a canonical way.
+- Improve test coverage.
+
 ## 2.7.0 - 2020-04-21
 
 ### Added
