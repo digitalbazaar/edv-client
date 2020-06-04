@@ -25,6 +25,7 @@ describe('EdvClient', () => {
         config: {
           sequence: 0,
           controller: mock.accountId,
+          // intentionally adding an invalid property to the config.
           invalid: 'invalid'
         }
       });
