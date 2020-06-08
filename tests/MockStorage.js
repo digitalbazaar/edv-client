@@ -27,7 +27,7 @@ export class MockStorage {
 
     // this handles enableCapability post requests.
     server.post(routes.authorizations, request => {
-      const capability = JSON.parse(request.requestBody);
+      const {json: capability} = JSON.parse(request.requestBody);
       if(!capability) {
         throw new TypeError('"capability" is required');
       }
@@ -47,15 +47,14 @@ export class MockStorage {
         throw new TypeError('"capability.parentCapability" is required');
       }
       this.zcaps.set(capability.id, capability);
-      return [201, {json: true}, capability];
+      return [201, undefined, capability];
     });
 
     // this handles revokeCapability post requests.
     server.post(routes.revocations, request => {
-      const capability = JSON.parse(request.requestBody);
+      const {json: capability} = JSON.parse(request.requestBody);
 
-      // FIXME: headers should not be nested like this, see issue #37
-      const {headers} = request.headers;
+      const {headers} = request;
       if(!headers.authorization) {
         throw new TypeError('An http-signature header is required.');
       }
@@ -79,12 +78,12 @@ export class MockStorage {
         throw new TypeError('"capability.parentCapability" is required');
       }
       this.revocations.set(capability.id, capability);
-      return [201, {json: true}, capability];
+      return [201, undefined, capability];
     });
 
     // create a new edv
     server.post(routes.edvs, request => {
-      const config = JSON.parse(request.requestBody);
+      const {json: config} = JSON.parse(request.requestBody);
       validateSchema({payload: config});
       config.id = `${baseUrl}${root}/${uuid()}`;
       const edv = {
@@ -98,12 +97,12 @@ export class MockStorage {
         const key = _getReferenceKey(config.controller, config.referenceId);
         const refEdv = this.referenceEdvs.get(key);
         if(refEdv) {
-          return [409];
+          return [409, undefined];
         }
         this.referenceEdvs.set(key, edv);
       }
       const location = config.id;
-      return [201, {location, json: true}, config];
+      return [201, new Map([['location', location]]), config];
     });
 
     // get edvs by query
@@ -112,14 +111,14 @@ export class MockStorage {
       if(!referenceId) {
         // query for all edvs controlled by controller not implemented yet
         // TODO: implement
-        return [500, {json: true}, new Error('Not implemented.')];
+        return [500, undefined, new Error('Not implemented.')];
       }
       const key = _getReferenceKey(controller, referenceId);
       const refEdv = this.referenceEdvs.get(key);
       if(!refEdv) {
-        return [200, {json: true}, []];
+        return [200, undefined, []];
       }
-      return [200, {json: true}, [refEdv.config]];
+      return [200, undefined, [refEdv.config]];
     });
 
     // post a chunk
@@ -145,9 +144,9 @@ export class MockStorage {
       const edvId = request.route;
       const edv = this.edvs.get(edvId);
       if(!edv) {
-        return [404];
+        return [404, undefined];
       }
-      return [200, {json: true}, edv.config];
+      return [200, undefined, edv.config];
     });
 
     // insert a document into an edv
@@ -157,21 +156,21 @@ export class MockStorage {
       const edv = this.edvs.get(edvId);
       if(!edv) {
         // edv does not exist
-        return [404];
+        return [404, undefined];
       }
 
-      const doc = JSON.parse(request.requestBody);
+      const {json: doc} = JSON.parse(request.requestBody);
       if(edv.documents.has(doc.id)) {
-        return [409];
+        return [409, undefined];
       }
 
       try {
         this.store({edv, doc, create: true});
       } catch(e) {
-        return [409];
+        return [409, undefined];
       }
       const location = `${edvId}/documents/${doc.id}`;
-      return [201, {location}];
+      return [201, new Map([['location', location]]), undefined];
     });
 
     // query an edv
@@ -181,14 +180,14 @@ export class MockStorage {
       const edv = this.edvs.get(edvId);
       if(!edv) {
         // edv does not exist
-        return [404];
+        return [404, undefined];
       }
 
-      const query = JSON.parse(request.requestBody);
+      const {json: query} = JSON.parse(request.requestBody);
       const index = edv.indexes.get(query.index);
       if(!index) {
         // index does not exist
-        return [404];
+        return [404, undefined];
       }
 
       // build results
@@ -237,9 +236,10 @@ export class MockStorage {
         results.push(...(matches || []));
       }
       if(query.count === true) {
-        return [200, {json: true}, {count: results.length}];
+        return [200, undefined, {count: results.length}];
       }
-      return [200, {json: true}, {documents: results}];
+      // return [200, {json: true}, {documents: results}];
+      return [200, undefined, results];
     });
   }
 
@@ -348,12 +348,12 @@ export class MockStorage {
     // update a document
     server.post(route, request => {
       const docId = getDocId(request.route);
-      const doc = JSON.parse(request.requestBody);
+      const {json: doc} = JSON.parse(request.requestBody);
       if(docId !== doc.id) {
-        return [400];
+        return [400, undefined];
       }
       this.store({edv, doc});
-      return [204];
+      return [204, undefined];
     });
 
     // get a document
@@ -361,9 +361,9 @@ export class MockStorage {
       const docId = getDocId(request.route);
       const doc = edv.documents.get(docId);
       if(!doc) {
-        return [404];
+        return [404, undefined];
       }
-      return [200, {json: true}, doc];
+      return [200, undefined, doc];
     });
   }
 }

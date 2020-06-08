@@ -1,14 +1,12 @@
 /*!
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import axios from 'axios';
+import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
 import * as base58 from 'base58-universal';
 import {Cipher} from 'minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
 import {ReadableStream, getRandomBytes} from './util.js';
-
-const DEFAULT_HEADERS = {Accept: 'application/ld+json, application/json'};
 
 // 1 MiB = 1048576
 const DEFAULT_CHUNK_SIZE = 1048576;
@@ -155,9 +153,11 @@ export class EdvClient {
         json: encrypted, capability, invocationSigner,
         capabilityAction: 'write'
       });
+
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, encrypted, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {agent, json: encrypted, headers});
+
       encrypted.content = doc.content;
       encrypted.meta = doc.meta;
       if(doc.stream !== undefined) {
@@ -180,8 +180,7 @@ export class EdvClient {
 
       return result;
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
+      if(e.status === 409) {
         const err = new Error('Duplicate error.');
         err.name = 'DuplicateError';
         throw err;
@@ -259,11 +258,10 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, encrypted, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {agent, json: encrypted, headers});
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
+      if(e.status === 409) {
         const err = new Error('Conflict error.');
         err.name = 'InvalidStateError';
         throw err;
@@ -330,11 +328,10 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, entry, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {headers, json: entry, agent});
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
+      if(e.status === 409) {
         const err = new Error('Conflict error.');
         err.name = 'InvalidStateError';
         throw err;
@@ -424,11 +421,10 @@ export class EdvClient {
         capabilityAction: 'read'
       });
       // send request
-      const {httpsAgent} = this;
-      response = await axios.get(url, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      response = await httpClient.get(url, {headers, agent});
     } catch(e) {
-      response = e.response || {};
-      if(response.status === 404) {
+      if(e.status === 404) {
         const err = new Error('Document not found.');
         err.name = 'NotFoundError';
         throw err;
@@ -582,9 +578,8 @@ export class EdvClient {
       capabilityAction: 'read'
     });
     // send request
-    const {httpsAgent} = this;
-
-    const response = await axios.post(url, query, {headers, httpsAgent});
+    const {httpsAgent: agent} = this;
+    const response = await httpClient.post(url, {headers, json: query, agent});
     if(count === true) {
       return response.data;
     }
@@ -624,11 +619,10 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, capabilityToEnable, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {headers, json: capabilityToEnable, agent});
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
+      if(e.status === 409) {
         const err = new Error('Duplicate error.');
         err.name = 'DuplicateError';
         throw err;
@@ -671,8 +665,8 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.delete(url, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.delete(url, {headers, agent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 404) {
@@ -717,8 +711,11 @@ export class EdvClient {
 
     // no invocationSigner was provided, submit the request without a zCap
     if(!invocationSigner) {
-      const response = await axios.post(
-        url, config, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
+      const response = await httpClient.post(url, {
+        headers: {...DEFAULT_HEADERS, ...headers},
+        json: config,
+        agent: httpsAgent
+      });
       return response.data;
     }
 
@@ -738,8 +735,8 @@ export class EdvClient {
       capabilityAction: 'write',
       json: config,
     });
-    const response = await axios.post(url, config, {
-      headers: signedHeaders, httpsAgent
+    const response = await httpClient.post(url, {
+      headers: signedHeaders, json: config, agent: httpsAgent
     });
     return response.data;
   }
@@ -797,16 +794,16 @@ export class EdvClient {
    * @return {Promise<Array>} Resolves to the matching EDV configurations.
    */
   static async findConfigs({
-    url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers,
-    capability, invocationSigner
+    url = '/edvs', controller, referenceId, after, limit, httpsAgent,
+    headers, capability, invocationSigner
   }) {
     url = _createAbsoluteUrl(url);
     // no invocationSigner was provided, submit the request without a zCap
     if(!invocationSigner) {
-      const response = await axios.get(url, {
+      const response = await httpClient.get(url, {
         params: {controller, referenceId, after, limit},
         headers: {...DEFAULT_HEADERS, ...headers},
-        httpsAgent
+        agent: httpsAgent
       });
       return response.data;
     }
@@ -832,9 +829,9 @@ export class EdvClient {
       capabilityAction: 'read',
     });
 
-    const response = await axios.get(url, {
+    const response = await httpClient.get(url, {
       headers: signedHeaders,
-      httpsAgent
+      agent: httpsAgent
     });
     return response.data;
   }
@@ -853,8 +850,8 @@ export class EdvClient {
    */
   static async getConfig({id, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
-    const response = await axios.get(
-      id, {headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent});
+    const response = await httpClient.get(
+      id, {headers: {...DEFAULT_HEADERS, ...headers}, agent: httpsAgent});
     return response.data;
   }
 
@@ -881,9 +878,9 @@ export class EdvClient {
     if(!(config.controller && typeof config.controller === 'string')) {
       throw new TypeError('"config.controller" must be a string.');
     }
-    await axios.post(id, config, {
+    await httpClient.post(id, config, {
       headers: {...DEFAULT_HEADERS, ...headers},
-      httpsAgent
+      agent: httpsAgent
     });
   }
 
@@ -904,9 +901,11 @@ export class EdvClient {
     // TODO: add `capability` and `invocationSigner` support?
     // FIXME: add ability to disable EDV access or to revoke all ocaps
     // that were delegated prior to a date of X.
-    await axios.post(
-      `${id}/status`, {status}, {
-        headers: {...DEFAULT_HEADERS, ...headers}, httpsAgent
+    await httpClient.post(
+      `${id}/status`, {
+        headers: {...DEFAULT_HEADERS, ...headers},
+        json: {status},
+        agent: httpsAgent
       });
   }
 
@@ -939,7 +938,9 @@ export class EdvClient {
    *
    * @returns {Promise<object>} Resolves once the operation completes.
    */
-  async revokeCapability({capabilityToRevoke, capability, invocationSigner}) {
+  async revokeCapability({
+    capabilityToRevoke, capability, invocationSigner
+  } = {}) {
     _assertObject(capabilityToRevoke, 'capabilityToRevoke');
     _assertObject(invocationSigner, 'invocationSigner');
 
@@ -956,11 +957,10 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, capabilityToRevoke, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {headers, json: capabilityToRevoke, agent});
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
+      if(e.status === 409) {
         const err = new Error('Duplicate error.');
         err.name = 'DuplicateError';
         throw err;
@@ -1169,8 +1169,8 @@ export class EdvClient {
         capabilityAction: 'write'
       });
       // send request
-      const {httpsAgent} = this;
-      await axios.post(url, chunk, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      await httpClient.post(url, {headers, json: chunk, agent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -1198,8 +1198,8 @@ export class EdvClient {
         capabilityAction: 'read'
       });
       // send request
-      const {httpsAgent} = this;
-      response = await axios.get(url, {headers, httpsAgent});
+      const {httpsAgent: agent} = this;
+      response = await httpClient.get(url, {headers, agent});
     } catch(e) {
       response = e.response || {};
       if(response.status === 404) {
