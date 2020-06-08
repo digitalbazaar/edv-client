@@ -24,7 +24,7 @@
     "util.js"
   ],
   "dependencies": {
-    "axios": "^0.19.2",
+    "@digitalbazaar/http-client": "digitalbazaar/http-client#initial",
     "base58-universal": "^1.0.0",
     "canonicalize": "^1.0.1",
     "esm": "^3.2.22",

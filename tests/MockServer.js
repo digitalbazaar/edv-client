@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import axios from 'axios';
+import {httpClient} from '@digitalbazaar/http-client';
 import sinon from 'sinon';
 import pathToRegexp from 'path-to-regexp';
 import routeParams from 'route-params';
@@ -17,27 +17,27 @@ export class MockServer {
   constructor() {
     this.sandbox = sinon.createSandbox();
     this.stubs = new Map();
-    this.cleanAxios();
-    this.stubs.set('post', this.sandbox.stub(axios, 'post'));
-    this.stubs.set('get', this.sandbox.stub(axios, 'get'));
-    this.stubs.set('delete', this.sandbox.stub(axios, 'delete'));
+    this.removeStubs();
+    this.stubs.set('post', this.sandbox.stub(httpClient, 'post'));
+    this.stubs.set('get', this.sandbox.stub(httpClient, 'get'));
+    this.stubs.set('delete', this.sandbox.stub(httpClient, 'delete'));
     this.post = this.route(this.stubs.get('post'));
     this.get = this.route(this.stubs.get('get'));
     this.delete = this.route(this.stubs.get('delete'));
   }
-  // this loops through axios' various HTTP methods
+  // this loops through the various HTTP methods
   // and removes any stubs. it makes mocha --watch possible
-  cleanAxios() {
+  removeStubs() {
     const methods = [
       'post', 'get', 'delete', 'put', 'options', 'head', 'patch'];
     methods.forEach(method => {
-      if(axios[method] && axios[method].restore) {
-        axios[method].restore();
+      if(httpClient[method] && httpClient[method].restore) {
+        httpClient[method].restore();
       }
     });
   }
   /**
-   * This is the core of the sinon axios mock server.
+   * This is the core of the sinon mock server.
    * It takes in a stub which is then setup to a regex
    * to match a route and an async function that will handle the mock data
    *
@@ -60,9 +60,10 @@ export class MockServer {
       const pathRegex = pathToRegexp(path);
       return stub
         .withArgs(sinon.match(value => pathRegex.test(value)))
-        .callsFake(async function(route, body, headers) {
+        .callsFake(async function(route, body) {
           const params = routeParams(path, route);
           const queryParams = body ? body.params : {};
+          const {headers} = body ? body : {headers: {}};
           for(const key in queryParams) {
             queryParams[key] = String(body.params[key]);
           }
@@ -75,11 +76,15 @@ export class MockServer {
           };
           const result = await callback(request);
           // the first argument from a handler is the statusCode in express.
-          const [statusCode] = result;
-          if(statusCode > 300) {
-            const error = new Error(statusCode);
-            error.response = {status: statusCode};
-            switch(statusCode) {
+          const [status] = result;
+          if(status > 300) {
+            const error = new Error('A HTTP error occurred.');
+            error.response = {
+              headers: new Map([['content-type', 'application/json']]),
+              json: async () => ({}),
+              status,
+            };
+            switch(status) {
               case 404:
                 error.name = 'NotFoundError';
                 throw error;
@@ -90,10 +95,18 @@ export class MockServer {
                 throw error;
             }
           }
+
+          let [, responseHeaders] = result;
+          responseHeaders = responseHeaders || new Map();
+          responseHeaders.set('content-type', 'application/json');
           // this might look weird, but express really does
           // reserve the last argument from a handler for the data.
-          // this formats that data into a axios like response
-          return {data: result[result.length - 1], status: statusCode};
+          // this formats that data into a http response
+          return {
+            headers: responseHeaders,
+            json: async () => result[result.length - 1],
+            status,
+          };
         });
     };
   }
