@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 3.1.0 -
+## 3.1.0 - 2020-06-10
 
 ### Added
 - Add a `count` method to the `EdvClient` class.
