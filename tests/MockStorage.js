@@ -216,7 +216,9 @@ export class MockStorage {
         }
         results.push(...(matches || []));
       }
-
+      if(query.count === true) {
+        return [200, {json: true}, {count: results.length}];
+      }
       return [200, {json: true}, results];
     });
   }

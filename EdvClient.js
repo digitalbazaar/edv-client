@@ -516,7 +516,7 @@ export class EdvClient {
     const {count} = await this.find({
       keyAgreementKey, hmac, equals, has,
       capability, invocationSigner, count: true
-    })
+    });
     return count;
   }
 
