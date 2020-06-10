@@ -488,6 +488,39 @@ export class EdvClient {
   }
 
   /**
+   * Counts how many documents match a query in an EDV.
+   *
+   * @see find - For more detailed documentation on the search options.
+   *
+   * @param {Object} options - The options to use.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
+   *   encryption key.
+   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   *   indexable attributes.
+   * @param {Object|Array} [options.equals] - An object with key-value
+   *   attribute pairs to match or an array of such objects.
+   * @param {String|Array} [options.has] - A string with an attribute name to
+   *   match or an array of such strings.
+   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
+   *   capability to use to authorize the invocation of this operation.
+   * @param {Object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @return {Promise<number>} resolves to the number of matching documents.
+  */
+  async count({
+    keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
+    capability, invocationSigner
+  }) {
+    const {count} = await this.find({
+      keyAgreementKey, hmac, equals, has,
+      capability, invocationSigner, count: true
+    })
+    return count;
+  }
+
+  /**
    * Finds documents based on their attributes. Currently, matching can be
    * performed using an `equals` or a `has` filter (but not both at once).
    *
