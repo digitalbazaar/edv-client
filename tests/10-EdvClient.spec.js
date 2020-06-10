@@ -609,6 +609,24 @@ describe('EdvClient', () => {
     docs[1].content.should.deep.equal({indexedKey: 'value2'});
   });
 
+  it('should count two documents with an attribute', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
+    const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
+    await client.insert({doc: doc2, invocationSigner, keyResolver});
+    const count = await client.count({
+      invocationSigner,
+      has: 'content.indexedKey'
+    });
+    should.exist(count);
+    count.should.be.an('number');
+    count.should.equal(2);
+  });
+
   it('should find a document that equals an attribute value', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
