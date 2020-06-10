@@ -1,5 +1,13 @@
 # edv-client ChangeLog
 
+## 3.0.1 -
+
+### Added
+- Add a `count` method to the `EdvClient` class.
+
+### Changed
+- The mock route for EDV queries will return a count if `query.count` is true.
+
 ## 3.0.0 - 2020-06-04
 
 ### Added
