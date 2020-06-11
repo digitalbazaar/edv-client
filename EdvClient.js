@@ -1018,12 +1018,11 @@ export class EdvClient {
       if('sequence' in encrypted) {
         // Sequence is limited to MAX_SAFE_INTEGER - 1 to avoid unexpected
         // behavior when a client attempts to increment the sequence number.
-        if(Number.isSafeInteger(encrypted.sequence) &&
-          encrypted.sequence < Number.MAX_SAFE_INTEGER - 1) {
-          encrypted.sequence++;
-        } else {
+        if(!Number.isSafeInteger(encrypted.sequence) ||
+          !(encrypted.sequence < Number.MAX_SAFE_INTEGER - 1)) {
           throw new Error('"sequence" is too large.');
         }
+        encrypted.sequence++;
       } else {
         encrypted.sequence = 0;
       }
