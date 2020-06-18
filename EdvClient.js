@@ -585,7 +585,7 @@ export class EdvClient {
     if(count === true) {
       return response.data;
     }
-    const docs = response.data;
+    const docs = response.data.documents;
 
     return Promise.all(docs.map(
       encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
