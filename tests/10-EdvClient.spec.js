@@ -76,11 +76,10 @@ describe('EdvClient', () => {
       keyResolver
     });
 
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       has: 'content.indexedKey',
       invocationSigner
     });
-
     docs.should.be.an('array');
     docs.length.should.equal(1);
   });
@@ -107,7 +106,7 @@ describe('EdvClient', () => {
     });
 
     // it should find the document when property keys are in same order.
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       equals: {
         'content.someKey': {
           b: 5,
@@ -121,7 +120,7 @@ describe('EdvClient', () => {
     docs.length.should.equal(1);
 
     // it should find the document when property keys are in a different order.
-    const docs2 = await client.find({
+    const {documents: docs2} = await client.find({
       equals: {
         'content.someKey': {
           a: 4,
@@ -136,7 +135,7 @@ describe('EdvClient', () => {
 
     // no results when attempting to find a document when
     // property keys have values that do not match the stored document.
-    const docs3 = await client.find({
+    const {documents: docs3} = await client.find({
       equals: {
         'content.someKey': {
           b: 11111,
@@ -152,7 +151,6 @@ describe('EdvClient', () => {
 
   it('should not find document by index after update', async () => {
     const {keyAgreementKey, hmac} = mock.keys;
-    let docs = [];
     const config = await EdvClient.createEdv({
       url: 'http://localhost:9876/edvs',
       config: {
@@ -178,7 +176,7 @@ describe('EdvClient', () => {
     // the content no longer has the indexed property.
     version1.content = {someKey: 'aNewValue'};
     await client.update({doc: version1, invocationSigner, keyResolver});
-    docs = await client.find({
+    const {documents: docs} = await client.find({
       has: 'content.indexedKey',
       invocationSigner
     });
@@ -555,7 +553,7 @@ describe('EdvClient', () => {
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {indexedKey: 'value1'}};
     await client.insert({doc, invocationSigner, keyResolver});
-    const docs = await client.find(
+    const {documents: docs} = await client.find(
       {has: 'content.indexedKey', invocationSigner});
     docs.should.be.an('array');
     docs.length.should.equal(1);
@@ -597,7 +595,7 @@ describe('EdvClient', () => {
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});
     await client.insert({doc: doc2, invocationSigner, keyResolver});
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       invocationSigner,
       has: 'content.indexedKey'
     });
@@ -633,7 +631,7 @@ describe('EdvClient', () => {
     const testId = await EdvClient.generateId();
     const expected = {id: testId, content: {indexedKey: 'value1'}};
     await client.insert({doc: expected, invocationSigner, keyResolver});
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       invocationSigner,
       equals: {'content.indexedKey': 'value1'}
     });
@@ -655,7 +653,7 @@ describe('EdvClient', () => {
       }
     };
     await client.insert({doc: expected, invocationSigner, keyResolver});
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       invocationSigner,
       equals: {
         'content.https://schema\\.org/': 'value1'
@@ -686,7 +684,7 @@ describe('EdvClient', () => {
     await client.insert({doc: expected, keyResolver, invocationSigner});
 
     // find with first value
-    let docs = await client.find({
+    const {documents: docs} = await client.find({
       invocationSigner,
       equals: {
         'content.nested.array.foo': 'bar'
@@ -698,16 +696,16 @@ describe('EdvClient', () => {
     docs[0].content.should.deep.equal(expected.content);
 
     // find with second value
-    docs = await client.find({
+    const {documents: docs2} = await client.find({
       invocationSigner,
       equals: {
         'content.nested.array.foo': 'baz'
       }
     });
-    docs.should.be.an('array');
-    docs.length.should.equal(1);
-    docs[0].should.be.an('object');
-    docs[0].content.should.deep.equal(expected.content);
+    docs2.should.be.an('array');
+    docs2.length.should.equal(1);
+    docs2[0].should.be.an('object');
+    docs2[0].content.should.deep.equal(expected.content);
   });
 
   it('should find two documents with attribute values', async () => {
@@ -719,7 +717,7 @@ describe('EdvClient', () => {
     const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
     await client.insert({doc: doc1, invocationSigner, keyResolver});
     await client.insert({doc: doc2, invocationSigner, keyResolver});
-    const docs = await client.find({
+    const {documents: docs} = await client.find({
       invocationSigner,
       equals: [
         {'content.indexedKey': 'value1'},
