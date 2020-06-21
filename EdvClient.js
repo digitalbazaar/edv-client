@@ -587,8 +587,10 @@ export class EdvClient {
     }
     const {data: {documents}} = response;
 
-    return Promise.all(documents.map(
+    const decryptedDocs = await Promise.all(documents.map(
       encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
+
+    return {documents: decryptedDocs};
   }
 
   /**
