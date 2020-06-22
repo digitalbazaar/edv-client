@@ -1,5 +1,13 @@
 # edv-client ChangeLog
 
+## 4.0.0 - 2020-06-22
+
+### Changed
+- **BREAKING**: Improve error handling relating to the upper limits of
+  document `sequence` numbers.
+- **BREAKING**: The `find` API now returns an object `{documents: [...]}`
+  instead of an array of documents.
+
 ## 3.1.0 - 2020-06-10
 
 ### Added
