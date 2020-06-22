@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 4.0.1 - 2020-06-22
+
+### Fixed
+- Repair failed publish attempt.
+
 ## 4.0.0 - 2020-06-22
 
 ### Changed
