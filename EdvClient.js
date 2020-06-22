@@ -549,7 +549,7 @@ export class EdvClient {
    * @param {object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Array>} resolves to the matching documents.
+   * @return {Promise<object>} the matching documents: {documents: [...]}.
    */
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
