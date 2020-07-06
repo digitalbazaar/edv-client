@@ -103,7 +103,8 @@ Now you can create and register a new EDV configuration:
 const controller = 'account id goes here';
 
 const config = {
-  sequence: 0,  // TODO: is sequence required?
+  // on init the sequence must be 0 and is required
+  sequence: 0,
   controller,
   // TODO: Explain what 'referenceId' is
   referenceId: 'primary',
@@ -125,7 +126,8 @@ You can specify a url when you create and register a new EDV configuration:
 const controller = 'account id (or DID if using zcaps) goes here';
 
 const config = {
-  sequence: 0,  // TODO: is sequence required?
+  // on init the sequence must be 0 and is required
+  sequence: 0,
   controller,
   // TODO: Explain what 'referenceId' is
   referenceId: 'primary',
