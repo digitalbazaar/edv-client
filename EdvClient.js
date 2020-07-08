@@ -987,9 +987,13 @@ export class EdvClient {
     // decrypt doc content
     const {cipher} = this;
     const {jwe} = encryptedDoc;
-    const data = await cipher.decryptObject({jwe, keyAgreementKey});
-    if(data === null) {
+    let data = await cipher.decryptObject({jwe, keyAgreementKey});
+    if(data === null && !encryptedDoc.deleted) {
       throw new Error('Decryption failed.');
+    }
+    if(data === null && encryptedDoc.deleted) {
+      data = {content: {}, meta: {deleted: true}};
+      delete encryptedDoc.deleted;
     }
     const {content, meta, stream} = data;
     // append decrypted content, meta, and stream
@@ -1027,6 +1031,9 @@ export class EdvClient {
         encrypted.sequence++;
       } else {
         encrypted.sequence = 0;
+      }
+      if(encrypted.meta.deleted) {
+        delete encrypted.meta.deleted;
       }
     } else {
       // sequence must be zero for new docs
