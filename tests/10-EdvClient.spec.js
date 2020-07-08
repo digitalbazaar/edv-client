@@ -478,13 +478,16 @@ describe('EdvClient', () => {
     const result = await client.delete({id: doc.id, invocationSigner});
     result.should.equal(true);
     let err;
+    let deletedResult;
     try {
-      await client.get({id: doc.id, invocationSigner});
+      deletedResult = await client.get({id: doc.id, invocationSigner});
     } catch(e) {
       err = e;
     }
-    should.exist(err);
-    err.name.should.equal('NotFoundError');
+    should.not.exist(err);
+    should.exist(deletedResult);
+    deletedResult.meta.deleted.should.equal(true);
+    deletedResult.jwe.ciphertext.should.equal('');
   });
 
   it('should fail to delete a non-existent document', async () => {
@@ -492,7 +495,24 @@ describe('EdvClient', () => {
     const result = await client.delete({id: 'foo', invocationSigner});
     result.should.equal(false);
   });
-
+  it('should increase sequence when updating a deleted document', async () => {
+    const client = await mock.createEdv();
+    const testId = await EdvClient.generateId();
+    const doc = {id: testId, content: {someKey: 'someValue'}};
+    await client.insert({doc, invocationSigner, keyResolver});
+    const decrypted = await client.get({id: doc.id, invocationSigner});
+    decrypted.should.be.an('object');
+    await client.delete({id: doc.id, invocationSigner});
+    const deletedResult = await client.get({id: doc.id, invocationSigner});
+    deletedResult.content = {someKey: 'someValue'};
+    await client.update({doc: deletedResult, invocationSigner, keyResolver});
+    const updatedResult = await client.get({id: doc.id, invocationSigner});
+    updatedResult.sequence.should.equal(1);
+    updatedResult.content = {anotherKey: 'anotherValue'};
+    await client.update({doc: updatedResult, invocationSigner, keyResolver});
+    const updatedResult2 = await client.get({id: doc.id, invocationSigner});
+    updatedResult2.sequence.should.equal(2);
+  });
   it('should insert a document with attributes', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});

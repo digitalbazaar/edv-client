@@ -349,12 +349,14 @@ export class MockStorage {
     // delete a document
     server.delete(route, request => {
       const docId = getDocId(request.route);
-      if(!edv.documents.has(docId)) {
+      const doc = edv.documents.get(docId);
+      if(!doc) {
         return [404];
       }
-      const doc = edv.documents.get(docId);
-      this.unindex({edv, doc});
-      edv.documents.delete(docId);
+      doc.indexed = [];
+      doc['deleted'] = true;
+      doc.jwe.ciphertext = '';
+      this.store({edv, doc});
       return [204];
     });
   }
