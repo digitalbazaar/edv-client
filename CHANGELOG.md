@@ -1,5 +1,11 @@
 # edv-client ChangeLog
 
+## 4.1.0 - 2020-07-09
+
+### Changed
+- **BREAKING**: Change deletion to remove all content but retain `id` and `sequence`.
+- **BREAKING**: `keyResolver` must be passed as an argument to `delete`.
+
 ## 4.0.1 - 2020-06-22
 
 ### Fixed

@@ -475,7 +475,8 @@ describe('EdvClient', () => {
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    const result = await client.delete({id: doc.id, invocationSigner});
+    const result = await client.delete({id: doc.id, invocationSigner,
+      keyResolver});
     result.should.equal(true);
     let err;
     let deletedResult;
@@ -487,7 +488,6 @@ describe('EdvClient', () => {
     should.not.exist(err);
     should.exist(deletedResult);
     deletedResult.meta.deleted.should.equal(true);
-    deletedResult.jwe.ciphertext.should.equal('');
   });
 
   it('should fail to delete a non-existent document', async () => {
@@ -502,16 +502,16 @@ describe('EdvClient', () => {
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    await client.delete({id: doc.id, invocationSigner});
+    await client.delete({id: doc.id, invocationSigner, keyResolver});
     const deletedResult = await client.get({id: doc.id, invocationSigner});
     deletedResult.content = {someKey: 'someValue'};
     await client.update({doc: deletedResult, invocationSigner, keyResolver});
     const updatedResult = await client.get({id: doc.id, invocationSigner});
-    updatedResult.sequence.should.equal(1);
+    updatedResult.sequence.should.equal(2);
     updatedResult.content = {anotherKey: 'anotherValue'};
     await client.update({doc: updatedResult, invocationSigner, keyResolver});
     const updatedResult2 = await client.get({id: doc.id, invocationSigner});
-    updatedResult2.sequence.should.equal(2);
+    updatedResult2.sequence.should.equal(3);
   });
   it('should insert a document with attributes', async () => {
     const client = await mock.createEdv();

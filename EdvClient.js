@@ -352,29 +352,50 @@ export class EdvClient {
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   *   a Promise that resolves a key ID to a DH public key.
    *
    * @return {Promise<Boolean>} resolves to `true` if the document was deleted
    *   and `false` if it did not exist.
    */
-  async delete({id, capability, invocationSigner}) {
+  async delete({id, capability, invocationSigner,
+    keyResolver = this.keyResolver}) {
     _assertString(id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
+
+    let doc;
+    try {
+      doc = await this.get({id, capability, invocationSigner});
+    } catch(e) {
+      if(e.message === 'Document not found.') {
+        return false;
+      }
+      throw e;
+    }
+
+    doc.content = {};
+    if(!doc.meta) {
+      doc.meta = {};
+    }
+    doc.meta.deleted = true;
 
     const url = this._getDocUrl(id, capability);
     if(!capability) {
       capability = this._getRootDocCapability(id);
     }
+    const encrypted = await this._encrypt(
+      {doc, recipients: doc.jwe.recipients, keyResolver,
+        hmac: this.hmac, update: true});
     try {
       // sign HTTP header
       const headers = await signCapabilityInvocation({
-        url, method: 'delete', headers: this.defaultHeaders,
-        capability, invocationSigner,
-        // TODO: should `delete` be used here as a separate action?
+        url, method: 'post', headers: this.defaultHeaders,
+        json: encrypted, capability, invocationSigner,
         capabilityAction: 'write'
       });
       // send request
       const {httpsAgent} = this;
-      await axios.delete(url, {headers, httpsAgent});
+      await axios.post(url, encrypted, {headers, httpsAgent});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 404) {
@@ -987,13 +1008,9 @@ export class EdvClient {
     // decrypt doc content
     const {cipher} = this;
     const {jwe} = encryptedDoc;
-    let data = await cipher.decryptObject({jwe, keyAgreementKey});
-    if(data === null && !encryptedDoc.deleted) {
+    const data = await cipher.decryptObject({jwe, keyAgreementKey});
+    if(data === null) {
       throw new Error('Decryption failed.');
-    }
-    if(data === null && encryptedDoc.deleted) {
-      data = {content: {}, meta: {deleted: true}};
-      delete encryptedDoc.deleted;
     }
     const {content, meta, stream} = data;
     // append decrypted content, meta, and stream
@@ -1031,9 +1048,6 @@ export class EdvClient {
         encrypted.sequence++;
       } else {
         encrypted.sequence = 0;
-      }
-      if(encrypted.meta.deleted) {
-        delete encrypted.meta.deleted;
       }
     } else {
       // sequence must be zero for new docs
