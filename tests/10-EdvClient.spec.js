@@ -475,7 +475,7 @@ describe('EdvClient', () => {
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    const result = await client.delete({id: doc.id, invocationSigner,
+    const result = await client.delete({doc: decrypted, invocationSigner,
       keyResolver});
     result.should.equal(true);
     let err;
@@ -490,11 +490,6 @@ describe('EdvClient', () => {
     deletedResult.meta.deleted.should.equal(true);
   });
 
-  it('should fail to delete a non-existent document', async () => {
-    const client = await mock.createEdv();
-    const result = await client.delete({id: 'foo', invocationSigner});
-    result.should.equal(false);
-  });
   it('should increase sequence when updating a deleted document', async () => {
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
@@ -502,17 +497,11 @@ describe('EdvClient', () => {
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    await client.delete({id: doc.id, invocationSigner, keyResolver});
+    await client.delete({doc: decrypted, invocationSigner, keyResolver});
     const deletedResult = await client.get({id: doc.id, invocationSigner});
-    deletedResult.content = {someKey: 'someValue'};
-    await client.update({doc: deletedResult, invocationSigner, keyResolver});
-    const updatedResult = await client.get({id: doc.id, invocationSigner});
-    updatedResult.sequence.should.equal(2);
-    updatedResult.content = {anotherKey: 'anotherValue'};
-    await client.update({doc: updatedResult, invocationSigner, keyResolver});
-    const updatedResult2 = await client.get({id: doc.id, invocationSigner});
-    updatedResult2.sequence.should.equal(3);
+    deletedResult.sequence.should.equal(1);
   });
+
   it('should insert a document with attributes', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});

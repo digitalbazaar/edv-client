@@ -347,30 +347,33 @@ export class EdvClient {
    * Deletes a document from the EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id the ID of the document to delete.
+   * @param {string} options.doc the document to insert.
+   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
+   *   the document for; if present, recipients will be added to any existing
+   *   recipients; to remove existing recipients, modify the
+   *   `encryptedDoc.jwe.recipients` field.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    * @param {function} [keyResolver=this.keyResolver] a function that returns
    *   a Promise that resolves a key ID to a DH public key.
+   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   *   deriving shared KEKs for wrapping content encryption keys.
    *
-   * @return {Promise<Boolean>} resolves to `true` if the document was deleted
-   *   and `false` if it did not exist.
+   * @return {Promise<Boolean>} resolves to `true` when the document was
+   *  deleted.
    */
-  async delete({id, capability, invocationSigner,
-    keyResolver = this.keyResolver}) {
-    _assertString(id, '"id" must be a string.');
+  async delete({
+    doc, recipients = [], capability, invocationSigner,
+    keyResolver = this.keyResolver, keyAgreementKey = this.keyAgreementKey}) {
+    _assertDocument(doc);
+    _assertString(doc.id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    let doc;
-    try {
-      doc = await this.get({id, capability, invocationSigner});
-    } catch(e) {
-      if(e.message === 'Document not found.') {
-        return false;
-      }
-      throw e;
+    // if no recipients specified, add default
+    if(recipients.length === 0 && keyAgreementKey) {
+      recipients = this._createDefaultRecipients(keyAgreementKey);
     }
 
     doc.content = {};
@@ -379,9 +382,9 @@ export class EdvClient {
     }
     doc.meta.deleted = true;
 
-    const url = this._getDocUrl(id, capability);
+    const url = this._getDocUrl(doc.id, capability);
     if(!capability) {
-      capability = this._getRootDocCapability(id);
+      capability = this._getRootDocCapability(doc.id);
     }
     const encrypted = await this._encrypt(
       {doc, recipients: doc.jwe.recipients, keyResolver,
