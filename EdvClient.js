@@ -347,7 +347,7 @@ export class EdvClient {
    * Deletes a document from the EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.doc the document to insert.
+   * @param {string} options.doc the document to delete.
    * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
    *   the document for; if present, recipients will be added to any existing
    *   recipients; to remove existing recipients, modify the
@@ -382,29 +382,12 @@ export class EdvClient {
     }
     doc.meta.deleted = true;
 
-    const url = this._getDocUrl(doc.id, capability);
-    if(!capability) {
-      capability = this._getRootDocCapability(doc.id);
-    }
-    const encrypted = await this._encrypt(
-      {doc, recipients: doc.jwe.recipients, keyResolver,
-        hmac: this.hmac, update: true});
     try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent} = this;
-      await axios.post(url, encrypted, {headers, httpsAgent});
+      await this.update({doc, keyResolver,
+        keyAgreementKey,
+        capability, invocationSigner});
     } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 404) {
-        return false;
-      }
-      throw e;
+      return false;
     }
     return true;
   }
