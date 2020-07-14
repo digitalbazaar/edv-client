@@ -383,9 +383,9 @@ export class EdvClient {
     doc.meta.deleted = true;
 
     try {
-      await this.update({doc, keyResolver,
-        keyAgreementKey,
-        capability, invocationSigner});
+      await this.update({
+        doc, keyResolver, keyAgreementKey, capability, invocationSigner
+      });
     } catch(e) {
       return false;
     }
