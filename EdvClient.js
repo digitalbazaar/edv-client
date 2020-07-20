@@ -371,11 +371,6 @@ export class EdvClient {
     _assertString(doc.id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    // if no recipients specified, add default
-    if(recipients.length === 0 && keyAgreementKey) {
-      recipients = this._createDefaultRecipients(keyAgreementKey);
-    }
-
     doc.content = {};
     if(!doc.meta) {
       doc.meta = {};
@@ -384,10 +379,17 @@ export class EdvClient {
 
     try {
       await this.update({
-        doc, keyResolver, keyAgreementKey, capability, invocationSigner
+        doc, recipients, keyResolver, keyAgreementKey, capability,
+        invocationSigner
       });
     } catch(e) {
-      return false;
+      const {response = {}} = e;
+      if(response.status === 409) {
+        const err = new Error('Conflict error.');
+        err.name = 'InvalidStateError';
+        throw err;
+      }
+      throw e;
     }
     return true;
   }
