@@ -106,12 +106,17 @@ export class EdvDocument {
   /**
    * Deletes this document from the EDV.
    *
-   * @return {Promise<Boolean>} resolves to `true` if the document was deleted
-   *   and `false` if it did not exist.
+   * @param {Object} options - The options to use.
+   * @param {Object} options.doc - The unencrypted document to update/insert.
+   * @return {Promise<Boolean>} resolves to `true` when the document is deleted.
    */
-  async delete() {
-    const {id, capability, invocationSigner, client} = this;
-    return client.delete({id, capability, invocationSigner});
+  async delete(
+    doc, recipients = this.recipients, keyResolver = this.keyResolver
+  ) {
+    const {keyAgreementKey, capability, invocationSigner, client} = this;
+    return client.delete({
+      doc: doc.doc, recipients, capability, invocationSigner,
+      keyAgreementKey, keyResolver});
   }
 }
 
