@@ -371,26 +371,21 @@ export class EdvClient {
     _assertString(doc.id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
+    doc = {...doc};
     doc.content = {};
     if(!doc.meta) {
       doc.meta = {};
+    } else {
+      doc.meta = {...doc.meta};
     }
     doc.meta.deleted = true;
+    delete doc.stream;
 
-    try {
-      await this.update({
-        doc, recipients, keyResolver, keyAgreementKey, capability,
-        invocationSigner
-      });
-    } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this.update({
+      doc, recipients, keyResolver, keyAgreementKey, capability,
+      invocationSigner
+    });
+
     return true;
   }
 
