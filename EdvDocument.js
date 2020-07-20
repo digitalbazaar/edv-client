@@ -110,13 +110,14 @@ export class EdvDocument {
    * @param {Object} options.doc - The unencrypted document to update/insert.
    * @return {Promise<Boolean>} resolves to `true` when the document is deleted.
    */
-  async delete(
+  async delete({
     doc, recipients = this.recipients, keyResolver = this.keyResolver
-  ) {
+  } = {}) {
     const {keyAgreementKey, capability, invocationSigner, client} = this;
     return client.delete({
-      doc: doc.doc, recipients, capability, invocationSigner,
-      keyAgreementKey, keyResolver});
+      doc, recipients, capability, invocationSigner,
+      keyAgreementKey, keyResolver
+    });
   }
 }
 
