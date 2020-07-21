@@ -475,8 +475,9 @@ describe('EdvClient', () => {
     await client.insert({doc, invocationSigner, keyResolver});
     const decrypted = await client.get({id: doc.id, invocationSigner});
     decrypted.should.be.an('object');
-    const result = await client.delete({doc: decrypted, invocationSigner,
-      keyResolver});
+    const result = await client.delete({
+      doc: decrypted, invocationSigner, keyResolver
+    });
     result.should.equal(true);
     let err;
     let deletedResult;

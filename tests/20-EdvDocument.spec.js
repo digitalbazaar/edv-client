@@ -53,8 +53,9 @@ describe('EdvDocument', () => {
     let err;
     let result;
     try {
-      result = await doc.delete({doc: docResult, invocationSigner,
-        keyResolver});
+      result = await doc.delete({
+        doc: docResult, invocationSigner, keyResolver
+      });
     } catch(e) {
       err = e;
     }

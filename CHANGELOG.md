@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 5.0.0 - 2020-07-13
+## 5.0.0 - TBD
 
 ### Changed
 - **BREAKING**: Change deletion to remove all content but retain `id` and `sequence`.
