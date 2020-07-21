@@ -28,19 +28,19 @@ export class EdvClient {
    * <authority>/edvs/<random multibase base58 encoded ID>
    *
    * @param {Object} options - The options to use.
-   * @param {string} [id=undefined] the ID of the EDV that must be a URL
+   * @param {string} [id=undefined] - The ID of the EDV that must be a URL
    *   that refers to the EDV's root storage location; if not given, then
    *   a separate capability must be given to each method called on the client
    *   instance.
-   * @param {function} [keyResolver=this.keyResolver] a default function that
+   * @param {function} [keyResolver=this.keyResolver] - A default function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   * @param {Object} [keyAgreementKey=null] - A default KeyAgreementKey API for
    *   deriving shared KEKs for wrapping content encryption keys.
-   * @param {Object} [hmac=null] a default HMAC API for blinding indexable
+   * @param {Object} [hmac=null] - A default HMAC API for blinding indexable
    *   attributes.
-   * @param {https.Agent} [httpsAgent=undefined] an optional HttpsAgent to
+   * @param {https.Agent} [httpsAgent=undefined] - An optional HttpsAgent to
    *   use to handle HTTPS requests.
-   * @param {Object} [defaultHeaders=undefined] an optional defaultHeaders
+   * @param {Object} [defaultHeaders=undefined] - An optional defaultHeaders
    *   object to use with HTTP requests.
    *
    * @return {EdvClient}.
@@ -66,9 +66,9 @@ export class EdvClient {
    * providing an array for `attribute`.
    *
    * @param {Object} options - The options to use.
-   * @param {string|Array} options.attribute the attribute name or an array of
+   * @param {string|Array} options.attribute - The attribute name or an array of
    *   attribute names to create a unique compound index.
-   * @param {boolean} [options.unique=false] `true` if the index should be
+   * @param {boolean} [options.unique=false] Should be `true` if the index is
    *   considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false}) {
@@ -84,27 +84,27 @@ export class EdvClient {
    * including a message digest.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.doc the document to insert.
-   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   * @param {Object} options.doc - The document to insert.
+   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
-   * @param {number} [chunkSize=1048576] the size, in bytes, of the chunks to
+   * @param {number} [chunkSize=1048576] - The size, in bytes, of the chunks to
    *   break the incoming stream data into.
-   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
-   *   the document for; if not present, a default recipient will be added
-   *   using `this.keyAgreementKey` and if no `keyAgreementKey` is set, an
-   *   error will be thrown.
-   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   * @param {Object} [options.recipients=[]] - A set of JWE recipients
+   *   to encrypt the document for; if not present, a default recipient will
+   *   be added using `this.keyAgreementKey` and if no `keyAgreementKey` is
+   *   set, an error will be thrown.
+   * @param {function} [keyResolver=this.keyResolver] - A function that returns
    *   a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   * @param {Object} [keyAgreementKey=null] - A default KeyAgreementKey API for
    *   deriving shared KEKs for wrapping content encryption keys.
-   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   * @param {Object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Object>} resolves to the inserted document.
+   * @return {Promise<Object>} Resolves to the inserted document.
    */
   async insert({
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
@@ -198,27 +198,27 @@ export class EdvClient {
    * information such as the stream data's message digest.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.doc the document to insert.
-   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   * @param {Object} options.doc - The document to insert.
+   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
-   * @param {number} [chunkSize=1048576] the size, in bytes, of the chunks to
+   * @param {number} [chunkSize=1048576] - The size, in bytes, of the chunks to
    *   break the incoming stream data into.
-   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
-   *   the document for; if present, recipients will be added to any existing
-   *   recipients; to remove existing recipients, modify the
-   *   `encryptedDoc.jwe.recipients` field.
-   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   * @param {Object} [options.recipients=[]] - A set of JWE recipients
+   *   to encrypt the document for; if present, recipients will be added
+   *   to any existing recipients; to remove existing recipients, modify
+   *   the `encryptedDoc.jwe.recipients` field.
+   * @param {function} [keyResolver=this.keyResolver] - A function that returns
    *   a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   * @param {Object} [keyAgreementKey=null] - A default KeyAgreementKey API for
    *   deriving shared KEKs for wrapping content encryption keys.
-   * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
+   * @param {Object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Object>} resolves to the updated document.
+   * @return {Promise<Object>} Resolves to the updated document.
    */
   async update({
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
@@ -300,7 +300,8 @@ export class EdvClient {
    * existing entry for the index, it will be added.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.doc the document to create or update an index for.
+   * @param {Object} options.doc - The document to create or update an index
+   *   for.
    * @param {Object} [options.hmac=this.hmac] an HMAC API for blinding
    *   indexable attributes.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -308,7 +309,7 @@ export class EdvClient {
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise} resolves once the operation completes.
+   * @return {Promise} Resolves once the operation completes.
    */
   async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
@@ -347,22 +348,22 @@ export class EdvClient {
    * Deletes a document from the EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.doc the document to delete.
-   * @param {Object} [options.recipients=[]] a set of JWE recipients to encrypt
-   *   the document for; if present, recipients will be added to any existing
-   *   recipients; to remove existing recipients, modify the
-   *   `encryptedDoc.jwe.recipients` field.
+   * @param {string} options.doc - The document to delete.
+   * @param {Object} [options.recipients=[]] - A set of JWE recipients to
+   *   encrypt the document for; if present, recipients will be added to
+   *   any existing recipients; to remove existing recipients, modify
+   *   the `encryptedDoc.jwe.recipients` field.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
-   * @param {function} [keyResolver=this.keyResolver] a function that returns
+   * @param {function} [keyResolver=this.keyResolver] - A function that returns
    *   a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [keyAgreementKey=null] a default KeyAgreementKey API for
+   * @param {Object} [keyAgreementKey=null] - A default KeyAgreementKey API for
    *   deriving shared KEKs for wrapping content encryption keys.
    *
-   * @return {Promise<Boolean>} resolves to `true` when the document was
-   *  deleted.
+   * @return {Promise<Boolean>} Resolves to `true` when the document was
+   *   deleted.
    */
   async delete({
     doc, recipients = [], capability, invocationSigner,
@@ -393,8 +394,8 @@ export class EdvClient {
    * Gets a document from the EDV by its ID.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id the ID of the document to get.
-   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   * @param {string} options.id - The ID of the document to get.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -402,7 +403,7 @@ export class EdvClient {
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Object>} resolves to the document.
+   * @return {Promise<Object>} Resolves to the document.
    */
   async get({
     id, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
@@ -442,8 +443,8 @@ export class EdvClient {
    * document.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.doc the document to get a stream for.
-   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   * @param {string} options.doc - The document to get a stream for.
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
@@ -451,7 +452,7 @@ export class EdvClient {
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<ReadableStream>} resolves to a `ReadableStream` to read
+   * @return {Promise<ReadableStream>} Resolves to a `ReadableStream` to read
    *   the chunked data from.
    */
   async getStream({
@@ -495,10 +496,10 @@ export class EdvClient {
    * @see find - For more detailed documentation on the search options.
    *
    * @param {object} options - The options to use.
-   * @param {object} [options.keyAgreementKey=this.keyAgreementKey] a
+   * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
-   * @param {object} [options.hmac=this.hmac] an HMAC API for blinding
+   * @param {object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
    * @param {object|Array} [options.equals] - An object with key-value
    *   attribute pairs to match or an array of such objects.
@@ -509,7 +510,7 @@ export class EdvClient {
    * @param {object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<number>} resolves to the number of matching documents.
+   * @return {Promise<number>} Resolves to the number of matching documents.
   */
   async count({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
@@ -539,10 +540,10 @@ export class EdvClient {
    * contain documents that possess *all* of the attributes listed.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] a
+   * @param {Object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
-   * @param {object} [options.hmac=this.hmac] an HMAC API for blinding
+   * @param {object} [options.hmac=this.hmac]  - An HMAC API for blinding
    *   indexable attributes.
    * @param {object|Array} [options.equals] - An object with key-value
    *   attribute pairs to match or an array of such objects.
@@ -553,7 +554,8 @@ export class EdvClient {
    * @param {object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<object>} the matching documents: {documents: [...]}.
+   * @return {Promise<object>} Resolves to the matching documents:
+   *   {documents: [...]}.
    */
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
@@ -602,13 +604,13 @@ export class EdvClient {
    * it to be invoked by its designated invoker.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.capabilityToEnable the capability to enable.
+   * @param {Object} options.capabilityToEnable - The capability to enable.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @returns {Promise<undefined>} resolves once the operation completes.
+   * @returns {Promise<undefined>} Resolves once the operation completes.
    */
   async enableCapability({capabilityToEnable, capability, invocationSigner}) {
     _assertObject(capabilityToEnable);
@@ -643,13 +645,13 @@ export class EdvClient {
    * EDV, preventing it from being invoked by its designated invoker.
    *
    * @param {Object} options - The options to use.
-   * @param {Object} options.id the ID of the capability to revoke.
+   * @param {Object} options.id - The ID of the capability to revoke.
    * @param {string} [options.capability=undefined] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of this operation.
    * @param {Object} options.invocationSigner - An API with an
    *   `id` property and a `sign` function for signing a capability invocation.
    *
-   * @return {Promise<Boolean>} resolves to `true` if the capability was
+   * @return {Promise<Boolean>} Resolves to `true` if the capability was
    *   disabled and `false` if it did not exist.
    */
   async disableCapability({id, capability, invocationSigner}) {
@@ -699,7 +701,8 @@ export class EdvClient {
    * @param {string|object} [options.capability] - A zCap authorizing the
    *   creation of an EDV. Defaults to a root capability derived from
    *   the `url` parameter.
-   * @return {Promise<Object>} resolves to the configuration for the newly
+   *
+   * @return {Promise<Object>} Resolves to the configuration for the newly
    *   created EDV.
    */
   static async createEdv({
@@ -761,7 +764,7 @@ export class EdvClient {
    *   access to an EDV config. Defaults to a root capability derived from
    *   the `url` parameter.
    *
-   * @return {Promise<Object>} resolves to the EDV configuration
+   * @return {Promise<Object>} Resolves to the EDV configuration
    *   containing the given controller and reference ID.
    */
   static async findConfig({
@@ -782,7 +785,7 @@ export class EdvClient {
    * @param {string} options.url - The url to query.
    * @param {string} options.controller - The EDV's controller.
    * @param {string} [options.referenceId] - A controller-unique reference ID.
-   * @param {string} [options.after] - A EDV's ID.
+   * @param {string} [options.after] - An EDV's ID.
    * @param {number} [options.limit] - How many EDV configs to return.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
@@ -794,7 +797,7 @@ export class EdvClient {
    *   access to an EDV config. Defaults to a root capability derived from
    *   the `url` parameter.
    *
-   * @return {Promise<Array>} resolves to the matching EDV configurations.
+   * @return {Promise<Array>} Resolves to the matching EDV configurations.
    */
   static async findConfigs({
     url = '/edvs', controller, referenceId, after, limit, httpsAgent, headers,
@@ -843,13 +846,13 @@ export class EdvClient {
    * Gets the configuration for an EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id the EDV's ID.
+   * @param {string} options.id - The EDV's ID.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {Object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
    *
-   * @return {Promise<Object>} resolves to the configuration for the EDV.
+   * @return {Promise<Object>} Resolves to the configuration for the EDV.
    */
   static async getConfig({id, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
@@ -871,7 +874,7 @@ export class EdvClient {
    * @param {Object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
    *
-   * @return {Promise<Void>} resolves once the operation completes.
+   * @return {Promise<Void>} Resolves once the operation completes.
    */
   static async updateConfig({id, config, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
@@ -891,14 +894,14 @@ export class EdvClient {
    * Sets the status of an EDV.
    *
    * @param {Object} options - The options to use.
-   * @param {string} options.id - A EDV ID.
+   * @param {string} options.id - An EDV ID.
    * @param {string} options.status - Either `active` or `deleted`.
    * @param {https.Agent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {Object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
    *
-   * @return {Promise<Void>} resolves once the operation completes.
+   * @return {Promise<Void>} Resolves once the operation completes.
    */
   static async setStatus({id, status, httpsAgent, headers}) {
     // TODO: add `capability` and `invocationSigner` support?
