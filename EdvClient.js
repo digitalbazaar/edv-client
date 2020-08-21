@@ -17,7 +17,7 @@ export class EdvClient {
    *
    * Creates a new EdvClient instance. An EDV is an Encrypted Data Vault.
    *
-   * In order to support portability. (e.g., the use of DID URLs to reference
+   * In order to support portability (e.g., the use of DID URLs to reference
    * documents), Encrypted Data Vault storage MUST expose an HTTPS API with
    * a URL structure that is partitioned like so:
    *

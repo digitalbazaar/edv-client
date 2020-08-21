@@ -109,7 +109,7 @@ export class EdvDocument {
    * Deletes this document from the EDV.
    *
    * @param {object} options - The options to use.
-   * @param {bject} options.doc - The unencrypted document to update/insert.
+   * @param {object} options.doc - The unencrypted document to update/insert.
    * @param {Array} [options.recipients=[]] - An array of additional recipients
    *   for the encrypted content.
    * @param {Function} options.keyResolver - A function that returns a Promise
