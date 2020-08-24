@@ -50,11 +50,11 @@ export class MockServer {
     /**
      * This is a function curried to a stub.
      *
-     * @param {string} path - A valid express route path ex: edvs/:id
+     * @param {string} path - A valid express route path ex: edvs/:id.
      * @param {Function} callback - A function that accepts the route params
      * and then produces mock data for a test.
      *
-     * @returns {Object} The result of the callback.
+     * @returns {object} - The result of the callback.
      */
     return function(path, callback) {
       const pathRegex = pathToRegexp(path);
