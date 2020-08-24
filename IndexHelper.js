@@ -12,7 +12,7 @@ export class IndexHelper {
    * Creates a new IndexHelper instance that can be used to blind EDV
    * document attributes to enable indexing.
    *
-   * @return {IndexHelper}.
+   * @returns {IndexHelper}.
    */
   constructor() {
     this.indexes = new Map();
@@ -25,11 +25,11 @@ export class IndexHelper {
    * they contain that attribute. Compound indexes can be specified by
    * providing an array for `attribute`.
    *
-   * @param {Object} options - The options to use.
-   * @param {string|string[]} options.attribute the attribute name or an
+   * @param {object} options - The options to use.
+   * @param {string|string[]} options.attribute - The attribute name or an
    *   array of attribute names to create a unique compound index.
-   * @param {boolean} [options.unique=false] `true` if the index should be
-   *   considered unique, `false` if not.
+   * @param {boolean} [options.unique=false] - Set to `true` if the index
+   *   should be considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false}) {
     let attributes = attribute;
@@ -69,12 +69,13 @@ export class IndexHelper {
    * Creates an indexable entry of blinded attributes for the given document
    * using the HMAC associated with this instance.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {Object} options.doc the document to create the indexable entry for.
+   * @param {object} options.doc - The document to create the indexable entry
+   *   for.
    *
-   * @return {Promise<Object>} resolves to the new indexable entry.
+   * @returns {Promise<object>} - Resolves to the new indexable entry.
    */
   async createEntry({hmac, doc}) {
     _assertHmac(hmac);
@@ -158,13 +159,13 @@ export class IndexHelper {
    * existing entry is found, a new entry is appended to the shallow copy
    * prior to its return.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {Object} options.doc the document to create or update an indexable
+   * @param {object} options.doc - The document to create or update an indexable
    *   entry for.
    *
-   * @return {Promise<Array>} resolves to the updated array of indexable
+   * @returns {Promise<Array>} - Resolves to the updated array of indexable
    *   entries.
    */
   async updateEntry({hmac, doc}) {
@@ -197,15 +198,15 @@ export class IndexHelper {
   /**
    * Builds a query that can be submitted to an EDV index service.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {Object|Array} [options.equals] an object with key-value attribute
+   * @param {object|Array} [options.equals] - An object with key-value attribute
    *   pairs to match or an array of such objects.
-   * @param {string|Array} [options.has] a string with an attribute name to
+   * @param {string|Array} [options.has] - A string with an attribute name to
    *   match or an array of such strings.
    *
-   * @return {Promise<Object>} resolves to the built query.
+   * @returns {Promise<object>} - Resolves to the built query.
    */
   async buildQuery({hmac, equals, has}) {
     _assertHmac(hmac);
@@ -313,14 +314,14 @@ export class IndexHelper {
   /**
    * Blinds a single attribute using the given HMAC API.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {string} options.key a key associated with a value.
-   * @param {Any} options.value the value associated with the key for the
+   * @param {string} options.key - A key associated with a value.
+   * @param {any} options.value - The value associated with the key for the
    *   attribute.
    *
-   * @return {Promise<Object>} resolves to an object `{name, value}`.
+   * @returns {Promise<object>} - Resolves to an object `{name, value}`.
    */
   async _blindAttribute({hmac, key, value}) {
     // salt values with key to prevent cross-key leakage
@@ -334,14 +335,15 @@ export class IndexHelper {
    * Builds a blind compound attribute from an array of blind attributes
    * via the given HMAC API.
    *
-   * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {Array} blindAttributes the blind attributes that comprise the
-   *   compound index.
-   * @param {Number} length the number of blind attributes to go into the
-   *   compound attribute (<= `blindAttributes.length`).
+   * @param {Array} options.blindAttributes - The blind attributes that
+   *   comprise the compound index.
+   * @param {number} options.length - The number of blind attributes to go into
+   *   the compound attribute (<= `blindAttributes.length`).
    *
-   * @return {Promise<String>} resolves to the blinded compound attribute.
+   * @returns {Promise<string>} - Resolves to the blinded compound attribute.
    */
   async _blindCompoundAttribute({hmac, blindAttributes, length}) {
     const selection = blindAttributes.slice(0, length);
@@ -357,11 +359,11 @@ export class IndexHelper {
   /**
    * Blinds a string using the given HMAC API.
    *
-   * @param {Object} hmac an HMAC API with `id`, `sign`, and `verify`
+   * @param {object} hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {string} value the value to blind.
+   * @param {string} value - The value to blind.
    *
-   * @return {Promise<String>} resolves to the blinded value.
+   * @returns {Promise<string>} - Resolves to the blinded value.
    */
   async _blindString(hmac, value) {
     // convert value to Uint8Array

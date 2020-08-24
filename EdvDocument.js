@@ -7,21 +7,21 @@ export class EdvDocument {
   /**
    * Creates a new instance of a EdvDocument.
    *
-   * @param {Object} options - The options to use.
-   * @param {string} [options.id] the ID of the document; this is
+   * @param {object} options - The options to use.
+   * @param {string} [options.id] - The ID of the document; this is
    *   only necessary if the capability's `invocationTarget` is not for the
    *   document itself (but is for the entire EDV).
-   * @param {Array} [options.recipients=[]] an array of additional recipients
+   * @param {Array} [options.recipients=[]] - An array of additional recipients
    *   for the encrypted content.
-   * @param {function} [options.keyResolver] a default function that
+   * @param {Function} [options.keyResolver] - A default function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {Object} [options.keyAgreementKey] a KeyAgreementKey API for
+   * @param {object} [options.keyAgreementKey] - A KeyAgreementKey API for
    *   deriving KEKs for wrapping/unwrapping content encryption keys.
-   * @param {Object} [options.hmac] an HMAC API for blinding indexable
+   * @param {object} [options.hmac] - An HMAC API for blinding indexable
    *   attributes.
-   * @param {Object} [options.capability] - The OCAP-LD authorization
+   * @param {object} [options.capability] - The OCAP-LD authorization
    *   capability to use to authorize the invocation of EdvClient methods.
-   * @param {Object} options.invocationSigner - An API for signing
+   * @param {object} options.invocationSigner - An API for signing
    *   a capability invocation.
    * @param {EdvClient} [options.client] - An EdvClient to use.
    *
@@ -51,7 +51,7 @@ export class EdvDocument {
   /**
    * Retrieves and decrypts this document from its EDV.
    *
-   * @returns {Promise<Object>} resolves to the decrypted document.
+   * @returns {Promise<object>} - Resolves to the decrypted document.
    */
   async read() {
     const {id, keyAgreementKey, capability, invocationSigner, client} = this;
@@ -59,14 +59,15 @@ export class EdvDocument {
   }
 
   /**
+   * @typedef ReadableStream
    * Gets a `ReadableStream` to read the chunked data associated with a
    * document.
    *
-   * @param {Object} options - The options to use.
-   * @param {string} options.doc the decrypted document to get a stream for;
+   * @param {object} options - The options to use.
+   * @param {string} options.doc - The decrypted document to get a stream for;
    *   call `read()` to get this.
    *
-   * @return {Promise<ReadableStream>} resolves to a `ReadableStream` to read
+   * @returns {Promise<ReadableStream>} - Resolves to a `ReadableStream` to read
    *   the chunked data from.
    */
   async getStream({doc}) {
@@ -77,20 +78,21 @@ export class EdvDocument {
   }
 
   /**
+   * @typedef Readable
    * Encrypts and updates this document in its EDV.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.doc - The unencrypted document to update/insert.
-   * @param {Readable} [options.stream] a WHATWG Readable stream to read
+   * @param {object} options - The options to use.
+   * @param {object} options.doc - The unencrypted document to update/insert.
+   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
-   * @param {number} [chunkSize] the size, in bytes, of the chunks to
+   * @param {number} [options.chunkSize] - The size, in bytes, of the chunks to
    *   break the incoming stream data into.
-   * @param {Array} [recipients=[]] an array of additional recipients for the
-   *   encrypted content.
-   * @param {function} keyResolver a function that returns a Promise
+   * @param {Array} [options.recipients=[]] - An array of additional recipients
+   *   for the encrypted content.
+   * @param {Function} options.keyResolver - A function that returns a Promise
    *   that resolves a key ID to a DH public key.
    *
-   * @returns {Promise<Object>} resolves to the inserted document.
+   * @returns {Promise<object>} - Resolves to the inserted document.
    */
   async write({
     doc, stream, chunkSize,
@@ -106,9 +108,15 @@ export class EdvDocument {
   /**
    * Deletes this document from the EDV.
    *
-   * @param {Object} options - The options to use.
-   * @param {Object} options.doc - The unencrypted document to update/insert.
-   * @return {Promise<Boolean>} resolves to `true` when the document is deleted.
+   * @param {object} options - The options to use.
+   * @param {bject} options.doc - The unencrypted document to update/insert.
+   * @param {Array} [options.recipients=[]] - An array of additional recipients
+   *   for the encrypted content.
+   * @param {Function} options.keyResolver - A function that returns a Promise
+   *   that resolves a key ID to a DH public key.
+   *
+   * @returns {Promise<boolean>} - Resolves to `true` when the document is
+   *   deleted.
    */
   async delete({
     doc, recipients = this.recipients, keyResolver = this.keyResolver
