@@ -1,5 +1,7 @@
 
+// eslint-disable-next-line no-undef
 let ReadableStream = window.ReadableStream;
+// eslint-disable-next-line no-undef
 let TransformStream = window.TransformStream;
 
 // TODO: ensure this polyfill is necessary
