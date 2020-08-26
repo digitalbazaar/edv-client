@@ -41,6 +41,7 @@ describe('EDV Stream Tests', function() {
       id: client.hmac.id,
       type: client.hmac.type
     };
+
     // Streams are added in an update
     // after the initial document has been written
     // hence the sequence is 1 and not 0.
@@ -55,8 +56,8 @@ describe('EDV Stream Tests', function() {
     const {invocationSigner, keyResolver} = mock;
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
-    const doc1Id = await EdvClient.generateId();
-    const doc1 = {id: doc1Id, content: {indexedKey: 'value1'}};
+    const testId = await EdvClient.generateId();
+    const doc = {id: testId, content: {indexedKey: 'value1'}};
     const data = getRandomUint8();
     const stream = new ReadableStream({
       pull(controller) {
@@ -64,22 +65,22 @@ describe('EDV Stream Tests', function() {
         controller.close();
       }
     });
-    await client.insert({doc: doc1, stream, invocationSigner, keyResolver});
-    const doc = new EdvDocument({
+    await client.insert({doc, stream, invocationSigner, keyResolver});
+    const edvDoc = new EdvDocument({
       invocationSigner,
-      id: doc1.id,
+      id: doc.id,
       keyAgreementKey: client.keyAgreementKey,
       capability: {
         id: `${client.id}`,
-        invocationTarget: `${client.id}/documents/${doc1.id}`
+        invocationTarget: `${client.id}/documents/${doc.id}`
       }
     });
-    const result = await doc.read();
+    const result = await edvDoc.read();
     result.should.be.an('object');
-    result.content.should.deep.equal({indexedKey: 'value1'});
+    result.content.should.eql({indexedKey: 'value1'});
     should.exist(result.stream);
     result.stream.should.be.an('object');
-    const expectedStream = await doc.getStream({doc: result});
+    const expectedStream = await edvDoc.getStream({doc: result});
     const reader = expectedStream.getReader();
     let streamData = new Uint8Array(0);
     let done = false;
@@ -99,7 +100,6 @@ describe('EDV Stream Tests', function() {
       }
       done = _done;
     }
-    console.log('streamData', {streamData, data});
   });
 
 });

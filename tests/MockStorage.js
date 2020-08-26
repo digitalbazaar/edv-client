@@ -11,6 +11,7 @@ export class MockStorage {
     this.referenceEdvs = new Map();
     this.documents = new Map();
     this.revocations = new Map();
+    this.chunks = new Map();
 
     const baseUrl = 'http://localhost:9876';
     const root = '/edvs';
@@ -21,6 +22,7 @@ export class MockStorage {
       query: `${baseUrl}${root}/:edvId/query`,
       authorizations: `${baseUrl}${root}/:edvId/authorizations`,
       revocations: `${baseUrl}${root}/:edvId/revocations`,
+      chunk: `${baseUrl}${root}/:edvId/documents/:id/chunks/:chunkIndex`,
     };
 
     // this handles enableCapability post requests.
@@ -118,6 +120,22 @@ export class MockStorage {
         return [200, {json: true}, []];
       }
       return [200, {json: true}, [refEdv.config]];
+    });
+
+    // post a chunk
+    server.post(routes.chunk, request => {
+      const chunk = JSON.parse(request.requestBody);
+      const key = request.route;
+
+      this.chunks.set(key, chunk);
+      return [201, {json: true}, chunk];
+    });
+
+    // get a chunk
+    server.get(routes.chunk, request => {
+      const key = request.route;
+      const chunk = this.chunks.get(key);
+      return [200, {json: true}, chunk];
     });
 
     // get an edv
