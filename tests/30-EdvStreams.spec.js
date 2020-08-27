@@ -150,4 +150,66 @@ describe('EDV Stream Tests', function() {
       done = _done;
     }
   });
+  it('should throw error if document chunk does not exist', async () => {
+    const {invocationSigner, keyResolver} = mock;
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const docId = await EdvClient.generateId();
+    const doc = {id: docId, content: {indexedKey: 'value3'}};
+    const data = getRandomUint8();
+    const stream = new ReadableStream({
+      pull(controller) {
+        controller.enqueue(data);
+        controller.close();
+      }
+    });
+    await client.insert({doc, invocationSigner, keyResolver, stream});
+    const edvDoc = new EdvDocument({
+      invocationSigner,
+      id: doc.id,
+      keyAgreementKey: client.keyAgreementKey,
+      capability: {
+        id: `${client.id}`,
+        invocationTarget: `${client.id}/documents/${doc.id}`
+      }
+    });
+    const result = await edvDoc.read();
+
+    result.should.be.an('object');
+    result.content.should.eql({indexedKey: 'value3'});
+    should.exist(result.stream);
+    result.stream.should.be.an('object');
+
+    // intentionally clear the database for chunks
+    mock.edvStorage.chunks.clear();
+
+    const expectedStream = await edvDoc.getStream({doc: result});
+    const reader = expectedStream.getReader();
+    let streamData = new Uint8Array(0);
+    let done = false;
+    let err;
+    try {
+      while(!done) {
+        // value is either undefined or a Uint8Array
+        const {value, done: _done} = await reader.read();
+        // if there is a chunk then we need to update the streamData
+        if(value) {
+          // create a new array with the new length
+          const next = new Uint8Array(streamData.length + value.length);
+          // set the first values to the existing chunk
+          next.set(streamData);
+          // set the chunk's values to the rest of the array
+          next.set(value, streamData.length);
+          // update the streamData
+          streamData = next;
+        }
+        done = _done;
+      }
+    } catch(e) {
+      err = e;
+    }
+    should.exist(err);
+    err.name.should.equal('NotFoundError');
+    err.message.should.equal('Document chunk not found.');
+  });
 });

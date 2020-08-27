@@ -126,15 +126,17 @@ export class MockStorage {
     server.post(routes.chunk, request => {
       const chunk = JSON.parse(request.requestBody);
       const key = request.route;
-
       this.chunks.set(key, chunk);
-      return [201, {json: true}, chunk];
+      return [204, {json: true}];
     });
 
     // get a chunk
     server.get(routes.chunk, request => {
       const key = request.route;
       const chunk = this.chunks.get(key);
+      if(!chunk) {
+        return [404, {json: true}];
+      }
       return [200, {json: true}, chunk];
     });
 
