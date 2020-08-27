@@ -101,5 +101,53 @@ describe('EDV Stream Tests', function() {
       done = _done;
     }
   });
-
+  it('should be able to write a stream to an EdvDocument', async () => {
+    const {invocationSigner, keyResolver} = mock;
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const docId = await EdvClient.generateId();
+    const doc = {id: docId, content: {indexedKey: 'value2'}};
+    await client.insert({doc, invocationSigner, keyResolver});
+    const edvDoc = new EdvDocument({
+      invocationSigner,
+      id: doc.id,
+      keyAgreementKey: client.keyAgreementKey,
+      capability: {
+        id: `${client.id}`,
+        invocationTarget: `${client.id}/documents/${doc.id}`
+      }
+    });
+    const data = getRandomUint8();
+    const stream = new ReadableStream({
+      pull(controller) {
+        controller.enqueue(data);
+        controller.close();
+      }
+    });
+    const result = await edvDoc.write({
+      doc, stream, invocationSigner, keyResolver});
+    result.should.be.an('object');
+    result.content.should.deep.equal({indexedKey: 'value2'});
+    should.exist(result.stream);
+    const expectedStream = await edvDoc.getStream({doc: result});
+    const reader = expectedStream.getReader();
+    let streamData = new Uint8Array(0);
+    let done = false;
+    while(!done) {
+      // value is either undefined or a Uint8Array
+      const {value, done: _done} = await reader.read();
+      // if there is a chunk then we need to update the streamData
+      if(value) {
+        // create a new array with the new length
+        const next = new Uint8Array(streamData.length + value.length);
+        // set the first values to the existing chunk
+        next.set(streamData);
+        // set the chunk's values to the rest of the array
+        next.set(value, streamData.length);
+        // update the streamData
+        streamData = next;
+      }
+      done = _done;
+    }
+  });
 });
