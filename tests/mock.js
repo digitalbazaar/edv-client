@@ -1,8 +1,6 @@
 /*!
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
-'use strict';
-
 import {Ed25519KeyPair} from 'crypto-ld';
 import didContext from 'did-context';
 import didMethodKey from 'did-method-key';
