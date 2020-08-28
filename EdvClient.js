@@ -466,9 +466,6 @@ export class EdvClient {
     const self = this;
     const {cipher} = this;
     const state = doc.stream;
-    if(!state) {
-      throw new Error('"Document has no associated chunked data."');
-    }
     let chunkIndex = 0;
     const stream = new ReadableStream({
       async pull(controller) {
