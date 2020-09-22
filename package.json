@@ -24,7 +24,7 @@
     "util.js"
   ],
   "dependencies": {
-    "@digitalbazaar/http-client": "digitalbazaar/http-client#initial",
+    "@digitalbazaar/http-client": "^1.0.0",
     "base58-universal": "^1.0.0",
     "canonicalize": "^1.0.1",
     "esm": "^3.2.22",
