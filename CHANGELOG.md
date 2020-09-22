@@ -1,6 +1,9 @@
 # edv-client ChangeLog
 
-## 5.1.0 - TBD
+## 5.1.0 - 2020-09-22
+
+### Changed
+- Use dev dep node-forge@0.10.0.
 
 ### Added
 - Add tests for writing an EDV document from a stream.
