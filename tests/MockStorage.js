@@ -238,8 +238,7 @@ export class MockStorage {
       if(query.count === true) {
         return [200, undefined, {count: results.length}];
       }
-      // return [200, {json: true}, {documents: results}];
-      return [200, undefined, results];
+      return [200, undefined, {documents: results}];
     });
   }
 
