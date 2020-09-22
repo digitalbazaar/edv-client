@@ -11,4 +11,4 @@ module.exports = {
     Uint8Array: true
   },
   ignorePatterns: ['dist/']
-}
+};
