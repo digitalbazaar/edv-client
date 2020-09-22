@@ -126,7 +126,7 @@ export class MockStorage {
       const chunk = JSON.parse(request.requestBody);
       const key = request.route;
       this.chunks.set(key, chunk);
-      return [204, {json: true}];
+      return [204, undefined];
     });
 
     // get a chunk
@@ -136,7 +136,7 @@ export class MockStorage {
       if(!chunk) {
         return [404, {json: true}];
       }
-      return [200, {json: true}, chunk];
+      return [200, undefined, chunk.json];
     });
 
     // get an edv
