@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 5.1.0 - TBD
+
+### Added
+- Add tests for writing an EDV document from a stream.
+
 ## 5.0.0 - 2020-08-25
 
 ### Changed
