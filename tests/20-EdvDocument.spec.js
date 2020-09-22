@@ -88,8 +88,7 @@ describe('EdvDocument', () => {
       err.message.should.equal('"capability" must be an object.');
     });
   it('edvDocument id should be undefined if created using invalid ' +
-    'capabilityTarget.',
-  async () => {
+    'capabilityTarget.', async () => {
     const {invocationSigner, keyResolver} = mock;
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
