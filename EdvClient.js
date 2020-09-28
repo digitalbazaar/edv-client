@@ -799,9 +799,16 @@ export class EdvClient {
   }) {
     url = _createAbsoluteUrl(url);
     // no invocationSigner was provided, submit the request without a zCap
+
     if(!invocationSigner) {
+      const searchParams = {controller, referenceId, after, limit};
+      // eliminate undefined properties, otherwise http-client will encode
+      // undefined properties as the string literal 'undefined'
+      Object.keys(searchParams).forEach(
+        key => searchParams[key] === undefined && delete searchParams[key]);
+
       const response = await httpClient.get(url, {
-        params: {controller, referenceId, after, limit},
+        searchParams,
         headers: {...DEFAULT_HEADERS, ...headers},
         agent: httpsAgent
       });
@@ -878,8 +885,9 @@ export class EdvClient {
     if(!(config.controller && typeof config.controller === 'string')) {
       throw new TypeError('"config.controller" must be a string.');
     }
-    await httpClient.post(id, config, {
+    await httpClient.post(id, {
       headers: {...DEFAULT_HEADERS, ...headers},
+      json: config,
       agent: httpsAgent
     });
   }
