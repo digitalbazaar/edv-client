@@ -62,10 +62,11 @@ export class MockServer {
         .withArgs(sinon.match(value => pathRegex.test(value)))
         .callsFake(async function(route, body) {
           const params = routeParams(path, route);
-          const queryParams = body ? body.params : {};
+          const queryParams = (body && body.searchParams) ?
+            body.searchParams : {};
           const {headers} = body ? body : {headers: {}};
-          for(const key in queryParams) {
-            queryParams[key] = String(body.params[key]);
+          for(const [key, value] of Object.entries(queryParams)) {
+            queryParams[key] = String(value);
           }
           const request = {
             route,
