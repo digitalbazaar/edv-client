@@ -1,5 +1,15 @@
 # edv-client ChangeLog
 
+## 6.0.0 - 2020-09-28
+
+### Changed
+- **BREAKING**: Switch internal HTTP client library from `axios` to
+  `@digitalbazaar/http-client`. This is a breaking change because many errors
+  produced by this client originate with the internal HTTP client library. The
+  errors produced by the old library and the new library are not identical and
+  therefore any tests/code that makes assertions about specific error signatures
+  will need to be updated.
+
 ## 5.1.0 - 2020-09-22
 
 ### Changed
