@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 6.0.1 - 2020-09-28
+
+### Fixed
+- Properly handle params in findConfigs and updateConfig APIs.
+
 ## 6.0.0 - 2020-09-28
 
 ### Changed
