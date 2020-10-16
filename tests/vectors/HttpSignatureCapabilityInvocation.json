@@ -7,7 +7,7 @@
         "capability-invocation": "zcap id=\"http://localhost:9876/edvs/zcaps/vaults\",action=\"write\"",
         "digest": "mh=uEiCNeORSxfOCyAK6rTLurlwbfRHUz7gfTn-njjJEvZDVGQ",
         "content-type": "application/json",
-        "authorization": "Signature keyId=\"did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp\",headers=\"(key-id) (created) (expires) (request-target) host capability-invocation content-type digest\",signature=\"4NpnhnqoEJ2tef+/6VCmK4tJuqDTZxHxnREfglugMPpNaHmSShF0WzxDVghH1r2GZRbioddHLhelb9fJNEAJBg==\",created=\"1602879184591\",expires=\"1602879784591\""
+        "authorization": "Signature keyId=\"did:key:z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp#z6MkiTBz1ymuepAQ4HEHYSF1H8quG5GLVVQR3djdX3mDooWp\",headers=\"(key-id) (created) (expires) (request-target) host capability-invocation content-type digest\",signature=\"s08akByK8KR9grbZOtKXolZ8ysa6ZLqSOBg+JdOxqgxVjDhgwR2zhYEkRtHmqjTaSmrfhucRJtp6OsC4vyt2Aw==\",created=\"1602879801289\",expires=\"1602880401289\""
       },
       "url": "http://localhost:9876/edvs",
       "body": {

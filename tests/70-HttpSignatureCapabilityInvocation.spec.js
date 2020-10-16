@@ -6,6 +6,8 @@ import {MockInvoker} from './MockInvoker';
 // eslint-disable-next-line
 import didKeyFixtures from './vectors/ed25519-x25519.json';
 import Sha256HmacKey2019 from './vectors/Sha256HmacKey2019.json';
+// eslint-disable-next-line
+import HttpSignatureCapabilityInvocation from './vectors/HttpSignatureCapabilityInvocation.json';
 
 let fixture = {};
 
@@ -41,7 +43,7 @@ after(() => {
 
 describe('HttpSignatureCapabilityInvocation', () => {
   describe('Vault', () => {
-    it('can create', done => {
+    it.only('can create', done => {
       const url = `http://localhost:9876/edvs`;
       const defaultHeaders = {
         Accept: 'application/ld+json, application/json'
@@ -75,6 +77,11 @@ describe('HttpSignatureCapabilityInvocation', () => {
             }
           }
         };
+        // blocked by
+        // https://github.com/digitalbazaar/http-signature-zcap-invoke/issues/11
+        // fixture.vault.create.should.deep.equal(
+        //   HttpSignatureCapabilityInvocation.vault.create
+        // );
         done();
       });
     });
