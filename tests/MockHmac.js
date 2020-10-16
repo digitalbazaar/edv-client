@@ -6,22 +6,21 @@ import * as base64url from 'base64url-universal';
 const _secret = base64url.decode(
   '49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');
 
-
-const binarySecretToId = async (data) => {
-  const fingerprint = await crypto.subtle.digest( { name: 'SHA-256' }, data);
-    // https://tools.ietf.org/html/draft-multiformats-multibase-00
-    // 'u' is base64url (no pad)
-    const id = `urn:multibase:u${base64url.encode(
-      Buffer.concat([
-        // https://github.com/multiformats/multicodec/blob/master/table.csv#L9
-        // 0x12 is sha256
-        Buffer.from('12', 'hex'),
-        // sha256 digest of key
-        Buffer.from(fingerprint),
-      ])
-    )}`;
-    return id;
-}
+const binarySecretToId = async data => {
+  const fingerprint = await crypto.subtle.digest({name: 'SHA-256'}, data);
+  // https://tools.ietf.org/html/draft-multiformats-multibase-00
+  // 'u' is base64url (no pad)
+  const id = `urn:multibase:u${base64url.encode(
+    Buffer.concat([
+      // https://github.com/multiformats/multicodec/blob/master/table.csv#L9
+      // 0x12 is sha256
+      Buffer.from('12', 'hex'),
+      // sha256 digest of key
+      Buffer.from(fingerprint),
+    ])
+  )}`;
+  return id;
+};
 
 export class MockHmac {
   constructor({id, type, algorithm, key}) {
@@ -56,5 +55,5 @@ export class MockHmac {
     signature = base64url.decode(signature);
     return crypto.subtle.verify(key.algorithm, key, signature, data);
   }
-  
+
 }
