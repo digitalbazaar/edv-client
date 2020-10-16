@@ -1,5 +1,5 @@
-import {MockHmac} from '../MockHmac';
-import Sha256HmacKey2019 from './data/Sha256HmacKey2019.json';
+import {MockHmac} from './MockHmac';
+import Sha256HmacKey2019 from './vectors/Sha256HmacKey2019.json';
 
 describe('Sha256HmacKey2019', () => {
   it('sign conforms to test vectors', done => {

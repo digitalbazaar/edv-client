@@ -1,6 +1,7 @@
 import base64url from 'base64url-universal';
-import {MockInvoker} from '../MockInvoker';
-import Ed25519VerificationKey2018 from './data/Ed25519VerificationKey2018.json';
+import {MockInvoker} from './MockInvoker';
+// eslint-disable-next-line
+import Ed25519VerificationKey2018 from './vectors/Ed25519VerificationKey2018.json';
 
 describe('Ed25519VerificationKey2018', () => {
   const invoker = new MockInvoker(Ed25519VerificationKey2018.keyPair);

@@ -1,6 +1,7 @@
 import base64url from 'base64url-universal';
-import {MockKak} from '../MockKak';
-import X25519KeyAgreementKey2019 from './data/X25519KeyAgreementKey2019.json';
+import {MockKak} from './MockKak';
+// eslint-disable-next-line
+import X25519KeyAgreementKey2019 from './vectors/X25519KeyAgreementKey2019.json';
 
 describe('X25519KeyAgreementKey2019', () => {
   const kak = new MockKak({secretKey:
