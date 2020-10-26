@@ -43,7 +43,7 @@ after(() => {
 
 describe('HttpSignatureCapabilityInvocation', () => {
   describe('Vault', () => {
-    it.only('can create', done => {
+    it('can create', done => {
       const url = `http://localhost:9876/edvs`;
       const defaultHeaders = {
         Accept: 'application/ld+json, application/json'
@@ -87,4 +87,3 @@ describe('HttpSignatureCapabilityInvocation', () => {
     });
   });
 });
-
