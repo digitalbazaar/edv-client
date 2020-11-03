@@ -13,10 +13,12 @@ const DEFAULT_CHUNK_SIZE = 1048576;
 
 export class EdvClient {
   /**
-   * @typedef https
+   * An object that can make HTTPS requests such as node's https.Agent or ky.
+   *
+   * @typedef {object} httpsAgent
+   * @see https://nodejs.org/api/https.html#https_class_https_agent
    *
    * Creates a new EdvClient instance. An EDV is an Encrypted Data Vault.
-   *
    * In order to support portability (e.g., the use of DID URLs to reference
    * documents), Encrypted Data Vault storage MUST expose an HTTPS API with
    * a URL structure that is partitioned like so:
@@ -39,7 +41,7 @@ export class EdvClient {
    *   API for deriving shared KEKs for wrapping content encryption keys.
    * @param {object} [options.hmac=null] - A default HMAC API for blinding
    *   indexable attributes.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   HttpsAgent to use to handle HTTPS requests.
    * @param {object} [options.defaultHeaders=undefined] - An optional
    *   defaultHeaders object to use with HTTP requests.
@@ -71,14 +73,15 @@ export class EdvClient {
    *   attribute names to create a unique compound index.
    * @param {boolean} [options.unique=false] - Should be `true` if the index is
    *   considered unique, `false` if not.
+   *
+   * @returns {undefined}
+
    */
   ensureIndex({attribute, unique = false}) {
-    this.indexHelper.ensureIndex({attribute, unique});
+    return this.indexHelper.ensureIndex({attribute, unique});
   }
 
   /**
-   * @typedef Readable
-   *
    * Encrypts and inserts a document into the EDV if it does not already
    * exist. If a document matching its ID already exists, a `DuplicateError` is
    * thrown. If a `stream` is given, the document will be inserted, then
@@ -88,7 +91,7 @@ export class EdvClient {
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to insert.
-   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
+   * @param {ReadableStream} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
    * @param {number} [options.chunkSize=1048576] - The size, in bytes, of the
    *   chunks to break the incoming stream data into.
@@ -203,7 +206,7 @@ export class EdvClient {
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to insert.
-   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
+   * @param {ReadableStream} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
    * @param {number} [options.chunkSize=1048576] - The size, in bytes, of the
    *   chunks to break the incoming stream data into.
@@ -690,7 +693,7 @@ export class EdvClient {
    * @param {object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
    * @param {string} options.config - The EDV's configuration.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
@@ -754,7 +757,7 @@ export class EdvClient {
    * @param {string} options.url - The url to query.
    * @param {string} options.controller - The ID of the controller.
    * @param {string} options.referenceId - A controller-unique reference ID.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
@@ -787,7 +790,7 @@ export class EdvClient {
    * @param {string} [options.referenceId] - A controller-unique reference ID.
    * @param {string} [options.after] - An EDV's ID.
    * @param {number} [options.limit] - How many EDV configs to return.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
@@ -854,7 +857,7 @@ export class EdvClient {
    *
    * @param {object} options - The options to use.
    * @param {string} options.id - The EDV's ID.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
@@ -876,7 +879,7 @@ export class EdvClient {
    * @param {object} options - The options to use.
    * @param {string} options.id - The EDV's ID.
    * @param {object} options.config - The new EDV config.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
@@ -904,7 +907,7 @@ export class EdvClient {
    * @param {object} options - The options to use.
    * @param {string} options.id - A EDV ID.
    * @param {string} options.status - Either `active` or `deleted`.
-   * @param {https.Agent} [options.httpsAgent=undefined] - An optional
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
