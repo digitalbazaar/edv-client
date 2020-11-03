@@ -2,6 +2,7 @@
  * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
 import {EdvClient} from './EdvClient.js';
+import {ReadableStream} from './util.js';
 
 export class EdvDocument {
   /**
@@ -78,12 +79,11 @@ export class EdvDocument {
   }
 
   /**
-   * @typedef Readable
    * Encrypts and updates this document in its EDV.
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The unencrypted document to update/insert.
-   * @param {Readable} [options.stream] - A WHATWG Readable stream to read
+   * @param {ReadableStream} [options.stream] - A WHATWG Readable stream to read
    *   from to associate chunked data with this document.
    * @param {number} [options.chunkSize] - The size, in bytes, of the chunks to
    *   break the incoming stream data into.
