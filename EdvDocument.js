@@ -64,7 +64,7 @@ export class EdvDocument {
    * document.
    *
    * @param {object} options - The options to use.
-   * @param {string} options.doc - The decrypted document to get a stream for;
+   * @param {object} options.doc - The decrypted document to get a stream for;
    *   call `read()` to get this.
    *
    * @returns {Promise<ReadableStream>} - Resolves to a `ReadableStream` to read
