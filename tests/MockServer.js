@@ -37,9 +37,9 @@ export class MockServer {
     });
   }
   /**
-   * This is the core of the sinon mock server.
+   * @description This is the core of the sinon mock server.
    * It takes in a stub which is then setup to a regex
-   * to match a route and an async function that will handle the mock data
+   * to match a route and an async function that will handle the mock data.
    *
    * @param {sinon.stub} stub - A sinon stub.
    *
