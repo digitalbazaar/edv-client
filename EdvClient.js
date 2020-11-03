@@ -350,7 +350,7 @@ export class EdvClient {
    * Deletes a document from the EDV.
    *
    * @param {object} options - The options to use.
-   * @param {string} options.doc - The document to delete.
+   * @param {object} options.doc - The document to delete.
    * @param {object} [options.recipients=[]] - A set of JWE recipients to
    *   encrypt the document for; if present, recipients will be added to
    *   any existing recipients; to remove existing recipients, modify
@@ -444,7 +444,7 @@ export class EdvClient {
    * document.
    *
    * @param {object} options - The options to use.
-   * @param {string} options.doc - The document to get a stream for.
+   * @param {object} options.doc - The document to get a stream for.
    * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
