@@ -1,5 +1,12 @@
 # edv-client ChangeLog
 
+## 7.0.0 - 2020-12-10
+
+### Added
+- **BREAKING**: Send stream information to the server (sequence and number of
+  chunks), where applicable, since this is information the server could have
+  already captured.
+
 ## 6.0.1 - 2020-09-28
 
 ### Fixed
