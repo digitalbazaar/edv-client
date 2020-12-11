@@ -95,7 +95,7 @@ export class EdvClient {
    *   from to associate chunked data with this document.
    * @param {number} [options.chunkSize=1048576] - The size, in bytes, of the
    *   chunks to break the incoming stream data into.
-   * @param {object} [options.recipients=[]] - A set of JWE recipients
+   * @param {object[]} [options.recipients=[]] - A set of JWE recipients
    *   to encrypt the document for; if not present, a default recipient will
    *   be added using `this.keyAgreementKey` and if no `keyAgreementKey` is
    *   set, an error will be thrown.
@@ -247,7 +247,7 @@ export class EdvClient {
         doc.meta = {};
       }
       // specify stream information
-      doc.meta.stream = {
+      doc.stream = {
         pending: true
       };
       keyResolver = _createCachedKeyResolver(keyResolver);
@@ -1089,7 +1089,14 @@ export class EdvClient {
     ]);
     delete encrypted.content;
     delete encrypted.meta;
-    delete encrypted.stream;
+
+    if(stream) {
+      encrypted.stream = {
+        sequence: encrypted.sequence,
+        chunks: (stream || {}).chunks
+      };
+    }
+
     encrypted.indexed = indexed;
     encrypted.jwe = jwe;
     return encrypted;

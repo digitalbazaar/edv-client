@@ -47,7 +47,7 @@ describe('EDV Stream Tests', function() {
     isRecipient({recipient: inserted.jwe.recipients[0]});
     inserted.content.should.deep.equal({someKey: 'someValue'});
     should.exist(inserted.stream);
-    inserted.stream.should.be.an('object');
+    inserted.stream.should.have.keys('sequence', 'chunks');
   });
 
   it('should be able to decrypt a stream from an EdvDocument', async () => {
