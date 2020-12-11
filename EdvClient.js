@@ -243,9 +243,6 @@ export class EdvClient {
     // if a stream was specified, indicate a new stream of data will be
     // associated with this document
     if(stream) {
-      if(!doc.meta) {
-        doc.meta = {};
-      }
       // specify stream information
       doc.stream = {
         pending: true
@@ -1090,10 +1087,10 @@ export class EdvClient {
     delete encrypted.content;
     delete encrypted.meta;
 
-    if(stream) {
+    if(encrypted.stream) {
       encrypted.stream = {
-        sequence: encrypted.sequence,
-        chunks: (stream || {}).chunks
+        sequence: encrypted.stream.sequence,
+        chunks: encrypted.stream.chunks
       };
     }
 
