@@ -1086,14 +1086,12 @@ export class EdvClient {
     ]);
     delete encrypted.content;
     delete encrypted.meta;
-
     if(encrypted.stream) {
       encrypted.stream = {
         sequence: encrypted.stream.sequence,
         chunks: encrypted.stream.chunks
       };
     }
-
     encrypted.indexed = indexed;
     encrypted.jwe = jwe;
     return encrypted;
