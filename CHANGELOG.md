@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 7.0.1 - TBD
+
+### Added
+- web-streams-polyfill ^2.0.6 to `package.json` to prevent `util.js` from breaking.
+
 ## 7.0.0 - 2020-12-10
 
 ### Added
