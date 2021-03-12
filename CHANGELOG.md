@@ -3,7 +3,10 @@
 ## 8.0.0 - TBD
 
 ### Changed
-- Drop support for Node.js 8 and 10.
+- **BREAKING**: Use `http-signature-zcap-invoke@3`. Includes breaking changes
+  related to headers that contain timestamps.
+- **BREAKING**: Drop support for Node.js 8 and 10.
+- Update test dependencies.
 
 ## 7.0.1 - 2021-03-04
 
