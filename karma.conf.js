@@ -1,8 +1,9 @@
 /*
- * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2021 Digital Bazaar, Inc. All rights reserved.
  */
-module.exports = function(config) {
+const webpack = require('webpack');
 
+module.exports = function(config) {
   config.set({
     // base path that will be used to resolve all patterns (eg. files, exclude)
     basePath: '',
@@ -13,17 +14,12 @@ module.exports = function(config) {
 
     // list of files / patterns to load in the browser
     files: [
-      'tests/test-karma.js',
       'tests/*.spec.js'
     ],
 
     // list of files to exclude
-    exclude: [],
-
-    // preprocess matching files before serving them to the browser
-    // preprocessors: https://npmjs.org/browse/keyword/karma-preprocessor
+    exclude: ['bin/*'],
     preprocessors: {
-      //'tests/*.js': ['webpack', 'babel', 'sourcemap']
       'tests/*.js': ['webpack', 'sourcemap']
     },
 
@@ -33,35 +29,43 @@ module.exports = function(config) {
       devtool: 'inline-source-map',
       module: {
         rules: [
-          /*
           {
             test: /\.js$/,
-            include: [{
-              // exclude node_modules by default
-              exclude: /(node_modules)/
-            }],
+            exclude: [
+              /bin/,
+              /node_modules\/(?!jsonld|crypto-ld)/
+            ],
             use: {
               loader: 'babel-loader',
               options: {
                 presets: ['@babel/preset-env'],
                 plugins: [
                   '@babel/plugin-transform-modules-commonjs',
-                  '@babel/plugin-transform-runtime'
+                  '@babel/plugin-transform-runtime',
+                  '@babel/plugin-proposal-object-rest-spread'
                 ]
               }
             }
           }
-          */
         ]
       },
+      plugins: [
+        new webpack.ProvidePlugin({
+          process: 'process/browser',
+        }),
+      ],
       node: {
-        Buffer: false,
-        process: false,
-        crypto: false,
-        setImmediate: false
+        global: true,
+      },
+      resolve: {
+        fallback: {
+          url: false,
+        }
+      },
+      externals: {
+        'bitcore-message': '\'bitcore-message\''
       }
     },
-
     // test results reporter to use
     // possible values: 'dots', 'progress'
     // available reporters: https://npmjs.org/browse/keyword/karma-reporter
@@ -103,21 +107,5 @@ module.exports = function(config) {
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: true,
 
-    // Concurrency level
-    // how many browser should be started simultaneous
-    concurrency: Infinity,
-
-    // Mocha
-    client: {
-      mocha: {
-        // increase from default 2s
-        timeout: 10000,
-        reporter: 'html'
-        //delay: true
-      }
-    },
-
-    // Proxied paths
-    proxies: {}
   });
 };

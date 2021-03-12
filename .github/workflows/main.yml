@@ -17,8 +17,6 @@ jobs:
     - run: npm install
     - name: Run test with Node.js ${{ matrix.node-version }}
       run: npm run test-node
-      env:
-        CI: true
   test-karma:
     runs-on: ubuntu-latest
     strategy:
@@ -33,8 +31,6 @@ jobs:
     - run: npm install
     - name: Run karma tests
       run: npm run test-karma
-      env:
-        CI: true
   lint:
     runs-on: ubuntu-latest
     strategy:
@@ -64,8 +60,6 @@ jobs:
     - run: npm install
     - name: Generate coverage report
       run: npm run coverage-ci
-      env:
-        CI: true
     - name: Upload coverage to Codecov
       uses: codecov/codecov-action@v1
       with:
