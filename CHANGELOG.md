@@ -1,5 +1,10 @@
 # edv-client ChangeLog
 
+## 8.0.0 - TBD
+
+### Changed
+- Drop support for Node.js 8 and 10.
+
 ## 7.0.1 - 2021-03-04
 
 ### Fixed

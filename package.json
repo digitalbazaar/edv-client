@@ -100,7 +100,7 @@
     "./util.js": "./util-browser.js"
   },
   "engines": {
-    "node": ">=8.6.0"
+    "node": ">=12"
   },
   "nyc": {
     "exclude": [
