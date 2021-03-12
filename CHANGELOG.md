@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 8.0.0 - TBD
+## 8.0.0 - 2021-03-12
 
 ### Changed
 - **BREAKING**: Use `http-signature-zcap-invoke@3`. Includes breaking changes
