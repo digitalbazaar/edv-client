@@ -89,7 +89,7 @@ export class TestMock {
   }
   async createKeyAgreementKey(keyMaterial) {
     const didKey = keyMaterial ?
-      driver.keyToDidDoc(keyMaterial) : await driver.generate();
+      await driver.keyToDidDoc(keyMaterial) : await driver.generate();
     const [kaK] = didKey.keyAgreement;
     this.keyStorage.set(
       didKey.id, {'@context': 'https://w3id.org/security/v2', ...kaK});
