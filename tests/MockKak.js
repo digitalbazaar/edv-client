@@ -13,14 +13,15 @@ export class MockKak {
   constructor({secretKey = _secretKey} = {}) {
     const keyPair = nacl.box.keyPair.fromSecretKey(secretKey);
     this.id = 'urn:123',
-    this.type = 'X25519KeyAgreementKey2019';
+    this.type = 'X25519KeyAgreementKey2020';
     this.privateKey = keyPair.secretKey;
     this.publicKey = keyPair.publicKey;
-    this.publicKeyBase58 = encode(this.publicKey);
+    this.publicKeyMultibase = `z${encode(this.publicKey)}`;
   }
 
   async deriveSecret({publicKey}) {
-    const remotePublicKey = decode(publicKey.publicKeyBase58);
+    const publicKeyBase58 = publicKey.publicKeyMultibase.slice(1);
+    const remotePublicKey = decode(publicKeyBase58);
     return nacl.scalarMult(this.privateKey, remotePublicKey);
   }
 }

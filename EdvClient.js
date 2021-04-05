@@ -3,7 +3,7 @@
  */
 import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
 import * as base58 from 'base58-universal';
-import {Cipher} from 'minimal-cipher';
+import {Cipher} from '@digitalbazaar/minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
 import {ReadableStream, getRandomBytes} from './util.js';

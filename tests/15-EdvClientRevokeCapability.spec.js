@@ -5,7 +5,9 @@ import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
 import {EdvClient} from '..';
 import mock from './mock.js';
-const {SECURITY_CONTEXT_V2_URL, sign, suites: {Ed25519Signature2018}} = jsigs;
+import {Ed25519Signature2020} from
+  '@digitalbazaar/ed25519-signature-2020';
+const {SECURITY_CONTEXT_V2_URL, sign} = jsigs;
 import {CapabilityDelegation} from 'ocapld';
 import {createRecipient, JWE_ALG} from './test-utils.js';
 
@@ -25,8 +27,8 @@ describe('EdvClient revokeCapability API', () => {
     edvClient = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const didKeys = [await mock.createKeyAgreementKey()];
-    const recipients = didKeys.map(createRecipient);
+    const {keyAgreementPair} = await mock.createKeyAgreementKey();
+    const recipients = createRecipient(keyAgreementPair);
     recipients.unshift({header: {kid: keyAgreementKey.id, alg: JWE_ALG}});
 
     const inserted = await edvClient.insert(
@@ -46,7 +48,7 @@ describe('EdvClient revokeCapability API', () => {
     // this is the private key of the EDV owner.
     const signer = mock.invocationSigner;
     const {documentLoader} = mock;
-    const suite = new Ed25519Signature2018(
+    const suite = new Ed25519Signature2020(
       {signer, verificationMethod: signer.id});
     const purpose = new CapabilityDelegation(
       {capabilityChain: [capabilityToRead.parentCapability]});
@@ -57,7 +59,7 @@ describe('EdvClient revokeCapability API', () => {
     await mock.server.shutdown();
   });
 
-  it('returns TypeError on missing capabilityToRevoke param', async () => {
+  it.only('returns TypeError on missing capabilityToRevoke param', async () => {
     let err;
     let result;
     try {

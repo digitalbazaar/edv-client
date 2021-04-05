@@ -1,17 +1,18 @@
 /*!
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import {Ed25519KeyPair} from 'crypto-ld';
 import didContext from 'did-context';
-import didMethodKey from 'did-method-key';
+import * as didMethodKey from '@digitalbazaar/did-method-key';
 import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
 import {MockKak} from './MockKak.js';
 import {MockInvoker} from './MockInvoker.js';
+import {X25519KeyAgreementKey2020} from
+  '@digitalbazaar/x25519-key-agreement-key-2020';
 
-const driver = didMethodKey.driver();
+const didKeyDriver = didMethodKey.driver();
 
 export class TestMock {
   constructor(server = new MockServer()) {
@@ -81,19 +82,33 @@ export class TestMock {
       {config, url: 'http://localhost:9876/edvs'});
     return new EdvClient({id: config.id, keyAgreementKey, hmac});
   }
+
   async createCapabilityAgent() {
-    const keyPair = await Ed25519KeyPair.generate();
-    const didKey = await this.createKeyAgreementKey(keyPair);
-    keyPair.id = didKey.id;
-    return {capabilityAgent: new MockInvoker(keyPair), didKey};
+    const {methodFor, didDocument} = await didKeyDriver.generate();
+    const capabilityAgent = methodFor({purpose: 'capabilityInvocation'});
+
+    return {capabilityAgent, didDocument};
   }
-  async createKeyAgreementKey(keyMaterial) {
-    const didKey = keyMaterial ?
-      await driver.keyToDidDoc(keyMaterial) : await driver.generate();
-    const [kaK] = didKey.keyAgreement;
+  async createKeyAgreementKey(verificationKeyPair) {
+    let didDocument, keyAgreementPair;
+
+    if(verificationKeyPair) {
+      // convert keyMaterial to a didDocument
+      didDocument = await didKeyDriver.get({
+        id: verificationKeyPair.controller});
+      const [keyAgreementObj] = didDocument.keyAgreement;
+      keyAgreementPair = X25519KeyAgreementKey2020.from(keyAgreementObj);
+    } else {
+      // else generate a new one
+      const result = await didKeyDriver.generate();
+      const {methodFor} = result;
+      ({didDocument} = result);
+      keyAgreementPair = methodFor({purpose: 'keyAgreement'});
+    }
     this.keyStorage.set(
-      didKey.id, {'@context': 'https://w3id.org/security/v2', ...kaK});
-    return didKey;
+      didDocument.id, keyAgreementPair.export({
+        publicKey: true, includeContext: true}));
+    return {didDocument, keyAgreementPair};
   }
 }
 
