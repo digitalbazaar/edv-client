@@ -24,12 +24,14 @@
     "util.js"
   ],
   "dependencies": {
+    "@digitalbazaar/ed25519-signature-2020": "^1.0.0",
     "@digitalbazaar/http-client": "^1.0.0",
+    "@digitalbazaar/minimal-cipher": "^3.0.0",
+    "@digitalbazaar/x25519-key-agreement-key-2020": "^1.2.0",
     "base58-universal": "^1.0.0",
     "canonicalize": "^1.0.1",
     "esm": "^3.2.22",
     "http-signature-zcap-invoke": "^3.0.0",
-    "minimal-cipher": "^1.0.0",
     "split-string": "^6.1.0",
     "web-streams-polyfill": "^2.0.6"
   },
@@ -46,9 +48,8 @@
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^6.0.3",
-    "crypto-ld": "^3.7.0",
     "did-context": "^2.0.0",
-    "did-method-key": "^0.7.0",
+    "@digitalbazaar/did-method-key": "digitalbazaar/did-method-key-js#v1.x",
     "eslint": "^7.12.1",
     "eslint-config-digitalbazaar": "^2.6.1",
     "eslint-plugin-jsdoc": "^30.7.6",

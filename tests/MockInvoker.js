@@ -20,7 +20,7 @@ export class MockInvoker {
   } = {}) {
     this.controller = controller;
     this.id = id || 'did:key:controller#assertionMethodId';
-    this.type = 'Ed25519VerificationKey2018';
+    this.type = 'Ed25519VerificationKey2020';
     if(!publicKeyBase58 && !privateKeyBase58) {
       const {publicKey, privateKey} = ed25519.generateKeyPair();
       this.publicKey = publicKey;
