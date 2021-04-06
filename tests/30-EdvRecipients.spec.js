@@ -3,13 +3,14 @@
 */
 import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
-import {CapabilityDelegation} from 'ocapld';
+import {CapabilityDelegation} from '@digitalbazaar/zcapld';
 import {EdvClient, EdvDocument} from '..';
 import mock from './mock.js';
 import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
+import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
+import {constants} from 'ed25519-signature-2020-context';
 
-const {SECURITY_CONTEXT_V2_URL, sign, suites} = jsigs;
-const {Ed25519Signature2018} = suites;
+const {sign} = jsigs;
 
 describe('EDV Recipients', () => {
   let invocationSigner, keyResolver = null;
@@ -66,7 +67,10 @@ describe('EDV Recipients', () => {
     const doc = {id: testId, content: {someKey: 'someValue'}};
     // create the did keys then the recipients
     const recipients = (await Promise.all([1, 2, 3, 4]
-      .map(() => mock.createKeyAgreementKey())))
+      .map(async () => {
+        const {keyAgreementPair} = await mock.createKeyAgreementKey();
+        return keyAgreementPair;
+      })))
       .map(createRecipient);
     // note: when passing recipients it is important to remember
     // to pass in the document creator. EdvClient will use the
@@ -108,12 +112,13 @@ describe('EDV Recipients', () => {
     });
   });
 
-  it('should enable a capability for a recipient', async function() {
+  it.only('should enable a capability for a recipient', async function() {
     const {keyAgreementKey} = mock.keys;
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const didKeys = [await mock.createKeyAgreementKey()];
+    const {keyAgreementPair} = await mock.createKeyAgreementKey();
+    const didKeys = [keyAgreementPair];
     const recipients = didKeys.map(createRecipient);
     // note: when passing recipients it is important to remember
     // to pass in the document creator. EdvClient will use the
@@ -155,8 +160,9 @@ describe('EDV Recipients', () => {
       // @see https://tools.ietf.org/html/rfc8037
       isRecipient({recipient, expected});
     });
+    console.log(constants.CONTEXT_URL, 'constants.CONTEXT_URL');
     const unsignedCapability = {
-      '@context': SECURITY_CONTEXT_V2_URL,
+      '@context': constants.CONTEXT_URL,
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${client.id}/documents/${inserted.id}`,
       // the invoker is not the creator of the document
@@ -170,7 +176,7 @@ describe('EDV Recipients', () => {
     // of the EDV owner.
     const signer = mock.invocationSigner;
     const {documentLoader} = mock;
-    const suite = new Ed25519Signature2018(
+    const suite = new Ed25519Signature2020(
       {signer, verificationMethod: signer.id});
     const purpose = new CapabilityDelegation(
       {capabilityChain: [unsignedCapability.parentCapability]});
@@ -188,10 +194,11 @@ describe('EDV Recipients', () => {
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const {capabilityAgent, didKey} = await mock.createCapabilityAgent();
+    const {capabilityAgent, keyAgreementPair} =
+      await mock.createCapabilityAgent();
     const recipients = [
-      {header: {kid: keyAgreementKey.id, alg: JWE_ALG}},
-      createRecipient(didKey)
+      {header: {kid: keyAgreementPair.id, alg: JWE_ALG}},
+      createRecipient(keyAgreementPair)
     ];
     const inserted = await client.insert(
       {keyResolver, invocationSigner, doc, recipients});
@@ -227,11 +234,11 @@ describe('EDV Recipients', () => {
       isRecipient({recipient, expected});
     });
     const unsignedCapability = {
-      '@context': SECURITY_CONTEXT_V2_URL,
+      '@context': constants.CONTEXT_URL,
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${client.id}/documents/${inserted.id}`,
       // the invoker is not the creator of the document
-      invoker: didKey.id,
+      invoker: keyAgreementPair.id,
       // the invoker will only be allowed to read the document
       allowedAction: 'read',
       // this is the zCap of the document
@@ -241,7 +248,7 @@ describe('EDV Recipients', () => {
     // of the user that created the document.
     const signer = mock.invocationSigner;
     const {documentLoader} = mock;
-    const suite = new Ed25519Signature2018(
+    const suite = new Ed25519Signature2020(
       {signer, verificationMethod: signer.id});
     const purpose = new CapabilityDelegation(
       {capabilityChain: [unsignedCapability.parentCapability]});

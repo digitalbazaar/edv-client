@@ -119,6 +119,7 @@ export class EdvClient {
   }) {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
+
     doc = {...doc};
     // auto generate document ID
     if(doc.id === undefined) {
@@ -185,7 +186,6 @@ export class EdvClient {
           keyAgreementKey, capability: streamCapability, invocationSigner
         });
       }
-
       return result;
     } catch(e) {
       if(e.status === 409) {
