@@ -61,7 +61,7 @@ export class TestMock {
           return {
             contextUrl: null,
             documentUrl: url,
-            document: didContext.contexts.get('https://w3id.org/did/v0.11')
+            document: didContext.contexts.get(url)
           };
         }
       };
@@ -87,7 +87,14 @@ export class TestMock {
     const {methodFor, didDocument} = await didKeyDriver.generate();
     const capabilityAgent = methodFor({purpose: 'capabilityInvocation'});
 
-    return {capabilityAgent, didDocument};
+    let {keyAgreement} = didDocument;
+    keyAgreement = keyAgreement[0];
+    const keyAgreementPair =
+      await X25519KeyAgreementKey2020.from(keyAgreement);
+    this.keyStorage.set(
+      keyAgreementPair.id, keyAgreementPair.export({
+        publicKey: true, includeContext: true}));
+    return {capabilityAgent, keyAgreementPair};
   }
   async createKeyAgreementKey(verificationKeyPair) {
     let didDocument, keyAgreementPair;
@@ -97,7 +104,7 @@ export class TestMock {
       didDocument = await didKeyDriver.get({
         id: verificationKeyPair.controller});
       const [keyAgreementObj] = didDocument.keyAgreement;
-      keyAgreementPair = X25519KeyAgreementKey2020.from(keyAgreementObj);
+      keyAgreementPair = await X25519KeyAgreementKey2020.from(keyAgreementObj);
     } else {
       // else generate a new one
       const result = await didKeyDriver.generate();
@@ -106,7 +113,7 @@ export class TestMock {
       keyAgreementPair = methodFor({purpose: 'keyAgreement'});
     }
     this.keyStorage.set(
-      didDocument.id, keyAgreementPair.export({
+      keyAgreementPair.id, keyAgreementPair.export({
         publicKey: true, includeContext: true}));
     return {didDocument, keyAgreementPair};
   }
