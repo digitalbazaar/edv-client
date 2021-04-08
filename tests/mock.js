@@ -11,6 +11,11 @@ import {MockKak} from './MockKak.js';
 import {MockInvoker} from './MockInvoker.js';
 import {X25519KeyAgreementKey2020} from
   '@digitalbazaar/x25519-key-agreement-key-2020';
+import {
+  documentLoaderFactory,
+  contexts,
+} from '@transmute/jsonld-document-loader';
+import * as ed25519 from 'ed25519-signature-2020-context';
 
 const didKeyDriver = didMethodKey.driver();
 
@@ -48,23 +53,19 @@ export class TestMock {
         }
         throw new Error(`Key ${id} not found`);
       };
-      this.documentLoader = async url => {
-        if(url.startsWith('did:key:')) {
-          const id = url.replace('did:key:');
-          return {
-            contextUrl: null,
-            documentUrl: url,
-            document: this.keyResolver({id})
-          };
-        }
-        if(url === 'https://www.w3.org/ns/did/v1') {
-          return {
-            contextUrl: null,
-            documentUrl: url,
-            document: didContext.contexts.get(url)
-          };
-        }
-      };
+      this.documentLoader = documentLoaderFactory.pluginFactory
+        .build({
+          contexts: {
+            ...contexts.W3C_Verifiable_Credentials,
+            'https://w3id.org/security/suites/ed25519-2020/v1': ed25519
+              .contexts.get('https://w3id.org/security/suites/ed25519-2020/v1')
+          }
+        })
+        .addContext({
+          [didContext.constants.DID_CONTEXT_URL]: didContext
+            .contexts.get('https://www.w3.org/ns/did/v1')
+        })
+        .buildDocumentLoader();
     }
   }
   async createEdv({controller, referenceId} = {}) {

@@ -9,6 +9,8 @@ import jsigs from 'jsonld-signatures';
 import mock from './mock.js';
 import uuid from 'uuid-random';
 import {constants} from 'ed25519-signature-2020-context';
+import * as sec from 'security-context';
+
 const {sign} = jsigs;
 
 describe('EdvClient revokeCapability API', () => {
@@ -35,7 +37,10 @@ describe('EdvClient revokeCapability API', () => {
     const inserted = await edvClient.insert(
       {keyResolver, invocationSigner, doc, recipients});
     capabilityToRead = {
-      '@context': constants.CONTEXT_URL,
+      '@context': [
+        sec.constants.SECURITY_CONTEXT_V2_URL,
+        constants.CONTEXT_URL
+      ],
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${edvClient.id}/documents/${inserted.id}`,
       // the invoker is not the creator of the document
