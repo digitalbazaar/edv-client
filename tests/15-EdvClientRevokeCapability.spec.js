@@ -29,7 +29,7 @@ describe('EdvClient revokeCapability API', () => {
     edvClient = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const {keyAgreementPair} = await mock.createKeyAgreementKey();
+    const {keyAgreementPair} = await mock.createCapabilityAgent();
     const keyAgreementPairs = [keyAgreementPair];
     const recipients = keyAgreementPairs.map(createRecipient);
     recipients.unshift({header: {kid: keyAgreementKey.id, alg: JWE_ALG}});

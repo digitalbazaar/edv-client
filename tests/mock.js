@@ -7,8 +7,6 @@ import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
-import {X25519KeyAgreementKey2020} from
-  '@digitalbazaar/x25519-key-agreement-key-2020';
 import {
   documentLoaderFactory,
   contexts,
@@ -99,27 +97,6 @@ export class TestMock {
       keyAgreementPair.id, keyAgreementPair.export({
         publicKey: true, includeContext: true}));
     return {capabilityInvocationKeyPair, keyAgreementPair};
-  }
-  async createKeyAgreementKey(verificationKeyPair) {
-    let didDocument, keyAgreementPair;
-
-    if(verificationKeyPair) {
-      // convert keyMaterial to a didDocument
-      didDocument = await didKeyDriver.get({
-        id: verificationKeyPair.controller});
-      const [keyAgreementObj] = didDocument.keyAgreement;
-      keyAgreementPair = await X25519KeyAgreementKey2020.from(keyAgreementObj);
-    } else {
-      // else generate a new one
-      const result = await didKeyDriver.generate();
-      const {methodFor} = result;
-      ({didDocument} = result);
-      keyAgreementPair = methodFor({purpose: 'keyAgreement'});
-    }
-    this.keyStorage.set(
-      keyAgreementPair.id, keyAgreementPair.export({
-        publicKey: true, includeContext: true}));
-    return {didDocument, keyAgreementPair};
   }
 }
 
