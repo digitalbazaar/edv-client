@@ -2,19 +2,13 @@
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
 import {expect} from 'chai';
+import mock from './mock.js';
 export const JWE_ALG = 'ECDH-ES+A256KW';
 
 // takes a did key and makes a jwe header
 export const createRecipient = keyAgreementKey => {
   const {id: kid} = keyAgreementKey;
   return {header: {kid, alg: JWE_ALG}};
-};
-
-const _x25519Expected = {
-  kid: 'urn:123',
-  alg: JWE_ALG,
-  crv: 'X25519',
-  kty: 'OKP'
 };
 
 export function isNewEDV({inserted, testId, hmac, sequence = 0}) {
@@ -39,7 +33,12 @@ export function isNewEDV({inserted, testId, hmac, sequence = 0}) {
 
 // recipient should be JOSE
 // @see https://tools.ietf.org/html/rfc8037
-export function isRecipient({recipient, expected = _x25519Expected}) {
+export function isRecipient({recipient, expected = {
+  kid: mock.keys.keyAgreementKey.id,
+  alg: JWE_ALG,
+  crv: 'X25519',
+  kty: 'OKP'
+}}) {
   const {kid, alg, crv, kty} = expected;
   expect(recipient, 'Expected recipient to be an object').to.be.an('object');
 

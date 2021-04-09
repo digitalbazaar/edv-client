@@ -14,10 +14,11 @@ import * as sec from 'security-context';
 const {sign} = jsigs;
 
 describe('EDV Recipients', () => {
-  let invocationSigner, keyResolver = null;
+  let invocationSigner, keyResolver, keyAgreementPair = null;
 
   before(async () => {
     await mock.init();
+    keyAgreementPair = mock.keys.keyAgreementKey;
     invocationSigner = mock.invocationSigner;
     keyResolver = mock.keyResolver;
   });
@@ -69,7 +70,6 @@ describe('EDV Recipients', () => {
     // create the did keys then the recipients
     const recipients = (await Promise.all([1, 2, 3, 4]
       .map(async () => {
-        const {keyAgreementPair} = await mock.createKeyAgreementKey();
         return keyAgreementPair;
       })))
       .map(createRecipient);
@@ -118,7 +118,6 @@ describe('EDV Recipients', () => {
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const {keyAgreementPair} = await mock.createKeyAgreementKey();
     const didKeys = [keyAgreementPair];
     const recipients = didKeys.map(createRecipient);
     // note: when passing recipients it is important to remember
@@ -192,14 +191,11 @@ describe('EDV Recipients', () => {
     });
   });
 
-  it.skip('should read a document using a delegated capability',
+  it('should read a document using a delegated capability',
     async function() {
-      const {keyAgreementKey} = mock.keys;
       const client = await mock.createEdv();
       const testId = await EdvClient.generateId();
       const doc = {id: testId, content: {someKey: 'someValue'}};
-      const {capabilityAgent, keyAgreementPair} =
-        await mock.createCapabilityAgent();
       const recipients = [
         {header: {kid: keyAgreementPair.id, alg: JWE_ALG}},
         createRecipient(keyAgreementPair)
@@ -253,7 +249,7 @@ describe('EDV Recipients', () => {
       };
       // this is a little confusing but this is the private key
       // of the user that created the document.
-      const signer = mock.invocationSigner;
+      const signer = invocationSigner;
       const {documentLoader} = mock;
       const suite = new Ed25519Signature2020(
         {signer, verificationMethod: signer.id});
@@ -269,10 +265,10 @@ describe('EDV Recipients', () => {
       const delegatedDoc = new EdvDocument({
         client,
         // this is the delegated invoker's key
-        invocationSigner: capabilityAgent,
+        invocationSigner,
         keyResolver: mock.keyResolver,
         // this is the document creator's keyAgreementKey
-        keyAgreementKey,
+        keyAgreementPair,
         capability: capabilityToEnable
       });
       const delegatedEDV = await delegatedDoc.read();
