@@ -7,8 +7,6 @@ import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
-import {MockKak} from './MockKak.js';
-import {MockInvoker} from './MockInvoker.js';
 import {X25519KeyAgreementKey2020} from
   '@digitalbazaar/x25519-key-agreement-key-2020';
 import {
@@ -16,6 +14,7 @@ import {
   contexts,
 } from '@transmute/jsonld-document-loader';
 import * as ed25519 from 'ed25519-signature-2020-context';
+import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 
 const didKeyDriver = didMethodKey.driver();
 
@@ -31,16 +30,23 @@ export class TestMock {
     this.keyStorage = new Map();
   }
   async init() {
+    const res = await this.createCapabilityAgent();
+    const capabilityInvocationKeyPair = res.capabilityInvocationKeyPair;
+    const keyAgreementPair = res.keyAgreementPair;
+
+    const capabilityAgent =
+      new Ed25519Signature2020({key: capabilityInvocationKeyPair});
+
     // only init keys once
     // this is used for the edv controller's keys in the tests
     if(!this.keys) {
       // create mock keys
       this.keys = {};
       // this creates the same invocationSigner for each test.
-      this.invocationSigner = new MockInvoker();
+      this.invocationSigner = capabilityAgent.signer;
       // create KAK and HMAC keys for creating edvs
       // this creates the same keyAgreementKey for each test.
-      this.keys.keyAgreementKey = new MockKak();
+      this.keys.keyAgreementKey = keyAgreementPair;
       // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
       // only store the KaK in the recipients' keyStorage.
@@ -85,17 +91,14 @@ export class TestMock {
   }
 
   async createCapabilityAgent() {
-    const {methodFor, didDocument} = await didKeyDriver.generate();
-    const capabilityAgent = methodFor({purpose: 'capabilityInvocation'});
-
-    let {keyAgreement} = didDocument;
-    keyAgreement = keyAgreement[0];
-    const keyAgreementPair =
-      await X25519KeyAgreementKey2020.from(keyAgreement);
+    const {methodFor} = await didKeyDriver.generate();
+    const capabilityInvocationKeyPair =
+      methodFor({purpose: 'capabilityInvocation'});
+    const keyAgreementPair = methodFor({purpose: 'keyAgreement'});
     this.keyStorage.set(
       keyAgreementPair.id, keyAgreementPair.export({
         publicKey: true, includeContext: true}));
-    return {capabilityAgent, keyAgreementPair};
+    return {capabilityInvocationKeyPair, keyAgreementPair};
   }
   async createKeyAgreementKey(verificationKeyPair) {
     let didDocument, keyAgreementPair;
