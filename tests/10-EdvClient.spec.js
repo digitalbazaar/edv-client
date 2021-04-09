@@ -6,9 +6,10 @@ import mock from './mock.js';
 import {isRecipient} from './test-utils.js';
 
 describe('EdvClient', () => {
-  let invocationSigner, keyResolver = null;
+  let invocationSigner, keyResolver, kAK = null;
   before(async () => {
     await mock.init();
+    kAK = mock.keys.keyAgreementKey;
     invocationSigner = mock.invocationSigner;
     keyResolver = mock.keyResolver;
   });
@@ -150,18 +151,18 @@ describe('EdvClient', () => {
   });
 
   it('should not find document by index after update', async () => {
-    const {keyAgreementKey, hmac} = mock.keys;
+    const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
       url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+        keyAgreementKey: {id: kAK.id, type: kAK.type},
         hmac: {id: hmac.id, type: hmac.type},
         referenceId: 'web'
       }
     });
-    const client = new EdvClient({id: config.id, keyAgreementKey, hmac});
+    const client = new EdvClient({id: config.id, keyAgreementKey: kAK, hmac});
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testId = await EdvClient.generateId();
     const doc = {
@@ -185,13 +186,13 @@ describe('EdvClient', () => {
   });
 
   it('should create a new encrypted data vault', async () => {
-    const {keyAgreementKey, hmac} = mock.keys;
+    const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
       url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+        keyAgreementKey: {id: kAK.id, type: kAK.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -203,13 +204,13 @@ describe('EdvClient', () => {
   });
 
   it('should get an encrypted data vault config', async () => {
-    const {keyAgreementKey, hmac} = mock.keys;
+    const {hmac} = mock.keys;
     const {id} = await EdvClient.createEdv({
       url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+        keyAgreementKey: {id: kAK.id, type: kAK.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -222,13 +223,13 @@ describe('EdvClient', () => {
   });
 
   it('should create "primary" encrypted data vault', async () => {
-    const {keyAgreementKey, hmac} = mock.keys;
+    const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
       url: 'http://localhost:9876/edvs',
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+        keyAgreementKey: {id: kAK.id, type: kAK.type},
         hmac: {id: hmac.id, type: hmac.type},
         referenceId: 'primary'
       }
@@ -241,7 +242,7 @@ describe('EdvClient', () => {
   });
 
   it('should get "primary" encrypted data vault', async () => {
-    const {keyAgreementKey, hmac} = mock.keys;
+    const {hmac} = mock.keys;
     // note: Tests should run in isolation however this will return 409
     // DuplicateError when running in a suite.
     try {
@@ -250,7 +251,7 @@ describe('EdvClient', () => {
         config: {
           sequence: 0,
           controller: invocationSigner.id,
-          keyAgreementKey: {id: keyAgreementKey.id, type: keyAgreementKey.type},
+          keyAgreementKey: {id: kAK.id, type: kAK.type},
           hmac: {id: hmac.id, type: hmac.type},
           referenceId: 'primary'
         }

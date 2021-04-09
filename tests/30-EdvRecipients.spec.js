@@ -14,11 +14,11 @@ import * as sec from 'security-context';
 const {sign} = jsigs;
 
 describe('EDV Recipients', () => {
-  let invocationSigner, keyResolver, keyAgreementPair = null;
+  let invocationSigner, keyResolver, kAK = null;
 
   before(async () => {
     await mock.init();
-    keyAgreementPair = mock.keys.keyAgreementKey;
+    kAK = mock.keys.keyAgreementKey;
     invocationSigner = mock.invocationSigner;
     keyResolver = mock.keyResolver;
   });
@@ -30,11 +30,10 @@ describe('EDV Recipients', () => {
   // this test should be identical to the insert test
   // except that recipients is passed in
   it('should insert a document with a single recipient', async () => {
-    const {keyAgreementKey} = mock.keys;
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const recipients = [{header: {kid: keyAgreementKey.id, alg: JWE_ALG}}];
+    const recipients = [{header: {kid: kAK.id, alg: JWE_ALG}}];
     const inserted = await client.insert(
       {keyResolver, invocationSigner, doc, recipients});
     should.exist(inserted);
@@ -63,21 +62,18 @@ describe('EDV Recipients', () => {
   });
 
   it('should insert a document with 5 recipients', async () => {
-    const {keyAgreementKey} = mock.keys;
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
     // create the did keys then the recipients
     const recipients = (await Promise.all([1, 2, 3, 4]
-      .map(async () => {
-        return keyAgreementPair;
-      })))
+      .map(async () => kAK)))
       .map(createRecipient);
     // note: when passing recipients it is important to remember
     // to pass in the document creator. EdvClient will use the
     // EdvOwner by default as a recipient if there are no recipients
     // being passed in, but will not if you explicitly pass in recipients.
-    recipients.unshift({header: {kid: keyAgreementKey.id, alg: JWE_ALG}});
+    recipients.unshift({header: {kid: kAK.id, alg: JWE_ALG}});
     const inserted = await client.insert(
       {keyResolver, invocationSigner, doc, recipients});
     should.exist(inserted);
@@ -114,17 +110,16 @@ describe('EDV Recipients', () => {
   });
 
   it('should enable a capability for a recipient', async function() {
-    const {keyAgreementKey} = mock.keys;
     const client = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const didKeys = [keyAgreementPair];
+    const didKeys = [kAK];
     const recipients = didKeys.map(createRecipient);
     // note: when passing recipients it is important to remember
     // to pass in the document creator. EdvClient will use the
     // EdvOwner by default as a recipient if there are no recipients
     // being passed in, but will not if you explicitly pass in recipients.
-    recipients.unshift({header: {kid: keyAgreementKey.id, alg: JWE_ALG}});
+    recipients.unshift({header: {kid: kAK.id, alg: JWE_ALG}});
     const inserted = await client.insert(
       {keyResolver, invocationSigner, doc, recipients});
     should.exist(inserted);
@@ -197,8 +192,8 @@ describe('EDV Recipients', () => {
       const testId = await EdvClient.generateId();
       const doc = {id: testId, content: {someKey: 'someValue'}};
       const recipients = [
-        {header: {kid: keyAgreementPair.id, alg: JWE_ALG}},
-        createRecipient(keyAgreementPair)
+        {header: {kid: kAK.id, alg: JWE_ALG}},
+        createRecipient(kAK)
       ];
       const inserted = await client.insert(
         {keyResolver, invocationSigner, doc, recipients});
@@ -241,7 +236,7 @@ describe('EDV Recipients', () => {
         id: `urn:uuid:${uuid()}`,
         invocationTarget: `${client.id}/documents/${inserted.id}`,
         // the invoker is not the creator of the document
-        invoker: keyAgreementPair.id,
+        invoker: kAK.id,
         // the invoker will only be allowed to read the document
         allowedAction: 'read',
         // this is the zCap of the document
@@ -268,7 +263,7 @@ describe('EDV Recipients', () => {
         invocationSigner,
         keyResolver: mock.keyResolver,
         // this is the document creator's keyAgreementKey
-        keyAgreementPair,
+        keyAgreementKey: kAK,
         capability: capabilityToEnable
       });
       const delegatedEDV = await delegatedDoc.read();

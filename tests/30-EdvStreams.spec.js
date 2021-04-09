@@ -187,11 +187,9 @@ describe('EDV Stream Tests', function() {
     let done = false;
     let err;
     try {
-      console.log(reader);
       while(!done) {
         // value is either undefined or a Uint8Array
         const {value, done: _done} = await reader.read();
-        console.log(reader._storedError, _done);
         // if there is a chunk then we need to update the streamData
         if(value) {
           // create a new array with the new length
@@ -207,7 +205,6 @@ describe('EDV Stream Tests', function() {
         done = true;
       }
     } catch(e) {
-      console.log(e);
       err = e;
     }
     should.exist(err);
