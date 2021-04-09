@@ -55,7 +55,6 @@
     "eslint": "^7.12.1",
     "eslint-config-digitalbazaar": "^2.6.1",
     "eslint-plugin-jsdoc": "^30.7.6",
-    "install": "^0.13.0",
     "isomorphic-webcrypto": "^1.6.2",
     "jsonld-signatures": "^9.0.1",
     "karma": "^6.2.0",
