@@ -40,7 +40,7 @@
     "@babel/preset-env": "^7.4.3",
     "@babel/runtime": "^7.4.3",
     "@digitalbazaar/did-method-key": "digitalbazaar/did-method-key-js#v1.x",
-    "@digitalbazaar/ed25519-signature-2020": "digitalbazaar/ed25519-signature-2020#update-verification-key",
+    "@digitalbazaar/ed25519-signature-2020": "^2.0.1",
     "@digitalbazaar/zcapld": "^3.0.0",
     "@transmute/jsonld-document-loader": "^0.2.0",
     "ajv": "^6.12.2",
