@@ -31,7 +31,7 @@
     "esm": "^3.2.22",
     "http-signature-zcap-invoke": "^3.0.0",
     "split-string": "^6.1.0",
-    "web-streams-polyfill": "^2.0.6"
+    "web-streams-polyfill": "^3.0.3"
   },
   "devDependencies": {
     "@babel/core": "^7.4.3",

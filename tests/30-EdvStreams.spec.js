@@ -148,7 +148,7 @@ describe('EDV Stream Tests', function() {
       done = _done;
     }
   });
-  it.skip('should throw error if document chunk does not exist', async () => {
+  it('should throw error if document chunk does not exist', async () => {
     const {invocationSigner, keyResolver} = mock;
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
@@ -202,7 +202,6 @@ describe('EDV Stream Tests', function() {
           streamData = next;
         }
         done = _done;
-        done = true;
       }
     } catch(e) {
       err = e;
