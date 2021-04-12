@@ -52,7 +52,7 @@
     "cross-env": "^6.0.3",
     "did-context": "^3.0.0",
     "eslint": "^7.12.1",
-    "eslint-config-digitalbazaar": "^2.6.1",
+    "eslint-config-digitalbazaar": "^2.7.0",
     "eslint-plugin-jsdoc": "^30.7.6",
     "isomorphic-webcrypto": "^1.6.2",
     "jsonld-signatures": "^9.0.1",
