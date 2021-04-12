@@ -8,7 +8,6 @@ import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import jsigs from 'jsonld-signatures';
 import mock from './mock.js';
 import uuid from 'uuid-random';
-import {constants} from 'ed25519-signature-2020-context';
 import * as sec from 'security-context';
 
 const {sign} = jsigs;
@@ -38,7 +37,7 @@ describe('EdvClient revokeCapability API', () => {
     capabilityToRead = {
       '@context': [
         sec.constants.SECURITY_CONTEXT_V2_URL,
-        constants.CONTEXT_URL
+        Ed25519Signature2020.CONTEXT_URL,
       ],
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${edvClient.id}/documents/${inserted.id}`,

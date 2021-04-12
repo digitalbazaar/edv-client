@@ -8,7 +8,6 @@ import {EdvClient, EdvDocument} from '..';
 import mock from './mock.js';
 import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
-import {constants} from 'ed25519-signature-2020-context';
 import * as sec from 'security-context';
 
 const {sign} = jsigs;
@@ -160,7 +159,7 @@ describe('EDV Recipients', () => {
     const unsignedCapability = {
       '@context': [
         sec.constants.SECURITY_CONTEXT_V2_URL,
-        constants.CONTEXT_URL,
+        Ed25519Signature2020.CONTEXT_URL,
       ],
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${client.id}/documents/${inserted.id}`,
@@ -233,7 +232,7 @@ describe('EDV Recipients', () => {
       const unsignedCapability = {
         '@context': [
           sec.constants.SECURITY_CONTEXT_V2_URL,
-          constants.CONTEXT_URL,
+          Ed25519Signature2020.CONTEXT_URL,
         ],
         id: `urn:uuid:${uuid()}`,
         invocationTarget: `${client.id}/documents/${inserted.id}`,
