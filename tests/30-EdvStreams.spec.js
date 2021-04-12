@@ -12,7 +12,8 @@ function getRandomUint8({size = 50} = {}) {
 }
 
 describe('EDV Stream Tests', function() {
-  let invocationSigner, keyResolver = null;
+  let invocationSigner = null;
+  let keyResolver = null;
   before(async () => {
     await mock.init();
     invocationSigner = mock.invocationSigner;
