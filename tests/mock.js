@@ -29,7 +29,7 @@ export class TestMock {
   }
   async init() {
     const res = await this.createCapabilityAgent();
-    const kAK = res.keyAgreementPair;
+    const kak = res.keyAgreementPair;
     const capabilityAgent = res.capabilityAgent;
     // only init keys once
     // this is used for the edv controller's keys in the tests
@@ -40,7 +40,7 @@ export class TestMock {
       this.invocationSigner = capabilityAgent.signer;
       // create KAK and HMAC keys for creating edvs
       // this creates the same keyAgreementKey for each test.
-      this.keys.keyAgreementKey = kAK;
+      this.keys.keyAgreementKey = kak;
       // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
       // only store the KaK in the recipients' keyStorage.
