@@ -6,10 +6,12 @@ import mock from './mock.js';
 import {isRecipient} from './test-utils.js';
 
 describe('EdvClient', () => {
-  let invocationSigner, keyResolver, kAK = null;
+  let invocationSigner = null;
+  let keyResolver = null;
+  let kak = null;
   before(async () => {
     await mock.init();
-    kAK = mock.keys.keyAgreementKey;
+    kak = mock.keys.keyAgreementKey;
     invocationSigner = mock.invocationSigner;
     keyResolver = mock.keyResolver;
   });
@@ -157,12 +159,12 @@ describe('EdvClient', () => {
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: kAK.id, type: kAK.type},
+        keyAgreementKey: {id: kak.id, type: kak.type},
         hmac: {id: hmac.id, type: hmac.type},
         referenceId: 'web'
       }
     });
-    const client = new EdvClient({id: config.id, keyAgreementKey: kAK, hmac});
+    const client = new EdvClient({id: config.id, keyAgreementKey: kak, hmac});
     client.ensureIndex({attribute: 'content.indexedKey'});
     const testId = await EdvClient.generateId();
     const doc = {
@@ -192,7 +194,7 @@ describe('EdvClient', () => {
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: kAK.id, type: kAK.type},
+        keyAgreementKey: {id: kak.id, type: kak.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -210,7 +212,7 @@ describe('EdvClient', () => {
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: kAK.id, type: kAK.type},
+        keyAgreementKey: {id: kak.id, type: kak.type},
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
@@ -229,7 +231,7 @@ describe('EdvClient', () => {
       config: {
         sequence: 0,
         controller: mock.accountId,
-        keyAgreementKey: {id: kAK.id, type: kAK.type},
+        keyAgreementKey: {id: kak.id, type: kak.type},
         hmac: {id: hmac.id, type: hmac.type},
         referenceId: 'primary'
       }
@@ -251,7 +253,7 @@ describe('EdvClient', () => {
         config: {
           sequence: 0,
           controller: invocationSigner.id,
-          keyAgreementKey: {id: kAK.id, type: kAK.type},
+          keyAgreementKey: {id: kak.id, type: kak.type},
           hmac: {id: hmac.id, type: hmac.type},
           referenceId: 'primary'
         }

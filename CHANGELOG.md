@@ -1,9 +1,9 @@
 # edv-client ChangeLog
 
-## 8.1.0 - 2021-04-TBD
+## 9.0.0 - 2021-04-TBD
 
 ### Changed
-- **BREAKING**: Use (@digitalbazaar/minimal-cipher@3.0)[https://github.com/digitalbazaar/minimal-cipher/blob/master/CHANGELOG.md]
+- **BREAKING**: Use (@digitalbazaar/minimal-cipher@3.0)[https://github.com/digitalbazaar/minimal-cipher/blob/master/CHANGELOG.md]. Now uses X25519KeyAgreementKey2020 instead of X25519KeyAgreementKey2019.
 - Update deps and test deps to latest.
 
 ## 8.0.0 - 2021-03-12

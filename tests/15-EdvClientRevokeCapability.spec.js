@@ -25,13 +25,13 @@ describe('EdvClient revokeCapability API', () => {
 
   // create a delegated capability to read a document
   before(async () => {
-    const {keyAgreementKey: kAK} = mock.keys;
+    const {keyAgreementKey: kak} = mock.keys;
     edvClient = await mock.createEdv();
     const testId = await EdvClient.generateId();
     const doc = {id: testId, content: {someKey: 'someValue'}};
-    const kAKs = [kAK];
-    const recipients = kAKs.map(createRecipient);
-    recipients.unshift({header: {kid: kAK.id, alg: JWE_ALG}});
+    const kaks = [kak];
+    const recipients = kaks.map(createRecipient);
+    recipients.unshift({header: {kid: kak.id, alg: JWE_ALG}});
 
     const inserted = await edvClient.insert(
       {keyResolver, invocationSigner, doc, recipients});
@@ -43,7 +43,7 @@ describe('EdvClient revokeCapability API', () => {
       id: `urn:uuid:${uuid()}`,
       invocationTarget: `${edvClient.id}/documents/${inserted.id}`,
       // the invoker is not the creator of the document
-      invoker: kAKs[0].id,
+      invoker: kaks[0].id,
       // the invoker will only be allowed to read the document
       allowedAction: 'read',
       // this is the zCap of the document
