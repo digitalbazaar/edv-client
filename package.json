@@ -26,6 +26,7 @@
   "dependencies": {
     "@digitalbazaar/http-client": "^1.1.0",
     "@digitalbazaar/minimal-cipher": "^3.0.0",
+    "@digitalbazaar/security-document-loader": "^1.0.0",
     "base58-universal": "^1.0.0",
     "canonicalize": "^1.0.1",
     "esm": "^3.2.22",
@@ -42,7 +43,6 @@
     "@digitalbazaar/did-method-key": "^1.0.0",
     "@digitalbazaar/ed25519-signature-2020": "^2.1.0",
     "@digitalbazaar/zcapld": "^4.0.0",
-    "@transmute/jsonld-document-loader": "^0.2.0",
     "ajv": "^6.12.2",
     "assert": "^2.0.0",
     "babel-loader": "^8.0.5",
@@ -50,7 +50,6 @@
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^6.0.3",
-    "did-context": "^3.0.0",
     "eslint": "^7.12.1",
     "eslint-config-digitalbazaar": "^2.7.0",
     "eslint-plugin-jsdoc": "^30.7.6",

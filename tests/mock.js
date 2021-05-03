@@ -1,17 +1,16 @@
 /*!
  * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import didContext from 'did-context';
 import * as didMethodKey from '@digitalbazaar/did-method-key';
 import {EdvClient} from '..';
 import {MockStorage} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
-import {
-  documentLoaderFactory,
-  contexts,
-} from '@transmute/jsonld-document-loader';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
+import {securityLoader} from '@digitalbazaar/security-document-loader';
+
+const loader = securityLoader();
+const securityDocumentLoader = loader.build();
 
 const didKeyDriver = didMethodKey.driver();
 
@@ -52,19 +51,7 @@ export class TestMock {
         }
         throw new Error(`Key ${id} not found`);
       };
-      this.documentLoader = documentLoaderFactory.pluginFactory
-        .build({
-          contexts: {
-            ...contexts.W3C_Verifiable_Credentials,
-            'https://w3id.org/security/suites/ed25519-2020/v1':
-              Ed25519Signature2020.CONTEXT
-          }
-        })
-        .addContext({
-          [didContext.constants.DID_CONTEXT_URL]: didContext
-            .contexts.get('https://www.w3.org/ns/did/v1')
-        })
-        .buildDocumentLoader();
+      this.documentLoader = securityDocumentLoader;
     }
   }
   async createEdv({controller, referenceId} = {}) {
