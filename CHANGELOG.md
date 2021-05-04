@@ -3,7 +3,7 @@
 ## 9.0.0 - 2021-05-04
 
 ### Changed
-- **BREAKING**: Use (@digitalbazaar/minimal-cipher@3.0)[https://github.com/digitalbazaar/minimal-cipher/blob/master/CHANGELOG.md].
+- **BREAKING**: Use [@digitalbazaar/minimal-cipher@3.0](https://github.com/digitalbazaar/minimal-cipher/blob/master/CHANGELOG.md).
   Now uses `X25519KeyAgreementKey2020` instead of `X25519KeyAgreementKey2019`.
 - Update deps and test deps to latest.
 
