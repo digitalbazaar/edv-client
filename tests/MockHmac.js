@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import crypto from '../crypto.js';
+import crypto from './crypto.js';
 import * as base64url from 'base64url-universal';
 const _secret = base64url.decode(
   '49JUNpuy7808NoTTbB0q8rgRuPSMyeqSswCnWKr0MF4');

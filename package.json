@@ -15,8 +15,6 @@
     "lint": "eslint ."
   },
   "files": [
-    "crypto.js",
-    "crypto-browser.js",
     "EdvClient.js",
     "EdvDocument.js",
     "IndexHelper.js",
@@ -101,7 +99,7 @@
   "homepage": "https://github.com/digitalbazaar/edv-client",
   "module": "main.js",
   "browser": {
-    "./crypto.js": "./crypto-browser.js",
+    "./tests/crypto.js": "./tests/crypto-browser.js",
     "./util.js": "./util-browser.js"
   },
   "engines": {
