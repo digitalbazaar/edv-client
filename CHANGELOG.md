@@ -6,6 +6,9 @@
 - Move `crypto.js` and `crypto-browser.js` to the `tests/` dir (since they're 
   used only by tests). Main code switches off of `util.js` and `util-browser.js`.
 
+### Fixed
+- Ensure indexed attributes are cleared when deleting a document.
+
 ## 9.0.0 - 2021-05-04
 
 ### Changed
