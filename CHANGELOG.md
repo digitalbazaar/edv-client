@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 9.0.1 -
+## 9.0.1 - 2021-06-08
 
 ### Changed
 - Move `crypto.js` and `crypto-browser.js` to the `tests/` dir (since they're 
