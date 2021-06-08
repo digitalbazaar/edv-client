@@ -542,6 +542,64 @@ describe('EdvClient', () => {
     decrypted.content.should.deep.equal({indexedKey: 'value1'});
   });
 
+  it('should not find a deleted document via its attributes', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const testId = await EdvClient.generateId();
+    const doc = {id: testId, content: {indexedKey: 'toDelete'}};
+    await client.insert({doc, invocationSigner, keyResolver});
+
+    // should find doc before deleting it
+    const {documents: docsBefore} = await client.find(
+      {equals: {'content.indexedKey': 'toDelete'}, invocationSigner});
+    docsBefore.should.be.an('array');
+    docsBefore.length.should.equal(1);
+
+    // delete doc
+    const decrypted = await client.get({id: doc.id, invocationSigner});
+    const result = await client.delete({
+      doc: decrypted, invocationSigner, keyResolver
+    });
+    result.should.equal(true);
+
+    // should NOT find doc after deleting it
+    const {documents: docsAfter} = await client.find(
+      {equals: {'content.indexedKey': 'toDelete'}, invocationSigner});
+    docsAfter.should.be.an('array');
+    docsAfter.length.should.equal(0);
+  });
+
+  it('should not find a deleted document via its attributes when ' +
+    'deleted with no hmac set', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const testId = await EdvClient.generateId();
+    const doc = {id: testId, content: {indexedKey: 'toDelete'}};
+    await client.insert({doc, invocationSigner, keyResolver});
+
+    // should find doc before deleting it
+    const {documents: docsBefore} = await client.find(
+      {equals: {'content.indexedKey': 'toDelete'}, invocationSigner});
+    docsBefore.should.be.an('array');
+    docsBefore.length.should.equal(1);
+
+    // delete doc
+    const decrypted = await client.get({id: doc.id, invocationSigner});
+    const savedHmac = client.hmac;
+    client.hmac = undefined;
+    const result = await client.delete({
+      doc: decrypted, invocationSigner, keyResolver
+    });
+    client.hmac = savedHmac;
+    result.should.equal(true);
+
+    // should NOT find doc after deleting it
+    const {documents: docsAfter} = await client.find(
+      {equals: {'content.indexedKey': 'toDelete'}, invocationSigner});
+    docsAfter.should.be.an('array');
+    docsAfter.length.should.equal(0);
+  });
+
   it('should reject two documents with same unique attribute', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.uniqueKey', unique: true});

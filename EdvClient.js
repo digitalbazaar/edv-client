@@ -374,15 +374,10 @@ export class EdvClient {
     _assertString(doc.id, '"id" must be a string.');
     _assertInvocationSigner(invocationSigner);
 
-    doc = {...doc};
-    doc.content = {};
-    if(!doc.meta) {
-      doc.meta = {};
-    } else {
-      doc.meta = {...doc.meta};
-    }
-    doc.meta.deleted = true;
-    delete doc.stream;
+    // clear document, preserving only its `id`, `sequence`, and previous
+    // encrypted data (to be used to preserve recipients)
+    const {id, sequence, jwe} = doc;
+    doc = {id, sequence, jwe, content: {}, meta: {deleted: true}};
 
     await this.update({
       doc, recipients, keyResolver, keyAgreementKey, capability,
