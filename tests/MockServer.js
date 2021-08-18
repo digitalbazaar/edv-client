@@ -3,7 +3,7 @@
  */
 import {httpClient} from '@digitalbazaar/http-client';
 import sinon from 'sinon';
-import pathToRegexp from 'path-to-regexp';
+import {pathToRegexp} from 'path-to-regexp';
 import routeParams from 'route-params';
 
 /**
