@@ -13,22 +13,10 @@ export const edvConfig = {
       type: 'string'
     },
     invoker: {
-      anyOf: [{
-        type: 'string'
-      }, {
-        type: 'array',
-        minItems: 1,
-        items: [{type: 'string'}]
-      }]
+      type: 'string'
     },
     delegator: {
-      anyOf: [{
-        type: 'string'
-      }, {
-        type: 'array',
-        minItems: 1,
-        items: [{type: 'string'}]
-      }]
+      type: 'string'
     },
     keyAgreementKey: {
       type: 'object',
