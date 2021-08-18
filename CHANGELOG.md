@@ -6,6 +6,8 @@
 - Update dependencies.
 - Accept `Hmac.sign()` interface that returns a signature that can
   be either base64url-encoded or bytes via a Uint8Array.
+- Pin web-streams-polyfill@3.0.x. See minimal-cipher's changelog for
+  more comments.
 
 ## 9.0.1 - 2021-06-08
 
