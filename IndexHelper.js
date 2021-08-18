@@ -1,9 +1,10 @@
 /*!
  * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import {TextEncoder} from './util.js';
-import split from 'split-string';
+import base64url from 'base64url-universal';
 import canonicalize from 'canonicalize';
+import split from 'split-string';
+import {TextEncoder} from './util.js';
 
 const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
@@ -368,7 +369,13 @@ export class IndexHelper {
   async _blindString(hmac, value) {
     // convert value to Uint8Array
     const data = new TextEncoder().encode(value);
-    return hmac.sign({data});
+    const signature = await hmac.sign({data});
+    if(typeof signature === 'string') {
+      // presume base64url-encoded
+      return signature;
+    }
+    // base64url-encode Uint8Array signature
+    return base64url.encode(signature);
   }
 
   _parseAttribute(attribute) {

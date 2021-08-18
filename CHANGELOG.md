@@ -1,5 +1,12 @@
 # edv-client ChangeLog
 
+## 9.1.0 - 2021-08-xx
+
+### Changed
+- Update dependencies.
+- Accept `Hmac.sign()` interface that returns a signature that can
+  be either base64url-encoded or bytes via a Uint8Array.
+
 ## 9.0.1 - 2021-06-08
 
 ### Changed
