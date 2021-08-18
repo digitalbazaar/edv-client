@@ -46,7 +46,7 @@
     "ajv": "^8.6.2",
     "assert": "^2.0.0",
     "babel-loader": "^8.0.5",
-    "base64url-universal": "^1.0.0",
+    "base64url-universal": "^1.1.0",
     "chai": "^4.2.0",
     "chai-bytes": "^0.1.2",
     "cross-env": "^7.0.3",
