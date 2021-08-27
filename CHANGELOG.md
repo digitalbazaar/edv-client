@@ -1,5 +1,29 @@
 # edv-client ChangeLog
 
+## 10.0.0 - 2021-08-xx
+
+### Changed
+- **BREAKING**: All root zcaps use `urn:root:zcap:` prefix. Root zcaps
+  for documents are the EDV root zcap where the controller resides. This new
+  client version must be paired with a new EDV server, it is not compatible
+  with an old version.
+- **BREAKING**: `getConfig` is now an instance member function instead
+  of a static class member function. It requires that a capability be
+  invoked to fetch the EDV config.
+- **BREAKING**: Use simplified zcap revocation model via `revokeCapability`.
+  Now any party that has delegated a zcap may revoke it by calling
+  `revokeCapability` with the revoked zcap without passing an additional
+  capability that targets a revocation endpoint. If no capability is passed,
+  then the client will a root zcap at the `<edvId>/revocations/<zcap ID>`
+  endpoint. The controller for this target is expected to be the delegator
+  of the zcap.
+
+### Removed
+- **BREAKING**: Remove `enableCapability` and `disableCapability`. Full zcaps
+  must be sent when invoking them at EDV servers so there is no need for
+  enabling/disabling. To revoke a delegated authorized zcap, revoke it via
+  `revokeCapability` instead.
+
 ## 9.1.0 - 2021-08-19
 
 ### Changed
@@ -12,7 +36,7 @@
 ## 9.0.1 - 2021-06-08
 
 ### Changed
-- Move `crypto.js` and `crypto-browser.js` to the `tests/` dir (since they're 
+- Move `crypto.js` and `crypto-browser.js` to the `tests/` dir (since they're
   used only by tests). Main code switches off of `util.js` and `util-browser.js`.
 
 ### Fixed
