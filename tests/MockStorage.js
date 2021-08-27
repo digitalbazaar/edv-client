@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
  */
 import uuid from 'uuid-random';
 import {validateSchema} from './validator';
@@ -24,31 +24,6 @@ export class MockStorage {
       revocations: `${baseUrl}${root}/:edvId/revocations`,
       chunk: `${baseUrl}${root}/:edvId/documents/:id/chunks/:chunkIndex`,
     };
-
-    // this handles enableCapability post requests.
-    server.post(routes.authorizations, request => {
-      const {json: capability} = JSON.parse(request.requestBody);
-      if(!capability) {
-        throw new TypeError('"capability" is required');
-      }
-      if(!capability.id) {
-        throw new TypeError('"capability.id" is required');
-      }
-      if(typeof capability.id !== 'string') {
-        throw new TypeError('"capability.id" must be a string');
-      }
-      if(!capability['@context']) {
-        throw new TypeError('"capability[@context]" is required');
-      }
-      if(!capability.invoker) {
-        throw new TypeError('"capability.invoker" is required');
-      }
-      if(!capability.parentCapability) {
-        throw new TypeError('"capability.parentCapability" is required');
-      }
-      this.zcaps.set(capability.id, capability);
-      return [201, undefined, capability];
-    });
 
     // this handles revokeCapability post requests.
     server.post(routes.revocations, request => {

@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
 import {EdvClient} from '..';
@@ -26,9 +26,9 @@ export class TestMock {
     this.keyStorage = new Map();
   }
   async init() {
-    const res = await this.createCapabilityAgent();
-    const kak = res.keyAgreementPair;
-    const capabilityAgent = res.capabilityAgent;
+    const controller = await this.createCapabilityAgent();
+    const kak = controller.keyAgreementPair;
+    const capabilityAgent = controller.capabilityAgent;
     // only init keys once
     // this is used for the edv controller's keys in the tests
     if(!this.keys) {
@@ -41,7 +41,7 @@ export class TestMock {
       this.keys.keyAgreementKey = kak;
       // the creates the same hmac for each test.
       this.keys.hmac = await MockHmac.create();
-      // only store the KaK in the recipients' keyStorage.
+      // only store the KaK in the recipient's keyStorage.
       this.keyStorage.set(
         this.keys.keyAgreementKey.id, this.keys.keyAgreementKey);
       this.keyResolver = ({id}) => {
@@ -52,6 +52,8 @@ export class TestMock {
         throw new Error(`Key ${id} not found`);
       };
       this.documentLoader = securityDocumentLoader;
+      // store delegate for zcap delegation tests
+      this.delegate = await this.createCapabilityAgent();
     }
   }
   async createEdv({controller, referenceId} = {}) {
@@ -74,8 +76,8 @@ export class TestMock {
     const {methodFor} = await didKeyDriver.generate();
     const capabilityInvocationKeyPair =
       methodFor({purpose: 'capabilityInvocation'});
-    const capabilityAgent =
-      new Ed25519Signature2020({key: capabilityInvocationKeyPair});
+    const capabilityAgent = new Ed25519Signature2020(
+      {key: capabilityInvocationKeyPair});
 
     const keyAgreementPair = methodFor({purpose: 'keyAgreement'});
     this.keyStorage.set(

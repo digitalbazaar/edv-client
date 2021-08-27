@@ -233,7 +233,7 @@ export class EdvClient {
     hmac = this.hmac, capability, invocationSigner
   }) {
     _assertDocument(doc);
-    _assertString(doc.id, '"doc.id" must be a string.');
+    _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
 
     // if no recipients specified, add default
@@ -316,7 +316,7 @@ export class EdvClient {
    */
   async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
     _assertDocument(doc);
-    _assertString(doc.id, '"doc.id" must be a string.');
+    _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
 
@@ -371,7 +371,7 @@ export class EdvClient {
     doc, recipients = [], capability, invocationSigner,
     keyResolver = this.keyResolver, keyAgreementKey = this.keyAgreementKey}) {
     _assertDocument(doc);
-    _assertString(doc.id, '"id" must be a string.');
+    _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
 
     // clear document, preserving only its `id`, `sequence`, and previous
@@ -405,7 +405,7 @@ export class EdvClient {
   async get({
     id, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
   }) {
-    _assertString(id, '"id" must be a string.');
+    _assert(id, 'id', 'string');
     _assertInvocationSigner(invocationSigner);
 
     const url = this._getDocUrl(id, capability);
@@ -454,9 +454,9 @@ export class EdvClient {
   async getStream({
     doc, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
   }) {
-    _assertObject(doc, '"doc" must be an object.');
-    _assertString(doc.id, '"doc.id" must be a string.');
-    _assertObject(doc.stream, '"doc.stream" must be an object.');
+    _assert(doc, 'doc', 'object');
+    _assertDocId(doc.id);
+    _assert(doc.stream, 'doc.stream', 'object');
     _assertInvocationSigner(invocationSigner);
 
     const self = this;
@@ -594,113 +594,30 @@ export class EdvClient {
   }
 
   /**
-   * Stores a delegated authorization capability for this EDV, enabling
-   * it to be invoked by its designated invoker.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.capabilityToEnable - The capability to enable.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
-   *
-   * @returns {Promise<undefined>} - Resolves once the operation completes.
-   */
-  async enableCapability({capabilityToEnable, capability, invocationSigner}) {
-    _assertObject(capabilityToEnable);
-    const url = EdvClient._getInvocationTarget({capability}) ||
-      `${this.id}/authorizations`;
-    if(!capability) {
-      capability = `${this.id}/zcaps/authorizations`;
-    }
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: capabilityToEnable, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {headers, json: capabilityToEnable, agent});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  /**
-   * Removes a previously stored delegated authorization capability from this
-   * EDV, preventing it from being invoked by its designated invoker.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.id - The ID of the capability to revoke.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
-   *
-   * @returns {Promise<boolean>} - Resolves to `true` if the capability was
-   *   disabled and `false` if it did not exist.
-   */
-  async disableCapability({id, capability, invocationSigner}) {
-    _assertString(id);
-
-    let url = EdvClient._getInvocationTarget({capability}) ||
-      `${this.id}/authorizations`;
-    if(url.endsWith('/authorizations')) {
-      url += `?id=${encodeURIComponent(id)}`;
-    }
-    if(!capability) {
-      capability = `${this.id}/zcaps/authorizations`;
-    }
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'delete', headers: this.defaultHeaders,
-        capability, invocationSigner,
-        // TODO: should `delete` be used here as a separate action?
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.delete(url, {headers, agent});
-    } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 404) {
-        return false;
-      }
-      throw e;
-    }
-    return true;
-  }
-
-  /**
    * Creates a new EDV using the given configuration.
    *
    * @param {object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
    * @param {string} options.config - The EDV's configuration.
-   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
-   *   node.js `https.Agent` instance to use when making requests.
-   * @param {object} [options.headers=undefined] - An optional
-   *   headers object to use when making requests.
-   * @param {object} [options.invocationSigner] - An object with an
-   *   `id` property and a `sign` function for signing a capability invocation.
    * @param {string|object} [options.capability] - A zCap authorizing the
    *   creation of an EDV. Defaults to a root capability derived from
    *   the `url` parameter.
+   * @param {object} [options.headers=undefined] - An optional
+   *   headers object to use when making requests.
+   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
+   *   node.js `https.Agent` instance to use when making requests.
+   * @param {object} [options.invocationSigner] - An object with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
    * @returns {Promise<object>} - Resolves to the configuration for the newly
    *   created EDV.
    */
   static async createEdv({
     url = '/edvs', config, httpsAgent, headers, invocationSigner, capability
   }) {
+    _assert(url, 'url', 'string');
     url = _createAbsoluteUrl(url);
+
     // TODO: more robustly validate `config` (`keyAgreementKey`,
     // `hmac`, if present, etc.)
     if(!(config && typeof config === 'object')) {
@@ -950,8 +867,8 @@ export class EdvClient {
   async revokeCapability({
     capabilityToRevoke, capability, invocationSigner
   } = {}) {
-    _assertObject(capabilityToRevoke, 'capabilityToRevoke');
-    _assertObject(invocationSigner, 'invocationSigner');
+    _assert(capabilityToRevoke, 'capabilityToRevoke', 'object');
+    _assertInvocationSigner(invocationSigner);
 
     const url = EdvClient._getInvocationTarget({capability}) ||
       `${this.id}/revocations`;
@@ -992,10 +909,9 @@ export class EdvClient {
   // helper that decrypts an encrypted doc to include its (cleartext) content
   async _decrypt({encryptedDoc, keyAgreementKey}) {
     // validate `encryptedDoc`
-    _assertObject(encryptedDoc, 'Encrypted document must be an object.');
-    _assertString(
-      encryptedDoc.id, 'Encrypted document "id" must be a string".');
-    _assertObject(encryptedDoc, 'Encrypted document "jwe" must be an object.');
+    _assert(encryptedDoc, 'encryptedDoc', 'object');
+    _assert(encryptedDoc.id, 'encryptedDoc.id', 'string');
+    _assert(encryptedDoc.jwe, 'encryptedDoc.jwe', 'object');
 
     // decrypt doc content
     const {cipher} = this;
@@ -1256,15 +1172,15 @@ function _checkIndexing(hmac) {
 }
 
 function _assertDocument(doc) {
-  _assertObject(doc, '"doc" must be an object.');
+  _assert(doc, 'doc', 'object');
   const {id, content, meta = {}, stream} = doc;
   if(id !== undefined) {
     _assertDocId(doc.id);
   }
-  _assertObject(content, '"doc.content" must be an object.');
-  _assertObject(meta, '"doc.meta" must be an object.');
+  _assert(content, 'content', 'object');
+  _assert(meta, 'meta', 'object');
   if(stream !== undefined) {
-    _assertObject(stream, '"doc.stream" must be an object if present.');
+    _assert(stream, 'stream', 'object');
   }
 }
 
@@ -1286,27 +1202,23 @@ function _assertDocId(id) {
 }
 
 function _assertInvocationSigner(invocationSigner) {
-  _assertObject(invocationSigner, '"invocationSigner" must be an object.');
+  _assert(invocationSigner, 'invocationSigner', 'object');
   const {id, sign} = invocationSigner;
-  _assertString(id, '"invocationSigner.id" must be a string.');
-  _assertFunction(sign, '"invocationSigner.sign" must be a function.');
+  _assert(id, 'invocationSigner.id', 'string');
+  _assert(sign, 'invocationSigner.sign', 'function');
 }
 
-function _assertObject(x, msg) {
-  if(!(x && typeof x === 'object' && !Array.isArray(x))) {
-    throw new TypeError(msg);
+function _assert(variable, name, types) {
+  if(!Array.isArray(types)) {
+    types = [types];
   }
-}
-
-function _assertString(x, msg) {
-  if(typeof x !== 'string') {
-    throw new TypeError(msg);
-  }
-}
-
-function _assertFunction(x, msg) {
-  if(typeof x !== 'function') {
-    throw new TypeError(msg);
+  const type = variable instanceof Uint8Array ? 'Uint8Array' : typeof variable;
+  if(!types.includes(type) ||
+    // an object must not falsey nor an array
+    (type === 'object' && (!variable || Array.isArray(variable)))) {
+    throw new TypeError(
+      `"${name}" must be ${types.length === 1 ? 'a' : 'one of'} ` +
+      `${types.join(', ')}.`);
   }
 }
 
