@@ -80,7 +80,7 @@ export class EdvClient {
    * @returns {undefined}
 
    */
-  ensureIndex({attribute, unique = false}) {
+  ensureIndex({attribute, unique = false} = {}) {
     return this.indexHelper.ensureIndex({attribute, unique});
   }
 
@@ -119,7 +119,7 @@ export class EdvClient {
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac,
     capability, invocationSigner
-  }) {
+  } = {}) {
     _assertDocument(doc);
     _assertInvocationSigner(invocationSigner);
 
@@ -226,7 +226,7 @@ export class EdvClient {
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey,
     hmac = this.hmac, capability, invocationSigner
-  }) {
+  } = {}) {
     _assertDocument(doc);
     _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
@@ -309,7 +309,9 @@ export class EdvClient {
    *
    * @returns {Promise} - Resolves once the operation completes.
    */
-  async updateIndex({doc, hmac = this.hmac, capability, invocationSigner}) {
+  async updateIndex({
+    doc, hmac = this.hmac, capability, invocationSigner
+  } = {}) {
     _assertDocument(doc);
     _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
@@ -364,7 +366,8 @@ export class EdvClient {
    */
   async delete({
     doc, recipients = [], capability, invocationSigner,
-    keyResolver = this.keyResolver, keyAgreementKey = this.keyAgreementKey}) {
+    keyResolver = this.keyResolver, keyAgreementKey = this.keyAgreementKey
+  } = {}) {
     _assertDocument(doc);
     _assertDocId(doc.id);
     _assertInvocationSigner(invocationSigner);
@@ -399,7 +402,7 @@ export class EdvClient {
    */
   async get({
     id, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
-  }) {
+  } = {}) {
     _assert(id, 'id', 'string');
     _assertInvocationSigner(invocationSigner);
 
@@ -448,7 +451,7 @@ export class EdvClient {
    */
   async getStream({
     doc, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
-  }) {
+  } = {}) {
     _assert(doc, 'doc', 'object');
     _assertDocId(doc.id);
     _assert(doc.stream, 'doc.stream', 'object');
@@ -503,7 +506,7 @@ export class EdvClient {
   async count({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
     capability, invocationSigner
-  }) {
+  } = {}) {
     const {count} = await this.find({
       keyAgreementKey, hmac, equals, has,
       capability, invocationSigner, count: true
@@ -550,7 +553,7 @@ export class EdvClient {
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
     capability, invocationSigner, count = false
-  }) {
+  } = {}) {
     _assertInvocationSigner(invocationSigner);
     _checkIndexing(hmac);
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
@@ -601,7 +604,7 @@ export class EdvClient {
    *
    * @returns {Promise<object>} - Resolves to the configuration for the EDV.
    */
-  async getConfig({capability, headers, invocationSigner}) {
+  async getConfig({capability, headers, invocationSigner} = {}) {
     const {id} = this;
     if(!(id || capability)) {
       throw new TypeError(
@@ -658,7 +661,7 @@ export class EdvClient {
    *
    * @returns {Promise<void>} - Resolves once the operation completes.
    */
-  async updateConfig({config, capability, headers, invocationSigner}) {
+  async updateConfig({config, capability, headers, invocationSigner} = {}) {
     if(!(config && typeof config === 'object')) {
       throw new TypeError('"config" must be an object.');
     }
@@ -731,7 +734,7 @@ export class EdvClient {
    */
   static async createEdv({
     url, config, httpsAgent, headers, invocationSigner, capability
-  }) {
+  } = {}) {
     if(url) {
       _assert(url, 'url', 'string');
     }
@@ -808,7 +811,7 @@ export class EdvClient {
   static async findConfig({
     url, controller, referenceId, httpsAgent, invocationSigner,
     headers, capability
-  }) {
+  } = {}) {
     const results = await this.findConfigs({
       url, controller, referenceId, httpsAgent, headers, invocationSigner,
       capability
@@ -840,7 +843,7 @@ export class EdvClient {
   static async findConfigs({
     url, controller, referenceId, after, limit, httpsAgent,
     headers, capability, invocationSigner
-  }) {
+  } = {}) {
     if(url) {
       _assert(url, 'url', 'string');
     }

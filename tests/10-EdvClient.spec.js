@@ -216,7 +216,8 @@ describe('EdvClient', () => {
         hmac: {id: hmac.id, type: hmac.type}
       }
     });
-    const config = await EdvClient.getConfig({id});
+    const client = new EdvClient({id, keyAgreementKey: kak, hmac});
+    const config = await client.getConfig();
     config.should.be.an('object');
     config.id.should.be.a('string');
     config.controller.should.equal(mock.accountId);
