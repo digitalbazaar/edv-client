@@ -23,6 +23,7 @@
   must be sent when invoking them at EDV servers so there is no need for
   enabling/disabling. To revoke a delegated authorized zcap, revoke it via
   `revokeCapability` instead.
+- **BREAKING**: Remove unused `setStatus` API.
 
 ## 9.1.0 - 2021-08-19
 

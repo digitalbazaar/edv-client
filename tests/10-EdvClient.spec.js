@@ -272,7 +272,7 @@ describe('EdvClient', () => {
     config.hmac.should.be.an('object');
   });
 
-  // TODO: add more tests: getAll, update, setStatus
+  // TODO: add more tests: getAll, update
 
   it('should ensure two new indexes', async () => {
     const client = await mock.createEdv();
