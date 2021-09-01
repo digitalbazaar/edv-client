@@ -938,10 +938,27 @@ export class EdvClient {
     _assert(capabilityToRevoke, 'capabilityToRevoke', 'object');
     _assertInvocationSigner(invocationSigner);
 
+    let {id: edvId} = this;
+    if(!edvId && !(capability && typeof capability === 'object')) {
+      // since no `edvId` was set and no `capability` with an invocation
+      // target that can be parsed was given, get the EDV ID from the
+      // capability that is to be revoked -- presuming it is a document (if
+      // revoking any other capability, the `keystoreId` must be set or a
+      // `capability` passed to invoke)
+      const invocationTarget = EdvClient._getInvocationTarget(
+        {capability: capabilityToRevoke});
+      const idx = invocationTarget.lastIndexOf('/documents');
+      if(idx === -1) {
+        throw new Error(
+          `Invalid EDV invocation target (${invocationTarget}).`);
+      }
+      edvId = invocationTarget.substr(0, idx);
+    }
+
     const url = EdvClient._getInvocationTarget({capability}) ||
-      `${this.id}/revocations`;
+      `${edvId}/revocations/${encodeURIComponent(capabilityToRevoke.id)}`;
     if(!capability) {
-      capability = `${this.id}/zcaps/revocations`;
+      capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
     try {
       // sign HTTP header
