@@ -688,7 +688,7 @@ export class EdvClient {
 
     if(!invocationSigner) {
       // send request w/o zcap invocation
-      await httpClient.post(id, {
+      await httpClient.post(url, {
         headers: {...defaultHeaders, ...headers},
         json: config,
         agent
@@ -699,14 +699,16 @@ export class EdvClient {
 
     // send request w/ zcap invocation
     const signedHeaders = await signCapabilityInvocation({
-      url, method: 'get',
+      url,
+      method: 'post',
       headers: {...defaultHeaders, ...headers},
       capability,
       invocationSigner,
-      capabilityAction: 'read'
+      capabilityAction: 'write',
+      json: config
     });
     // send request w/o zcap invocation
-    await httpClient.post(id, {
+    await httpClient.post(url, {
       headers: signedHeaders,
       json: config,
       agent
