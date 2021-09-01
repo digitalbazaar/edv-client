@@ -1,6 +1,6 @@
 # edv-client ChangeLog
 
-## 10.0.0 - 2021-08-xx
+## 10.0.0 - 2021-09-01
 
 ### Changed
 - **BREAKING**: All root zcaps use `urn:root:zcap:` prefix. Root zcaps
