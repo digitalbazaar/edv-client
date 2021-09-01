@@ -32,7 +32,7 @@ export class IndexHelper {
    * @param {boolean} [options.unique=false] - Set to `true` if the index
    *   should be considered unique, `false` if not.
    */
-  ensureIndex({attribute, unique = false}) {
+  ensureIndex({attribute, unique = false} = {}) {
     let attributes = attribute;
     if(!Array.isArray(attribute)) {
       attributes = [attribute];
