@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
 import {EdvClient} from '..';
@@ -8,8 +8,10 @@ import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import {securityLoader} from '@digitalbazaar/security-document-loader';
+import {constants as zcapConstants} from '@digitalbazaar/zcapld';
 
 const loader = securityLoader();
+loader.addStatic(zcapConstants.ZCAP_CONTEXT_URL, zcapConstants.ZCAP_CONTEXT);
 const securityDocumentLoader = loader.build();
 
 const didKeyDriver = didMethodKey.driver();

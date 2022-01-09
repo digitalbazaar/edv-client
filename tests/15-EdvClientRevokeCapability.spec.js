@@ -1,14 +1,18 @@
 /*!
- * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import {CapabilityDelegation} from '@digitalbazaar/zcapld';
+import {
+  CapabilityDelegation,
+  constants as zcapConstants
+} from '@digitalbazaar/zcapld';
 import {createRecipient, JWE_ALG} from './test-utils.js';
 import {EdvClient} from '..';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import jsigs from 'jsonld-signatures';
 import mock from './mock.js';
 import uuid from 'uuid-random';
-import * as sec from 'security-context';
+
+const {ZCAP_CONTEXT_URL, ZCAP_ROOT_PREFIX} = zcapConstants;
 
 const {sign} = jsigs;
 
@@ -34,9 +38,10 @@ describe('EdvClient revokeCapability API', () => {
 
     const inserted = await edvClient.insert(
       {keyResolver, invocationSigner, doc, recipients});
+
     capabilityToRead = {
       '@context': [
-        sec.constants.SECURITY_CONTEXT_V2_URL,
+        ZCAP_CONTEXT_URL,
         Ed25519Signature2020.CONTEXT_URL,
       ],
       id: `urn:uuid:${uuid()}`,
@@ -45,8 +50,10 @@ describe('EdvClient revokeCapability API', () => {
       invoker: kaks[0].id,
       // the invoker will only be allowed to read the document
       allowedAction: 'read',
-      // this is the zCap of the document
-      parentCapability: `${edvClient.id}/zcaps/documents/${inserted.id}`
+      // this is the root zCap for the EDV
+      parentCapability: ZCAP_ROOT_PREFIX +
+        `${encodeURIComponent(edvClient.id)}`,
+      expires: new Date(Date.now() + 300000).toISOString()
     };
     // this is the private key of the EDV owner.
     const signer = mock.invocationSigner;
@@ -54,7 +61,7 @@ describe('EdvClient revokeCapability API', () => {
     const suite = new Ed25519Signature2020(
       {signer, verificationMethod: signer.id});
     const purpose = new CapabilityDelegation(
-      {capabilityChain: [capabilityToRead.parentCapability]});
+      {parentCapability: capabilityToRead.parentCapability});
     // sign adds a proof to capabilityToRead
     await sign(capabilityToRead, {documentLoader, suite, purpose});
   });
