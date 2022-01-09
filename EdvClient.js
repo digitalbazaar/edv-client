@@ -1226,21 +1226,30 @@ export class EdvClient {
   }
 
   static _getInvocationTarget({capability}) {
-    if(!(capability && typeof capability === 'object')) {
-      // no capability provided
+    // no capability, so no invocation target
+    if(capability === undefined || capability === null) {
       return null;
     }
-    let result;
-    const {invocationTarget} = capability;
-    if(invocationTarget && typeof invocationTarget === 'object') {
-      result = invocationTarget.id;
-    } else {
-      result = invocationTarget;
+
+    let invocationTarget;
+    if(typeof capability === 'string') {
+      if(!capability.startsWith(ZCAP_ROOT_PREFIX)) {
+        throw new Error(
+          'If "capability" is a string, it must be a root capability.');
+      }
+      invocationTarget = decodeURIComponent(
+        capability.substring(ZCAP_ROOT_PREFIX));
+    } else if(typeof capability === 'object') {
+      ({invocationTarget} = capability);
     }
-    if(typeof result !== 'string') {
-      throw new TypeError('"capability.invocationTarget" is invalid.');
+
+    if(!(typeof invocationTarget === 'string' &&
+      invocationTarget.includes(':'))) {
+      throw new TypeError(
+        '"invocationTarget" from capability must be an "https" URL.');
     }
-    return result;
+
+    return invocationTarget;
   }
 }
 
