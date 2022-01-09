@@ -1,14 +1,17 @@
 /*!
-* Copyright (c) 2020-2021 Digital Bazaar, Inc. All rights reserved.
+* Copyright (c) 2020-2022 Digital Bazaar, Inc. All rights reserved.
 */
 import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
-import {CapabilityDelegation} from '@digitalbazaar/zcapld';
+import {
+  CapabilityDelegation, constants as zcapConstants
+} from '@digitalbazaar/zcapld';
 import {EdvClient, EdvDocument} from '..';
 import mock from './mock.js';
 import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
-import * as sec from 'security-context';
+
+const {ZCAP_CONTEXT_URL, ZCAP_ROOT_PREFIX} = zcapConstants;
 
 const {sign} = jsigs;
 
@@ -156,7 +159,7 @@ describe('EDV Recipients', () => {
       });
       const unsignedCapability = {
         '@context': [
-          sec.constants.SECURITY_CONTEXT_V2_URL,
+          ZCAP_CONTEXT_URL,
           Ed25519Signature2020.CONTEXT_URL,
         ],
         id: `urn:uuid:${uuid()}`,
@@ -165,8 +168,9 @@ describe('EDV Recipients', () => {
         controller: delegate.capabilityAgent.id,
         // the invoker will only be allowed to read the document
         allowedAction: 'read',
-        // this is the zCap of the document
-        parentCapability: `${client.id}/zcaps/documents/${inserted.id}`
+        // this is the root zCap for the EDV
+        parentCapability: `${ZCAP_ROOT_PREFIX}${encodeURIComponent(client.id)}`,
+        expires: new Date(Date.now() + 300000).toISOString()
       };
       // delegate the zcap using the same key as the EDV controller
       const signer = invocationSigner;
@@ -174,7 +178,7 @@ describe('EDV Recipients', () => {
       const suite = new Ed25519Signature2020(
         {signer, verificationMethod: signer.id});
       const purpose = new CapabilityDelegation(
-        {capabilityChain: [unsignedCapability.parentCapability]});
+        {parentCapability: unsignedCapability.parentCapability});
       const delegatedCapability = await sign(
         unsignedCapability, {documentLoader, suite, purpose});
       const delegatedDoc = new EdvDocument({

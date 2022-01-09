@@ -1,5 +1,11 @@
 # edv-client ChangeLog
 
+## 11.0.0 - 2022-01-xx
+
+### Changed
+- **BREAKING**: Use http-signature-zcap-invoke@4. These changes
+  include major breaking simplifications to ZCAP-LD (zcapld@6).
+
 ## 10.0.0 - 2021-09-01
 
 ### Changed

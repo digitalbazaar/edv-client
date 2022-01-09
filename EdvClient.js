@@ -1,9 +1,9 @@
 /*!
- * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
 import * as base58 from 'base58-universal';
 import {Cipher} from '@digitalbazaar/minimal-cipher';
+import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
 import {IndexHelper} from './IndexHelper.js';
 import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
 import {ReadableStream, getRandomBytes} from './util.js';
