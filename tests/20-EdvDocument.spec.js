@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import {EdvDocument, EdvClient} from '..';
 import mock from './mock.js';
@@ -103,7 +103,7 @@ describe('EdvDocument', () => {
         keyAgreementKey: client.keyAgreementKey,
         capability: {
           id: `${client.id}`,
-          invocationTarget: `invalid-invocationTarget`
+          invocationTarget: `${client.id}/invalid-invocationTarget`
         },
         keyResolver
       });
