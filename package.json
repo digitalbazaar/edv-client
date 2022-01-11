@@ -24,7 +24,7 @@
     "util.js"
   ],
   "dependencies": {
-    "@digitalbazaar/http-client": "^1.1.0",
+    "@digitalbazaar/http-client": "^2.0.1",
     "@digitalbazaar/http-signature-zcap-invoke": "^5.0.1",
     "@digitalbazaar/minimal-cipher": "^4.0.1",
     "@digitalbazaar/security-document-loader": "^1.0.0",
@@ -52,7 +52,7 @@
     "cross-env": "^7.0.3",
     "eslint": "^7.12.1",
     "eslint-config-digitalbazaar": "^2.7.0",
-    "eslint-plugin-jsdoc": "^36.0.7",
+    "eslint-plugin-jsdoc": "^37.6.1",
     "isomorphic-webcrypto": "^2.3.8",
     "jsonld-signatures": "^9.3.0",
     "karma": "^6.2.0",
