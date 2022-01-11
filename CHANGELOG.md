@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 11.0.0 - 2022-01-xx
+## 11.0.0 - 2022-01-11
 
 ### Changed
 - **BREAKING**: Use http-signature-zcap-invoke@5. These changes
