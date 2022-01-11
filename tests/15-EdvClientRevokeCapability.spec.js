@@ -4,7 +4,7 @@
 import {
   CapabilityDelegation,
   constants as zcapConstants
-} from '@digitalbazaar/zcapld';
+} from '@digitalbazaar/zcap';
 import {createRecipient, JWE_ALG} from './test-utils.js';
 import {EdvClient} from '..';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';

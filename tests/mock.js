@@ -8,7 +8,7 @@ import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import {securityLoader} from '@digitalbazaar/security-document-loader';
-import {constants as zcapConstants} from '@digitalbazaar/zcapld';
+import {constants as zcapConstants} from '@digitalbazaar/zcap';
 
 const loader = securityLoader();
 loader.addStatic(zcapConstants.ZCAP_CONTEXT_URL, zcapConstants.ZCAP_CONTEXT);

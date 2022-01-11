@@ -5,7 +5,8 @@ import * as base58 from 'base58-universal';
 import {Cipher} from '@digitalbazaar/minimal-cipher';
 import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
 import {IndexHelper} from './IndexHelper.js';
-import {signCapabilityInvocation} from 'http-signature-zcap-invoke';
+import {signCapabilityInvocation} from
+  '@digitalbazaar/http-signature-zcap-invoke';
 import {ReadableStream, getRandomBytes} from './util.js';
 
 const ZCAP_ROOT_PREFIX = 'urn:zcap:root:';
