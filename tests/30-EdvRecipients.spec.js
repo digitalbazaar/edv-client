@@ -5,7 +5,7 @@ import jsigs from 'jsonld-signatures';
 import uuid from 'uuid-random';
 import {
   CapabilityDelegation, constants as zcapConstants
-} from '@digitalbazaar/zcapld';
+} from '@digitalbazaar/zcap';
 import {EdvClient, EdvDocument} from '..';
 import mock from './mock.js';
 import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
