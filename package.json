@@ -15,11 +15,14 @@
     "lint": "eslint ."
   },
   "files": [
+    "assert.js",
     "EdvClient.js",
     "EdvDocument.js",
+    "HttpsTransport.js",
     "IndexHelper.js",
     "index.js",
     "main.js",
+    "Transport.js",
     "util-browser.js",
     "util.js"
   ],
