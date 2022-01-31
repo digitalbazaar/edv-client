@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 11.1.0 - 2022-01-xx
+## 11.1.0 - 2022-01-31
 
 ### Added
 - Add new underlying transport layer abstraction for EDV clients. This
