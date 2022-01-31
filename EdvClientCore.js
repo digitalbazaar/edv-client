@@ -20,10 +20,7 @@ export class EdvClientCore {
    * @param {object} options - The options to use.
    * @param {object} [options.hmac] - A default HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.id] - The ID of the EDV that must be a
-   *   URL that refers to the EDV's root storage location; if not given, then
-   *   a separate capability must be given to each method called on the client
-   *   instance.
+   * @param {string} [options.id] - The ID of the EDV.
    * @param {object} [options.keyAgreementKey] - A default KeyAgreementKey
    *   API for deriving shared KEKs for wrapping content encryption keys.
    * @param {Function} [options.keyResolver] - A default function that returns
