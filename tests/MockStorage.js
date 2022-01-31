@@ -1,8 +1,10 @@
 /*!
- * Copyright (c) 2018-2021 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import uuid from 'uuid-random';
 import {validateSchema} from './validator';
+
+export const BASE_URL = 'http://localhost:9876';
 
 export class MockStorage {
   constructor({server}) {
@@ -13,7 +15,7 @@ export class MockStorage {
     this.revocations = new Map();
     this.chunks = new Map();
 
-    const baseUrl = 'http://localhost:9876';
+    const baseUrl = BASE_URL;
     const root = '/edvs';
     const routes = this.routes = {
       edvs: `${baseUrl}${root}`,
