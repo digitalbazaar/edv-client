@@ -30,7 +30,8 @@ describe('EdvClient', () => {
           controller: mock.accountId,
           // intentionally adding an invalid property to the config.
           invalid: 'invalid'
-        }
+        },
+        invocationSigner
       });
     } catch(e) {
       err = e;

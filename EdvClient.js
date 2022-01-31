@@ -1,97 +1,76 @@
 /*!
  * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import * as base58 from 'base58-universal';
-import {Cipher} from '@digitalbazaar/minimal-cipher';
-import {httpClient, DEFAULT_HEADERS} from '@digitalbazaar/http-client';
-import {IndexHelper} from './IndexHelper.js';
-import {signCapabilityInvocation} from
-  '@digitalbazaar/http-signature-zcap-invoke';
-import {ReadableStream, getRandomBytes} from './util.js';
+import {assert, assertInvocationSigner} from './assert.js';
+import {EdvClientCore} from './EdvClientCore.js';
+import {DEFAULT_HEADERS} from '@digitalbazaar/http-client';
+import {HttpsTransport} from './HttpsTransport.js';
+import {ReadableStream} from './util.js';
 
-const ZCAP_ROOT_PREFIX = 'urn:zcap:root:';
+/**
+ * Note: An Encrypted Data Vault (EDV) server MUST expose an HTTPS API with a
+ * URL structure that is partitioned like so:
+ *
+ * <edvID>/documents/<documentID> .
+ *
+ * The <edvID> must take the form:
+ *
+ * <authority>/edvs/<multibase base58 multihash encoded random ID> .
+ */
 
-// 1 MiB = 1048576
-const DEFAULT_CHUNK_SIZE = 1048576;
-
-export class EdvClient {
+export class EdvClient extends EdvClientCore {
   /**
-   * An object that can make HTTPS requests such as node's https.Agent or ky.
-   *
-   * @typedef {object} httpsAgent
-   * @see https://nodejs.org/api/https.html#https_class_https_agent
-   *
-   * Creates a new EdvClient instance. An EDV is an Encrypted Data Vault.
-   * In order to support portability (e.g., the use of DID URLs to reference
-   * documents), Encrypted Data Vault storage MUST expose an HTTPS API with
-   * a URL structure that is partitioned like so:
-   *
-   * <edvID>/documents/<documentID>
-   *
-   * The <edvID> must take the form:
-   *
-   * <authority>/edvs/<random multibase base58 encoded ID>
+   * Creates a new EdvClient for connecting to an Encrypted Data Vault (EDV).
    *
    * @param {object} options - The options to use.
-   * @param {string} [options.id=undefined] - The ID of the EDV that must be a
+   * @param {object} [options.capability] - An authorization capability
+   *   (zcap) to use that will work with every method called on the client
+   *   with the exception of `revokeCapability`, where a capability must be
+   *   passed to that function if the root zcap is not to be invoked.
+   * @param {object} [options.defaultHeaders] - Default HTTP headers to use
+   *   with HTTPS requests.
+   * @param {HttpsAgent} [options.httpsAgent] - A HttpsAgent to use to handle
+   *   HTTPS requests.
+   * @param {object} [options.hmac] - A default HMAC API for blinding
+   *   indexable attributes.
+   * @param {object} [options.invocationSigner] - An object with an
+   *   `id` property and a `sign` function for signing capability invocations.
+   * @param {string} [options.id] - The ID of the EDV that must be a
    *   URL that refers to the EDV's root storage location; if not given, then
-   *   a separate capability must be given to each method called on the client
-   *   instance.
+   *   a separate capability must be given here that can be used for each
+   *   method to be called -- or a separate capability must be given to each
+   *   called method directly.
+   * @param {object} [options.keyAgreementKey] - A default KeyAgreementKey
+   *   API for deriving shared KEKs for wrapping content encryption keys.
    * @param {Function} [options.keyResolver=this.keyResolver] - A default
    *   function that returns a Promise that resolves a key ID to a DH public
    *   key.
-   * @param {object} [options.keyAgreementKey=null] - A default KeyAgreementKey
-   *   API for deriving shared KEKs for wrapping content encryption keys.
-   * @param {object} [options.hmac=null] - A default HMAC API for blinding
-   *   indexable attributes.
-   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
-   *   HttpsAgent to use to handle HTTPS requests.
-   * @param {object} [options.defaultHeaders=undefined] - An optional
-   *   defaultHeaders object to use with HTTP requests.
    *
    * @returns {EdvClient}.
    */
   constructor({
-    id, keyResolver, keyAgreementKey, hmac, httpsAgent, defaultHeaders
+    capability, defaultHeaders, hmac, id, invocationSigner, httpsAgent,
+    keyAgreementKey, keyResolver
   } = {}) {
-    this.id = id;
-    this.keyResolver = keyResolver;
-    this.keyAgreementKey = keyAgreementKey;
-    this.hmac = hmac;
-    // TODO: support passing cipher `version`
-    this.cipher = new Cipher();
-    this.indexHelper = new IndexHelper();
+    if(capability !== undefined) {
+      assert(capability, 'capability', 'object');
+    }
+    if(invocationSigner !== undefined) {
+      assertInvocationSigner(invocationSigner);
+    }
+
+    super({hmac, id, keyAgreementKey, keyResolver});
+
+    // a future version could set a default transport here to wrap this, but
+    // it would be a breaking change
+    this.capability = capability;
+    this.invocationSigner = invocationSigner;
     this.httpsAgent = httpsAgent;
     this.defaultHeaders = {...DEFAULT_HEADERS, ...defaultHeaders};
-    this._rootZcapId = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(this.id)}`;
   }
 
   /**
-   * Ensures that future documents inserted or updated using this Edv
-   * instance will be indexed according to the given attribute, provided that
-   * they contain that attribute. Compound indexes can be specified by
-   * providing an array for `attribute`.
-   *
-   * @param {object} options - The options to use.
-   * @param {string|Array} options.attribute - The attribute name or an array of
-   *   attribute names to create a unique compound index.
-   * @param {boolean} [options.unique=false] - Should be `true` if the index is
-   *   considered unique, `false` if not.
-   *
-   * @returns {undefined}
-
-   */
-  ensureIndex({attribute, unique = false} = {}) {
-    return this.indexHelper.ensureIndex({attribute, unique});
-  }
-
-  /**
-   * Encrypts and inserts a document into the EDV if it does not already
-   * exist. If a document matching its ID already exists, a `DuplicateError` is
-   * thrown. If a `stream` is given, the document will be inserted, then
-   * the stream will be read, chunked, and stored. Finally, the document will
-   * be updated to include meta data about the stored data from the stream,
-   * including a message digest.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to insert.
@@ -105,100 +84,37 @@ export class EdvClient {
    *   set, an error will be thrown.
    * @param {Function} [options.keyResolver=this.keyResolver] - A function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {object} [options.keyAgreementKey=null] - A default KeyAgreementKey
-   *   API for deriving shared KEKs for wrapping content encryption keys.
+   * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
+   *   KeyAgreementKey API for deriving shared KEKs for wrapping content
+   *   encryption keys.
    * @param {object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<object>} - Resolves to the inserted document.
    */
   async insert({
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac,
-    capability, invocationSigner
+    capability = this.capability, invocationSigner = this.invocationSigner
   } = {}) {
-    _assertDocument(doc);
-    _assertInvocationSigner(invocationSigner);
-
-    doc = {...doc};
-    // auto generate document ID
-    if(doc.id === undefined) {
-      doc.id = await EdvClient.generateId();
-    }
-
-    let url = this._getDocUrl(doc.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    // trim document ID and trailing slash, if present, to post to root
-    // collection
-    if(url.endsWith(doc.id)) {
-      url = url.substr(0, url.length - doc.id.length - 1);
-    }
-    // if no recipients specified, add default
-    if(recipients.length === 0 && keyAgreementKey) {
-      recipients = this._createDefaultRecipients(keyAgreementKey);
-    }
-    // if a stream was specified, indicate a new stream of data will be
-    // associated with this document
-    if(stream) {
-      // specify stream information
-      doc.stream = {
-        pending: true
-      };
-      keyResolver = _createCachedKeyResolver(keyResolver);
-    }
-    const encrypted = await this._encrypt(
-      {doc, recipients, keyResolver, hmac, update: false});
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {agent, json: encrypted, headers});
-
-      encrypted.content = doc.content;
-      encrypted.meta = doc.meta;
-      if(doc.stream !== undefined) {
-        encrypted.stream = doc.stream;
-      }
-      let result = encrypted;
-
-      // if a `stream` was given, update it
-      if(stream) {
-        result = await this._updateStream({
-          doc: encrypted, stream, chunkSize,
-          recipients: recipients.slice(), keyResolver,
-          keyAgreementKey, capability, invocationSigner
-        });
-      }
-      return result;
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
+    });
+    return super.insert({
+      doc, stream, chunkSize, recipients, keyResolver, keyAgreementKey,
+      hmac, transport
+    });
   }
 
   /**
-   * Encrypts and updates a document in the EDV. If the document does not
-   * already exist, it is created. If a `stream` is provided, the document
-   * will be updated twice, once using the given update and a second time
-   * once the stream has been read, chunked, and stored to include meta data
-   * information such as the stream data's message digest.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to insert.
@@ -212,140 +128,66 @@ export class EdvClient {
    *   `encryptedDoc.jwe.recipients` field.
    * @param {Function} [options.keyResolver=this.keyResolver] - A function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {object} [options.keyAgreementKey=null] - A default KeyAgreementKey
-   *   API for deriving shared KEKs for wrapping content encryption keys.
+   * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
+   *   KeyAgreementKey API for deriving shared KEKs for wrapping content
+   *   encryption keys.
    * @param {object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<object>} - Resolves to the updated document.
    */
   async update({
     doc, stream, chunkSize, recipients = [], keyResolver = this.keyResolver,
     keyAgreementKey = this.keyAgreementKey,
-    hmac = this.hmac, capability, invocationSigner
+    hmac = this.hmac, capability = this.capability,
+    invocationSigner = this.invocationSigner
   } = {}) {
-    _assertDocument(doc);
-    _assertDocId(doc.id);
-    _assertInvocationSigner(invocationSigner);
-
-    // if no recipients specified, add default
-    if(recipients.length === 0 && keyAgreementKey) {
-      recipients = this._createDefaultRecipients(keyAgreementKey);
-    }
-    // if a stream was specified, indicate a new stream of data will be
-    // associated with this document
-    if(stream) {
-      // specify stream information
-      doc.stream = {
-        pending: true
-      };
-      keyResolver = _createCachedKeyResolver(keyResolver);
-    }
-    const encrypted = await this._encrypt(
-      {doc, recipients, keyResolver, hmac, update: true});
-    const url = this._getDocUrl(encrypted.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {agent, json: encrypted, headers});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
-    encrypted.content = doc.content;
-    encrypted.meta = doc.meta;
-    if(doc.stream !== undefined) {
-      encrypted.stream = doc.stream;
-    }
-    let result = encrypted;
-
-    // if a `stream` was given, update it
-    if(stream) {
-      result = await this._updateStream({
-        doc: encrypted, stream, chunkSize,
-        recipients: recipients.slice(), keyResolver,
-        keyAgreementKey, hmac, capability, invocationSigner
-      });
-    }
-
-    return result;
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
+    });
+    return super.update({
+      doc, stream, chunkSize, recipients, keyResolver, keyAgreementKey,
+      hmac, transport
+    });
   }
 
   /**
-   * Updates an index for the given document, without updating the document
-   * contents itself. An index entry will be updated and sent to the EDV; its
-   * sequence number must match the document's current sequence number or the
-   * update will be rejected with an `InvalidStateError`. Recovery from this
-   * error requires fetching the latest document and trying again.
-   *
-   * Note: If the index does not exist or the document does not have an
-   * existing entry for the index, it will be added.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to create or update an index
    *   for.
    * @param {object} [options.hmac=this.hmac] - An HMAC API for blinding
    *   indexable attributes.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise} - Resolves once the operation completes.
    */
   async updateIndex({
-    doc, hmac = this.hmac, capability, invocationSigner
+    doc, hmac = this.hmac,
+    capability = this.capability, invocationSigner = this.invocationSigner
   } = {}) {
-    _assertDocument(doc);
-    _assertDocId(doc.id);
-    _assertInvocationSigner(invocationSigner);
-    _checkIndexing(hmac);
-
-    const url = this._getDocUrl(doc.id, capability) + '/index';
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    const entry = await this.indexHelper.createEntry({hmac, doc});
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: entry, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {headers, json: entry, agent});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
-    return;
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
+    });
+    return super.updateIndex({doc, hmac, transport});
   }
 
   /**
-   * Deletes a document from the EDV.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to delete.
@@ -353,137 +195,93 @@ export class EdvClient {
    *   encrypt the document for; if present, recipients will be added to
    *   any existing recipients; to remove existing recipients, modify
    *   the `encryptedDoc.jwe.recipients` field.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    * @param {Function} [options.keyResolver=this.keyResolver] - A function that
    *   returns a Promise that resolves a key ID to a DH public key.
-   * @param {object} [options.keyAgreementKey=null] - A default KeyAgreementKey
-   *   API for deriving shared KEKs for wrapping content encryption keys.
+   * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
+   *   KeyAgreementKey API for deriving shared KEKs for wrapping content
+   *   encryption keys.
    *
    * @returns {Promise<boolean>} - Resolves to `true` if the document was
    *   deleted.
    */
   async delete({
-    doc, recipients = [], capability, invocationSigner,
+    doc, recipients = [],
+    capability = this.capability, invocationSigner = this.invocationSigner,
     keyResolver = this.keyResolver, keyAgreementKey = this.keyAgreementKey
   } = {}) {
-    _assertDocument(doc);
-    _assertDocId(doc.id);
-    _assertInvocationSigner(invocationSigner);
-
-    // clear document, preserving only its `id`, `sequence`, and previous
-    // encrypted data (to be used to preserve recipients)
-    const {id, sequence, jwe} = doc;
-    doc = {id, sequence, jwe, content: {}, meta: {deleted: true}};
-
-    await this.update({
-      doc, recipients, keyResolver, keyAgreementKey, capability,
-      invocationSigner
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
-
-    return true;
+    return super.delete(
+      {doc, recipients, keyResolver, keyAgreementKey, transport});
   }
 
   /**
-   * Gets a document from the EDV by its ID.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {string} options.id - The ID of the document to get.
    * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<object>} - Resolves to the document.
    */
   async get({
-    id, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
+    id, keyAgreementKey = this.keyAgreementKey,
+    capability = this.capability, invocationSigner = this.invocationSigner
   } = {}) {
-    _assert(id, 'id', 'string');
-    _assertInvocationSigner(invocationSigner);
-
-    const url = this._getDocUrl(id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    let response;
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: this.defaultHeaders,
-        capability, invocationSigner,
-        capabilityAction: 'read'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      response = await httpClient.get(url, {headers, agent});
-    } catch(e) {
-      if(e.status === 404) {
-        const err = new Error('Document not found.');
-        err.name = 'NotFoundError';
-        throw err;
-      }
-      throw e;
-    }
-    return this._decrypt({encryptedDoc: response.data, keyAgreementKey});
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
+    });
+    return super.get({id, keyAgreementKey, transport});
   }
 
   /**
-   * Gets a `ReadableStream` to read the chunked data associated with a
-   * document.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.doc - The document to get a stream for.
    * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
    *   KeyAgreementKey API for deriving a shared KEK to unwrap the content
    *   encryption key.
-   * @param {string} [options.capability=undefined] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<ReadableStream>} - Resolves to a `ReadableStream` to read
    *   the chunked data from.
    */
   async getStream({
-    doc, keyAgreementKey = this.keyAgreementKey, capability, invocationSigner
+    doc, keyAgreementKey = this.keyAgreementKey,
+    capability = this.capability, invocationSigner = this.invocationSigner
   } = {}) {
-    _assert(doc, 'doc', 'object');
-    _assertDocId(doc.id);
-    _assert(doc.stream, 'doc.stream', 'object');
-    _assertInvocationSigner(invocationSigner);
-
-    const self = this;
-    const {cipher} = this;
-    const state = doc.stream;
-    let chunkIndex = 0;
-    const stream = new ReadableStream({
-      async pull(controller) {
-        // Note: user will call `read` on the decrypt stream... which will
-        // trigger a pull here
-        if(chunkIndex >= state.chunks) {
-          // done
-          controller.close();
-          return;
-        }
-        // get next chunk and enqueue it for reading
-        const chunk = await self._getChunk(
-          {doc, chunkIndex, capability, invocationSigner});
-        chunkIndex++;
-        controller.enqueue(chunk);
-      }
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
-    const decryptStream = await cipher.createDecryptStream({keyAgreementKey});
-    return stream.pipeThrough(decryptStream);
+    return super.getStream({doc, keyAgreementKey, transport});
   }
 
   /**
-   * Counts how many documents match a query in an EDV.
+   * @inheritdoc
    *
    * @see find - For more detailed documentation on the search options.
    *
@@ -497,10 +295,11 @@ export class EdvClient {
    *   attribute pairs to match or an array of such objects.
    * @param {string|Array} [options.has] - A string with an attribute name to
    *   match or an array of such strings.
-   * @param {string} [options.capability] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<number>} - Resolves to the number of matching documents.
   */
@@ -508,28 +307,16 @@ export class EdvClient {
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
     capability, invocationSigner
   } = {}) {
-    const {count} = await this.find({
-      keyAgreementKey, hmac, equals, has,
-      capability, invocationSigner, count: true
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
-    return count;
+    return super.count({keyAgreementKey, hmac, equals, has, transport});
   }
 
   /**
-   * Finds documents based on their attributes. Currently, matching can be
-   * performed using an `equals` or a `has` filter (but not both at once).
-   *
-   * The `equals` filter is an object with key-value attribute pairs. Any
-   * document that matches *all* given key-value attribute pairs will be
-   * returned. If equals is an array, it may contain multiple such filters --
-   * whereby the results will be all documents that matched any one of the
-   * filters. If the document's value for a matching a key is an array and
-   * the array contains a matching value, the document will be considered
-   * a match (provided that other key-value attribute pairs also match).
-   *
-   * The `has` filter is a string representing the attribute name or an
-   * array of such strings. If an array is used, then the results will only
-   * contain documents that possess *all* of the attributes listed.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} [options.keyAgreementKey=this.keyAgreementKey] - A
@@ -541,10 +328,11 @@ export class EdvClient {
    *   attribute pairs to match or an array of such objects.
    * @param {string|Array} [options.has] - A string with an attribute name to
    *   match or an array of such strings.
-   * @param {string} [options.capability] - The OCAP-LD authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    * @param {boolean} [options.count] - Set to `false` to find all documents
    *   that match a query or to `true` to give a count of documents.
    *
@@ -553,167 +341,94 @@ export class EdvClient {
    */
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
-    capability, invocationSigner, count = false
+    capability = this.capability, invocationSigner = this.invocationSigner,
+    count = false
   } = {}) {
-    _assertInvocationSigner(invocationSigner);
-    _checkIndexing(hmac);
-    const query = await this.indexHelper.buildQuery({hmac, equals, has});
-
-    if(count) {
-      query.count = true;
-    }
-    // get results and decrypt them
-    let url = EdvClient._getInvocationTarget({capability});
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    url = url || `${this.id}/query`;
-    // capability with a target of `/documents` can be used to query
-    if(url.endsWith('/documents')) {
-      url = url.substr(0, url.length - 10) + '/query';
-    }
-    // sign HTTP header
-    const headers = await signCapabilityInvocation({
-      url, method: 'post', headers: this.defaultHeaders,
-      json: query, capability, invocationSigner,
-      capabilityAction: 'read'
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
-    // send request
-    const {httpsAgent: agent} = this;
-    const response = await httpClient.post(url, {headers, json: query, agent});
-    if(count === true) {
-      return response.data;
-    }
-    const {data: {documents}} = response;
-
-    const decryptedDocs = await Promise.all(documents.map(
-      encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
-
-    return {documents: decryptedDocs};
+    return super.find({keyAgreementKey, hmac, equals, has, count, transport});
   }
 
   /**
-   * Gets the configuration for an EDV.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
-   * @param {string} [options.capability] - The authorization capability to
-   *   use to authorize the invocation of this operation.
-   * @param {object} [options.headers=undefined] - An optional
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.headers] - An optional
    *   headers object to use when making requests.
-   * @param {object} [options.invocationSigner] - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<object>} - Resolves to the configuration for the EDV.
    */
-  async getConfig({capability, headers, invocationSigner} = {}) {
-    const {id} = this;
-    if(!(id || capability)) {
-      throw new TypeError(
-        '"capability" is required if "id" was not provided ' +
-        'to the EdvClient constructor.');
-    }
-
-    let url;
-    if(capability) {
-      url = EdvClient._getInvocationTarget({capability});
-    } else {
-      url = id;
-      capability = this._rootZcapId;
-    }
-
-    const {defaultHeaders, httpsAgent: agent} = this;
-
-    if(!invocationSigner) {
-      // send request w/o zcap invocation
-      const response = await httpClient.get(url, {
-        headers: {...defaultHeaders, ...headers},
-        agent: this.httpsAgent
-      });
-      return response.data;
-    }
-
-    _assertInvocationSigner(invocationSigner);
-
-    // send request w/ zcap invocation
-    const signedHeaders = await signCapabilityInvocation({
-      url, method: 'get',
-      headers: {...defaultHeaders, ...headers},
-      capability,
-      invocationSigner,
-      capabilityAction: 'read'
+  async getConfig({
+    capability = this.capability, headers,
+    invocationSigner = this.invocationSigner
+  } = {}) {
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders: {...defaultHeaders, ...headers},
+      edvId, httpsAgent, invocationSigner
     });
-    const result = await httpClient.get(url, {agent, headers: signedHeaders});
-    return result.data;
+    return super.getConfig({transport});
   }
 
   /**
-   * Updates an EDV configuration. The new configuration `sequence` must
-   * be incremented by `1` over the previous configuration or the update will
-   * fail.
+   * @inheritdoc
    *
    * @param {object} options - The options to use.
    * @param {object} options.config - The new EDV config.
-   * @param {string} [options.capability] - The authorization capability to
-   *   use to authorize the invocation of this operation.
-   * @param {object} [options.headers=undefined] - An optional
-   *   headers object to use when making requests.
-   * @param {object} [options.invocationSigner] - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {object|string} [options.capability=this.capability] - The
+   *   authorization capability (zcap) to use to authorize the operation.
+   * @param {object} [options.headers] - An optional headers object to use when
+   *   making requests.
+   * @param {object} [options.invocationSigner=this.invocationSigner] - An API
+   *   with an `id` property and a `sign` function for signing a capability
+   *   invocation.
    *
    * @returns {Promise<void>} - Resolves once the operation completes.
    */
-  async updateConfig({config, capability, headers, invocationSigner} = {}) {
-    if(!(config && typeof config === 'object')) {
-      throw new TypeError('"config" must be an object.');
-    }
-    if(!(config.controller && typeof config.controller === 'string')) {
-      throw new TypeError('"config.controller" must be a string.');
-    }
-
-    const {id} = this;
-    if(!(id || capability)) {
-      throw new TypeError(
-        '"capability" is required if "id" was not provided ' +
-        'to the EdvClient constructor.');
-    }
-
-    let url;
-    if(capability) {
-      url = EdvClient._getInvocationTarget({capability});
-    } else {
-      url = id;
-      capability = this._rootZcapId;
-    }
-
-    const {defaultHeaders, httpsAgent: agent} = this;
-
-    if(!invocationSigner) {
-      // send request w/o zcap invocation
-      await httpClient.post(url, {
-        headers: {...defaultHeaders, ...headers},
-        json: config,
-        agent
-      });
-    }
-
-    _assertInvocationSigner(invocationSigner);
-
-    // send request w/ zcap invocation
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'post',
-      headers: {...defaultHeaders, ...headers},
-      capability,
-      invocationSigner,
-      capabilityAction: 'write',
-      json: config
+  async updateConfig({
+    config, capability = this.capability, headers,
+    invocationSigner = this.invocationSigner
+  } = {}) {
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders: {...defaultHeaders, ...headers},
+      edvId, httpsAgent, invocationSigner
     });
-    // send request w/o zcap invocation
-    await httpClient.post(url, {
-      headers: signedHeaders,
-      json: config,
-      agent
+    return super.updateConfig({config, transport});
+  }
+
+  /**
+   * Revoke an authorization capability (zcap). If no `capability` is passed,
+   * then the root zcap for the revocation endpoint will be invoked.
+   *
+   * @param {object} options - The options to use.
+   * @param {object} options.capabilityToRevoke - The capability to revoke.
+   * @param {object|string} [options.capability] - The authorization capability
+   *   (zcap) to use to authorize the operation.
+   * @param {object} options.invocationSigner - An API with an
+   *   `id` property and a `sign` function for signing a capability invocation.
+   *
+   * @returns {Promise<object>} Resolves once the operation completes.
+   */
+  async revokeCapability({
+    capabilityToRevoke, capability, invocationSigner
+  } = {}) {
+    assertInvocationSigner(invocationSigner);
+    const {defaultHeaders, httpsAgent, id: edvId} = this;
+    const transport = new HttpsTransport({
+      capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
+    // no `super` method for revoking a zcap, call on `transport`
+    return transport.revokeCapability({capabilityToRevoke});
   }
 
   /**
@@ -722,12 +437,11 @@ export class EdvClient {
    * @param {object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
    * @param {string} options.config - The EDV's configuration.
-   * @param {string|object} [options.capability] - A zCap authorizing the
-   *   creation of an EDV. Defaults to a root capability derived from
-   *   the `url` parameter.
+   * @param {object|string} [options.capability] - The authorization capability
+   *   (zcap) to use to authorize the operation.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
-   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
+   * @param {HttpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
@@ -736,59 +450,13 @@ export class EdvClient {
    *   created EDV.
    */
   static async createEdv({
-    url, config, httpsAgent, headers, invocationSigner, capability
+    url, config, capability, httpsAgent, headers, invocationSigner
   } = {}) {
-    if(url) {
-      _assert(url, 'url', 'string');
-    }
-
-    // TODO: more robustly validate `config` (`keyAgreementKey`,
-    // `hmac`, if present, etc.)
-    if(!(config && typeof config === 'object')) {
-      throw new TypeError('"config" must be an object.');
-    }
-    if(!(config.controller && typeof config.controller === 'string')) {
-      throw new TypeError('"config.controller" must be a string.');
-    }
-
-    if(!url) {
-      url = EdvClient._getInvocationTarget({capability});
-      if(!url) {
-        url = url || '/edvs';
-        url = _createAbsoluteUrl(url);
-      }
-    }
-
-    // no invocationSigner was provided, submit the request without a zCap
-    if(!invocationSigner) {
-      const response = await httpClient.post(url, {
-        headers: {...DEFAULT_HEADERS, ...headers},
-        json: config,
-        agent: httpsAgent
-      });
-      return response.data;
-    }
-
-    _assertInvocationSigner(invocationSigner);
-
-    if(!capability) {
-      capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
-    }
-
-    // sign HTTP header
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'post',
-      headers: {...DEFAULT_HEADERS, ...headers},
-      capability,
-      invocationSigner,
-      capabilityAction: 'write',
-      json: config,
+    const transport = new HttpsTransport({
+      url, capability, defaultHeaders: headers,
+      httpsAgent, invocationSigner
     });
-    const response = await httpClient.post(url, {
-      headers: signedHeaders, json: config, agent: httpsAgent
-    });
-    return response.data;
+    return transport.createEdv({config});
   }
 
   /**
@@ -798,15 +466,14 @@ export class EdvClient {
    * @param {string} options.url - The url to query.
    * @param {string} options.controller - The ID of the controller.
    * @param {string} options.referenceId - A controller-unique reference ID.
-   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
+   * @param {HttpsAgent} [options.httpsAgent] - An optional
    *   node.js `https.Agent` instance to use when making requests.
-   * @param {object} [options.headers=undefined] - An optional
+   * @param {object} [options.headers] - An optional
    *   headers object to use when making requests.
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
-   * @param {string|object} [options.capability] - A zCap authorizing read
-   *   access to an EDV config. Defaults to a root capability derived from
-   *   the `url` parameter.
+   * @param {object|string} [options.capability] - The authorization capability
+   *   (zcap) to use to authorize the operation.
    *
    * @returns {Promise<object>} - Resolves to the EDV configuration
    *   containing the given controller and reference ID.
@@ -831,15 +498,14 @@ export class EdvClient {
    * @param {string} [options.referenceId] - A controller-unique reference ID.
    * @param {string} [options.after] - An EDV's ID.
    * @param {number} [options.limit] - How many EDV configs to return.
-   * @param {httpsAgent} [options.httpsAgent=undefined] - An optional
+   * @param {HttpsAgent} [options.httpsAgent=undefined] - An optional
    *   node.js `https.Agent` instance to use when making requests.
    * @param {object} [options.headers=undefined] - An optional
    *   headers object to use when making requests.
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
-   * @param {string|object} [options.capability] - A zCap authorizing read
-   *   access to an EDV config. Defaults to a root capability derived from
-   *   the `url` parameter.
+   * @param {object|string} [options.capability] - The authorization capability
+   *   (zcap) to use to authorize the operation.
    *
    * @returns {Promise<Array>} - Resolves to the matching EDV configurations.
    */
@@ -847,61 +513,10 @@ export class EdvClient {
     url, controller, referenceId, after, limit, httpsAgent,
     headers, capability, invocationSigner
   } = {}) {
-    if(url) {
-      _assert(url, 'url', 'string');
-    }
-
-    if(!url) {
-      url = EdvClient._getInvocationTarget({capability});
-      if(!url) {
-        url = url || '/edvs';
-        url = _createAbsoluteUrl(url);
-      }
-    }
-
-    // no invocationSigner was provided, submit the request without a zCap
-
-    if(!invocationSigner) {
-      const searchParams = {controller, referenceId, after, limit};
-      // eliminate undefined properties, otherwise http-client will encode
-      // undefined properties as the string literal 'undefined'
-      Object.keys(searchParams).forEach(
-        key => searchParams[key] === undefined && delete searchParams[key]);
-
-      const response = await httpClient.get(url, {
-        searchParams,
-        headers: {...DEFAULT_HEADERS, ...headers},
-        agent: httpsAgent
-      });
-      return response.data;
-    }
-
-    _assertInvocationSigner(invocationSigner);
-
-    if(!capability) {
-      capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
-    }
-
-    // sign HTTP header
-    const params = new URLSearchParams(Object.fromEntries(
-      Object.entries({controller, referenceId, after, limit})
-        // eslint-disable-next-line no-unused-vars
-        .filter(([k, v]) => v !== undefined)));
-    url += `?${params}`;
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'get',
-      headers: {...DEFAULT_HEADERS, ...headers},
-      capability,
-      invocationSigner,
-      capabilityAction: 'read',
+    const transport = new HttpsTransport({
+      url, capability, defaultHeaders: headers, httpsAgent, invocationSigner
     });
-
-    const response = await httpClient.get(url, {
-      headers: signedHeaders,
-      agent: httpsAgent
-    });
-    return response.data;
+    return transport.findConfigs({controller, referenceId, after, limit});
   }
 
   /**
@@ -910,436 +525,25 @@ export class EdvClient {
    * @returns {Promise<string>} - Resolves to the identifier.
    */
   static async generateId() {
-    // 128-bit random number, multibase encoded
-    // 0x00 = identity tag, 0x10 = length (16 bytes) + 16 random bytes
-    const buf = new Uint8Array(18);
-    buf[0] = 0x00;
-    buf[1] = 0x10;
-    const random = new Uint8Array(buf.buffer, buf.byteOffset + 2, 16);
-    await getRandomBytes(random);
-    // multibase encoding for base58 starts with 'z'
-    return 'z' + base58.encode(buf);
+    return EdvClientCore.generateId();
   }
 
-  /**
-   * Store a capability revocation.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.capabilityToRevoke - The capability to revoke.
-   * @param {string} [options.capability=undefined] - The zcap authorization
-   *   capability to use to authorize the invocation of this operation.
-   * @param {object} options.invocationSigner - An API with an
-   *   `id` property and a `sign` function for signing a capability invocation.
-   *
-   * @returns {Promise<object>} Resolves once the operation completes.
-   */
-  async revokeCapability({
-    capabilityToRevoke, capability, invocationSigner
-  } = {}) {
-    _assert(capabilityToRevoke, 'capabilityToRevoke', 'object');
-    _assertInvocationSigner(invocationSigner);
-
-    let {id: edvId} = this;
-    if(!edvId && !(capability && typeof capability === 'object')) {
-      // since no `edvId` was set and no `capability` with an invocation
-      // target that can be parsed was given, get the EDV ID from the
-      // capability that is to be revoked -- presuming it is a document (if
-      // revoking any other capability, the `keystoreId` must be set or a
-      // `capability` passed to invoke)
-      const invocationTarget = EdvClient._getInvocationTarget(
-        {capability: capabilityToRevoke});
-      const idx = invocationTarget.lastIndexOf('/documents');
-      if(idx === -1) {
-        throw new Error(
-          `Invalid EDV invocation target (${invocationTarget}).`);
-      }
-      edvId = invocationTarget.substr(0, idx);
-    }
-
-    const url = EdvClient._getInvocationTarget({capability}) ||
-      `${edvId}/revocations/${encodeURIComponent(capabilityToRevoke.id)}`;
-    if(!capability) {
-      capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
-    }
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: capabilityToRevoke, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {headers, json: capabilityToRevoke, agent});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  // helper to create default recipients
-  _createDefaultRecipients(keyAgreementKey) {
-    return keyAgreementKey ? [{
-      header: {
-        kid: keyAgreementKey.id,
-        // only supported algorithm
-        alg: 'ECDH-ES+A256KW'
-      }
-    }] : [];
-  }
-
-  // helper that decrypts an encrypted doc to include its (cleartext) content
-  async _decrypt({encryptedDoc, keyAgreementKey}) {
-    // validate `encryptedDoc`
-    _assert(encryptedDoc, 'encryptedDoc', 'object');
-    _assert(encryptedDoc.id, 'encryptedDoc.id', 'string');
-    _assert(encryptedDoc.jwe, 'encryptedDoc.jwe', 'object');
-
-    // decrypt doc content
-    const {cipher} = this;
-    const {jwe} = encryptedDoc;
-    const data = await cipher.decryptObject({jwe, keyAgreementKey});
-    if(data === null) {
-      throw new Error('Decryption failed.');
-    }
-    const {content, meta, stream} = data;
-    // append decrypted content, meta, and stream
-    const doc = {...encryptedDoc, content, meta};
-    if(stream !== undefined) {
-      doc.stream = stream;
-    }
-    return doc;
-  }
-
-  // helper that creates an encrypted doc using a doc's (clear) content,
-  // meta, and stream ... and blinding any attributes for indexing
-  async _encrypt({doc, recipients, keyResolver, hmac, update}) {
-    const encrypted = {...doc};
-    if(!encrypted.meta) {
-      encrypted.meta = {};
-    }
-
-    /* Note: There is an assumption that EDVs will be ported in their
-    entirety. If the contents of a single EDV document is to be copied to
-    another EDV, it should receive a new EDV document ID on the target EDV. No
-    EDV document with the same ID should live on more than one EDV unless those
-    EDVs are intended to be mirrors of one another. This reduces
-    synchronization issues to a sequence number instead of something more
-    complicated involving digests and other synchronization complexities. */
-
-    if(update) {
-      if('sequence' in encrypted) {
-        // Sequence is limited to MAX_SAFE_INTEGER - 1 to avoid unexpected
-        // behavior when a client attempts to increment the sequence number.
-        if(!Number.isSafeInteger(encrypted.sequence) ||
-          !(encrypted.sequence < Number.MAX_SAFE_INTEGER - 1)) {
-          throw new Error('"sequence" is too large.');
-        }
-        encrypted.sequence++;
-      } else {
-        encrypted.sequence = 0;
-      }
-    } else {
-      // sequence must be zero for new docs
-      if('sequence' in encrypted && encrypted.sequence !== 0) {
-        throw new Error(
-          `Invalid "sequence" for a new document: ${encrypted.sequence}.`);
-      }
-      encrypted.sequence = 0;
-    }
-
-    const {cipher, indexHelper} = this;
-
-    // include existing recipients
-    if(encrypted.jwe && encrypted.jwe.recipients) {
-      const prev = encrypted.jwe.recipients.slice();
-      if(recipients) {
-        // add any new recipients
-        for(const recipient of recipients) {
-          if(!_findRecipient(prev, recipient)) {
-            prev.push(recipient);
-          }
-        }
-      }
-      recipients = prev;
-    } else if(!(Array.isArray(recipients) && recipients.length > 0)) {
-      throw new TypeError('"recipients" must be a non-empty array.');
-    }
-
-    // update indexed entries and jwe
-    const {content, meta, stream} = doc;
-    const obj = {content, meta};
-    if(stream !== undefined) {
-      obj.stream = stream;
-    }
-    const [indexed, jwe] = await Promise.all([
-      hmac ? indexHelper.updateEntry({hmac, doc: encrypted}) :
-        (doc.indexed || []),
-      cipher.encryptObject({obj, recipients, keyResolver})
-    ]);
-    delete encrypted.content;
-    delete encrypted.meta;
-    if(encrypted.stream) {
-      encrypted.stream = {
-        sequence: encrypted.stream.sequence,
-        chunks: encrypted.stream.chunks
-      };
-    }
-    encrypted.indexed = indexed;
-    encrypted.jwe = jwe;
-    return encrypted;
-  }
-
-  // helper that gets a document URL from a document ID
+  // not used internally, but provided as a temporary backwards compatibility
+  // helper
   _getDocUrl(id, capability) {
-    if(capability && !this.id) {
-      const target = EdvClient._getInvocationTarget({capability});
-      // target is the entire documents collection
-      if(target.endsWith('/documents')) {
-        return `${target}/${id}`;
-      }
-      return target;
-    }
-    return `${this.id}/documents/${id}`;
+    return new HttpsTransport({edvId: this.id})._getDocUrl(id, capability);
   }
 
-  // helper that creates or updates a stream of data associated with a doc
-  async _updateStream({
-    doc, stream, chunkSize = DEFAULT_CHUNK_SIZE,
-    recipients, keyResolver, keyAgreementKey, hmac,
-    capability, invocationSigner
-  }) {
-    const {cipher} = this;
-    const encryptStream = await cipher.createEncryptStream(
-      {recipients, keyResolver, chunkSize});
-
-    // // TODO: tee `stream` to digest stream as well
-    // const [forDigest, forStorage] = stream.tee();
-    // const digestPromise = forDigest.pipeTo(_createDigestStream());
-
-    // pipe user supplied `stream` through the encrypt stream
-    //const readable = forStorage.pipeThrough(encryptStream);
-    const readable = stream.pipeThrough(encryptStream);
-    const reader = readable.getReader();
-
-    // continually read from encrypt stream and upload result
-    let value;
-    let done;
-    let chunks = 0;
-    while(!done) {
-      // read next encrypted chunk
-      ({value, done} = await reader.read());
-      if(!value) {
-        break;
-      }
-
-      // create chunk
-      chunks++;
-      const chunk = {
-        sequence: doc.sequence,
-        ...value,
-      };
-
-      // TODO: in theory could do encryption and sending in parallel, they
-      // are safely independent operations, consider this optimization
-      await this._storeChunk({doc, chunk, capability, invocationSigner});
-    }
-
-    // TODO: await digest from tee'd stream
-    // const contentHash = await digestPromise();
-
-    // write total number of chunks and digest of plaintext in doc update
-    doc.stream = {
-      sequence: doc.sequence,
-      chunks,
-      //contentHash
-    };
-    return this.update({
-      doc, recipients, keyResolver, keyAgreementKey, hmac,
-      capability, invocationSigner
-    });
-  }
-
-  async _storeChunk({doc, chunk, capability, invocationSigner}) {
-    let url = this._getDocUrl(doc.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    // append `/chunks/<chunkIndex>`
-    const {index} = chunk;
-    url += `/chunks/${index}`;
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: this.defaultHeaders,
-        json: chunk, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      await httpClient.post(url, {headers, json: chunk, agent});
-    } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  async _getChunk({doc, chunkIndex, capability, invocationSigner}) {
-    let url = this._getDocUrl(doc.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    // append `/chunks/<chunkIndex>`
-    url += `/chunks/${chunkIndex}`;
-    let response;
-    try {
-      // sign HTTP header
-      const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: this.defaultHeaders,
-        capability, invocationSigner,
-        capabilityAction: 'read'
-      });
-      // send request
-      const {httpsAgent: agent} = this;
-      response = await httpClient.get(url, {headers, agent});
-    } catch(e) {
-      response = e.response || {};
-      if(response.status === 404) {
-        const err = new Error('Document chunk not found.');
-        err.name = 'NotFoundError';
-        throw err;
-      }
-      throw e;
-    }
-    // TODO: validate response.data
-
-    // return chunk
-    return response.data;
-  }
-
+  // provided temporarily for backwards compatibility; should be moved to
+  // a separate helpers file
   static _getInvocationTarget({capability}) {
-    // no capability, so no invocation target
-    if(capability === undefined || capability === null) {
-      return null;
-    }
-
-    let invocationTarget;
-    if(typeof capability === 'string') {
-      if(!capability.startsWith(ZCAP_ROOT_PREFIX)) {
-        throw new Error(
-          'If "capability" is a string, it must be a root capability.');
-      }
-      invocationTarget = decodeURIComponent(
-        capability.substring(ZCAP_ROOT_PREFIX));
-    } else if(typeof capability === 'object') {
-      ({invocationTarget} = capability);
-    }
-
-    if(!(typeof invocationTarget === 'string' &&
-      invocationTarget.includes(':'))) {
-      throw new TypeError(
-        '"invocationTarget" from capability must be an "https" URL.');
-    }
-
-    return invocationTarget;
+    return HttpsTransport._getInvocationTarget({capability});
   }
 }
 
-function _checkIndexing(hmac) {
-  if(!hmac) {
-    throw Error('Indexing disabled; no HMAC specified.');
-  }
-}
-
-function _assertDocument(doc) {
-  _assert(doc, 'doc', 'object');
-  const {id, content, meta = {}, stream} = doc;
-  if(id !== undefined) {
-    _assertDocId(doc.id);
-  }
-  _assert(content, 'content', 'object');
-  _assert(meta, 'meta', 'object');
-  if(stream !== undefined) {
-    _assert(stream, 'stream', 'object');
-  }
-}
-
-function _assertDocId(id) {
-  try {
-    // verify ID is multibase base58-encoded 16 bytes
-    const buf = base58.decode(id.substr(1));
-    // multibase base58 (starts with 'z')
-    // 128-bit random number, multibase encoded
-    // 0x00 = identity tag, 0x10 = length (16 bytes) + 16 random bytes
-    if(!(id.startsWith('z') &&
-      buf.length === 18 && buf[0] === 0x00 && buf[1] === 0x10)) {
-      throw new Error('Invalid document ID.');
-    }
-  } catch(e) {
-    throw new Error(`Document ID "${id}" must be a multibase, base58-encoded ` +
-      'array of 16 random bytes.');
-  }
-}
-
-function _assertInvocationSigner(invocationSigner) {
-  _assert(invocationSigner, 'invocationSigner', 'object');
-  const {id, sign} = invocationSigner;
-  _assert(id, 'invocationSigner.id', 'string');
-  _assert(sign, 'invocationSigner.sign', 'function');
-}
-
-function _assert(variable, name, types) {
-  if(!Array.isArray(types)) {
-    types = [types];
-  }
-  const type = variable instanceof Uint8Array ? 'Uint8Array' : typeof variable;
-  if(!types.includes(type) ||
-    // an object must not falsey nor an array
-    (type === 'object' && (!variable || Array.isArray(variable)))) {
-    throw new TypeError(
-      `"${name}" must be ${types.length === 1 ? 'a' : 'one of'} ` +
-      `${types.join(', ')}.`);
-  }
-}
-
-function _findRecipient(recipients, recipient) {
-  const {kid, alg} = recipient.header;
-  return recipients.find(
-    r => r.header.kid === kid && r.header.alg === alg);
-}
-
-function _createCachedKeyResolver(keyResolver) {
-  const cache = {};
-  return async ({id}) => {
-    let key = cache[id];
-    if(key) {
-      return key;
-    }
-    key = await keyResolver({id});
-    if(key) {
-      cache[id] = key;
-    }
-    return key;
-  };
-}
-
-function _createAbsoluteUrl(url) {
-  if(url.includes(':')) {
-    return url;
-  }
-  // eslint-disable-next-line no-undef
-  if(typeof self !== 'undefined') {
-    // eslint-disable-next-line no-undef
-    return `${self.location.origin}${url}`;
-  }
-  throw new Error('"url" must be an absolute URL.');
-}
+/**
+ * A node.js HTTPS agent.
+ *
+ * @typedef {object} HttpsAgent
+ * @see https://nodejs.org/api/https.html#https_class_https_agent
+ */

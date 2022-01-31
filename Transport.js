@@ -15,15 +15,56 @@ export class Transport {
    * @param {object} options - The options to use.
    * @param {string} options.url - The url to post the configuration to.
    * @param {string} options.config - The EDV's configuration.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise<object>} - Resolves to the configuration for the newly
    *   created EDV.
    */
   // eslint-disable-next-line no-unused-vars
-  async createEdv({url, config, capability} = {}) {
+  async createEdv({url, config} = {}) {
+    _throwNotImplemented();
+  }
+
+  /**
+   * Gets the configuration for an EDV from the server.
+   *
+   * @param {object} options - The options to use.
+   * @param {string} options.id - The ID of the EDV.
+   *
+   * @returns {Promise<object>} - Resolves to the configuration for the EDV.
+   */
+  // eslint-disable-next-line no-unused-vars
+  async getConfig({id} = {}) {
+    _throwNotImplemented();
+  }
+
+  /**
+   * Sends an updated EDV configuration to the server. The new configuration
+   * `sequence` must be incremented by `1` over the previous configuration or
+   * the update will fail.
+   *
+   * @param {object} options - The options to use.
+   * @param {object} options.config - The new EDV config.
+   *
+   * @returns {Promise<void>} - Settles once the operation completes.
+   */
+  // eslint-disable-next-line no-unused-vars
+  async updateConfig({config} = {}) {
+    _throwNotImplemented();
+  }
+
+  /**
+   * Get all EDV configurations matching a query.
+   *
+   * @param {object} options - The options to use.
+   * @param {string} options.controller - The EDV's controller.
+   * @param {string} [options.referenceId] - A controller-unique reference ID.
+   * @param {string} [options.after] - An EDV's ID.
+   * @param {number} [options.limit] - How many EDV configs to return.
+   *
+   * @returns {Promise<Array>} - Resolves to the matching EDV configurations.
+   */
+  // eslint-disable-next-line no-unused-vars
+  async findConfigs({controller, referenceId, after, limit} = {}) {
     _throwNotImplemented();
   }
 
@@ -34,14 +75,11 @@ export class Transport {
    *
    * @param {object} options - The options to use.
    * @param {object} options.encrypted - The encrypted document to insert.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise} - Settles once the operation completes.
    */
   // eslint-disable-next-line no-unused-vars
-  async insert({encrypted, capability} = {}) {
+  async insert({encrypted} = {}) {
     _throwNotImplemented();
   }
 
@@ -52,14 +90,11 @@ export class Transport {
    *
    * @param {object} options - The options to use.
    * @param {object} options.encrypted - The encrypted document to insert.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise} - Settles once the operation completes.
    */
   // eslint-disable-next-line no-unused-vars
-  async update({encrypted, capability} = {}) {
+  async update({encrypted} = {}) {
     _throwNotImplemented();
   }
 
@@ -75,14 +110,11 @@ export class Transport {
    * @param {object} options - The options to use.
    * @param {string} options.docId - The ID of the document.
    * @param {object} options.entry - The index entry to send.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise} - Settles once the operation completes.
    */
   // eslint-disable-next-line no-unused-vars
-  async updateIndex({docId, entry, capability} = {}) {
+  async updateIndex({docId, entry} = {}) {
     _throwNotImplemented();
   }
 
@@ -91,14 +123,11 @@ export class Transport {
    *
    * @param {object} options - The options to use.
    * @param {string} options.id - The ID of the document to get.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise<object>} - Resolves to the encrypted document.
    */
   // eslint-disable-next-line no-unused-vars
-  async get({id, capability} = {}) {
+  async get({id} = {}) {
     _throwNotImplemented();
   }
 
@@ -108,70 +137,12 @@ export class Transport {
    *
    * @param {object} options - The options to use.
    * @param {object} options.query - The query to send.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise<object>} - Resolves to the matching encrypted documents:
    *   `{documents: [...]}` or `{count: docCount}` if `query.count === true`.
    */
   // eslint-disable-next-line no-unused-vars
-  async find({query, capability} = {}) {
-    _throwNotImplemented();
-  }
-
-  /**
-   * Gets the configuration for an EDV from the server.
-   *
-   * @param {object} options - The options to use.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the configuration for the EDV.
-   */
-  // eslint-disable-next-line no-unused-vars
-  async getConfig({capability} = {}) {
-    _throwNotImplemented();
-  }
-
-  /**
-   * Sends an updated EDV configuration to the server. The new configuration
-   * `sequence` must be incremented by `1` over the previous configuration or
-   * the update will fail.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.config - The new EDV config.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<void>} - Settles once the operation completes.
-   */
-  // eslint-disable-next-line no-unused-vars
-  async updateConfig({config, capability} = {}) {
-    _throwNotImplemented();
-  }
-
-  /**
-   * Get all EDV configurations matching a query.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.url - The url to query.
-   * @param {string} options.controller - The EDV's controller.
-   * @param {string} [options.referenceId] - A controller-unique reference ID.
-   * @param {string} [options.after] - An EDV's ID.
-   * @param {number} [options.limit] - How many EDV configs to return.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<Array>} - Resolves to the matching EDV configurations.
-   */
-  async findConfigs({
-    // eslint-disable-next-line no-unused-vars
-    url, controller, referenceId, after, limit, capability
-  } = {}) {
+  async find({query} = {}) {
     _throwNotImplemented();
   }
 
@@ -180,14 +151,11 @@ export class Transport {
    *
    * @param {object} options - The options to use.
    * @param {object} options.capabilityToRevoke - The capability to revoke.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise<object>} Resolves once the operation completes.
    */
   // eslint-disable-next-line no-unused-vars
-  async revokeCapability({capabilityToRevoke, capability} = {}) {
+  async revokeCapability({capabilityToRevoke} = {}) {
     _throwNotImplemented();
   }
 
@@ -197,14 +165,11 @@ export class Transport {
    * @param {object} options - The options to use.
    * @param {string} options.docId - The document ID.
    * @param {number} options.chunk - The encrypted chunk.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise} - Settles once the operation completes.
    */
   // eslint-disable-next-line no-unused-vars
-  async storeChunk({docId, chunk, capability}) {
+  async storeChunk({docId, chunk}) {
     _throwNotImplemented();
   }
 
@@ -214,14 +179,11 @@ export class Transport {
    * @param {object} options - The options to use.
    * @param {string} options.docId - The document ID.
    * @param {number} options.chunkIndex - The index of the chunk.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
    *
    * @returns {Promise<object>} - Resolves to the chunk data.
    */
   // eslint-disable-next-line no-unused-vars
-  async getChunk({docId, chunkIndex, capability} = {}) {
+  async getChunk({docId, chunkIndex} = {}) {
     _throwNotImplemented();
   }
 }

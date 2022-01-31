@@ -69,11 +69,11 @@ describe('EdvClient revokeCapability API', () => {
     await mock.server.shutdown();
   });
 
-  it('returns TypeError on missing capabilityToRevoke param', async () => {
+  it('throws TypeError on missing capabilityToRevoke param', async () => {
     let err;
     let result;
     try {
-      result = await edvClient.revokeCapability({});
+      result = await edvClient.revokeCapability({invocationSigner});
     } catch(e) {
       err = e;
     }
@@ -82,7 +82,7 @@ describe('EdvClient revokeCapability API', () => {
     err.name.should.equal('TypeError');
     err.message.should.contain('capabilityToRevoke');
   });
-  it('returns TypeError on missing invocationSigner param', async () => {
+  it('throws TypeError on missing invocationSigner param', async () => {
     let err;
     let result;
     try {
