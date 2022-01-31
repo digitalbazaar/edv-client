@@ -142,14 +142,15 @@ export class HttpsTransport {
         _createAbsoluteUrl('/edvs');
     }
 
+    // eliminate undefined properties, to prevent expression of them using
+    // the string literal `undefined`
+    const searchParams = Object.fromEntries(
+      Object.entries({controller, referenceId, after, limit})
+        .filter(([, v]) => v !== undefined));
+
     // no invocationSigner was provided, submit the request without a zCap
     const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
     if(!invocationSigner) {
-      const searchParams = {controller, referenceId, after, limit};
-      // eliminate undefined properties, otherwise http-client will encode
-      // undefined properties as the string literal 'undefined'
-      Object.keys(searchParams).forEach(
-        key => searchParams[key] === undefined && delete searchParams[key]);
       // send request w/o signed zcap invocation
       const response = await httpClient.get(url, {
         searchParams,
@@ -163,12 +164,8 @@ export class HttpsTransport {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
 
-    // add params to URL
-    const params = new URLSearchParams(Object.fromEntries(
-      Object.entries({controller, referenceId, after, limit})
-        // eslint-disable-next-line no-unused-vars
-        .filter(([k, v]) => v !== undefined)));
-    url += `?${params}`;
+    // add params to URL so they will be signed
+    url += `?${new URLSearchParams(searchParams)}`;
     const response = await this._signedHttpGet({url, capability});
     return response.data;
   }
