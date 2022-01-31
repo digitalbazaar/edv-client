@@ -17,6 +17,7 @@
   "files": [
     "assert.js",
     "EdvClient.js",
+    "EdvClientCore.js",
     "EdvDocument.js",
     "HttpsTransport.js",
     "IndexHelper.js",
