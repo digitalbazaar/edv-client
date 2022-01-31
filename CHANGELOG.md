@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 11.1.1 - 2022-01-xx
+## 11.1.1 - 2022-01-31
 
 ### Fixed
 - Add missing files to package.
