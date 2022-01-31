@@ -74,7 +74,7 @@ export class HttpsTransport {
 
     // submit request w/signed zcap invocation
     const response = await this._signedHttpPost({
-      url, json: config, capability
+      url, json: config, capability, insert: true
     });
     return response.data;
   }
@@ -142,7 +142,7 @@ export class HttpsTransport {
     }
 
     // send request w/ zcap invocation
-    await this._signedHttpPost({url, json: config, capability});
+    await this._signedHttpPost({url, json: config, capability, insert: false});
   }
 
   /**
@@ -204,16 +204,9 @@ export class HttpsTransport {
       url = url.slice(0, -(encrypted.id.length + 1));
     }
 
-    try {
-      await this._signedHttpPost({url, json: encrypted, capability});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this._signedHttpPost({
+      url, json: encrypted, capability, insert: true
+    });
   }
 
   /**
@@ -225,16 +218,9 @@ export class HttpsTransport {
     if(!capability) {
       capability = this._rootZcapId;
     }
-    try {
-      await this._signedHttpPost({url, json: encrypted, capability});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this._signedHttpPost({
+      url, json: encrypted, capability, insert: false
+    });
   }
 
   /**
@@ -246,16 +232,7 @@ export class HttpsTransport {
     if(!capability) {
       capability = this._rootZcapId;
     }
-    try {
-      await this._signedHttpPost({url, json: entry, capability});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this._signedHttpPost({url, json: entry, capability, insert: false});
   }
 
   /**
@@ -275,6 +252,7 @@ export class HttpsTransport {
       if(e.status === 404) {
         const err = new Error('Document not found.');
         err.name = 'NotFoundError';
+        err.cause = e;
         throw err;
       }
       throw e;
@@ -343,16 +321,9 @@ export class HttpsTransport {
     if(!capability) {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
-    try {
-      await this._signedHttpPost({url, json: capabilityToRevoke, capability});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this._signedHttpPost({
+      url, json: capabilityToRevoke, capability, insert: true
+    });
   }
 
   /**
@@ -367,18 +338,7 @@ export class HttpsTransport {
     // append `/chunks/<chunkIndex>`
     const {index} = chunk;
     url += `/chunks/${index}`;
-
-    try {
-      await this._signedHttpPost({url, json: chunk, capability});
-    } catch(e) {
-      const {response = {}} = e;
-      if(response.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
+    await this._signedHttpPost({url, json: chunk, capability, insert: false});
   }
 
   /**
@@ -397,10 +357,10 @@ export class HttpsTransport {
     try {
       response = await this._signedHttpGet({url, capability});
     } catch(e) {
-      response = e.response || {};
-      if(response.status === 404) {
+      if(e.status === 404) {
         const err = new Error('Document chunk not found.');
         err.name = 'NotFoundError';
+        err.cause = e;
         throw err;
       }
       throw e;
@@ -414,7 +374,7 @@ export class HttpsTransport {
 
   // FIXME: add _post() and _get() helpers to make code more DRY
 
-  async _signedHttpGet({url, capability}) {
+  async _signedHttpGet({url, capability} = {}) {
     // sign HTTP header
     const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
     const headers = await signCapabilityInvocation({
@@ -426,17 +386,35 @@ export class HttpsTransport {
     return httpClient.get(url, {headers, agent});
   }
 
-  async _signedHttpPost({url, json, capability, capabilityAction = 'write'}) {
-    // sign HTTP header
-    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-    const headers = await signCapabilityInvocation({
-      url, method: 'post', headers: defaultHeaders,
-      json, capability, invocationSigner,
-      capabilityAction
-    });
+  async _signedHttpPost({
+    url, json, capability, capabilityAction = 'write', insert
+  } = {}) {
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: defaultHeaders,
+        json, capability, invocationSigner,
+        capabilityAction
+      });
 
-    // send request
-    return httpClient.post(url, {agent, json, headers});
+      // send request
+      return await httpClient.post(url, {agent, json, headers});
+    } catch(e) {
+      // normalize 409 errors to duplicate / conflict errors
+      if(insert !== undefined && e.status === 409) {
+        const cause = e;
+        if(insert) {
+          e = new Error('Duplicate error.');
+          e.name = 'DuplicateError';
+        } else {
+          e = new Error('Conflict error.');
+          e.name = 'InvalidStateError';
+        }
+        e.cause = cause;
+      }
+      throw e;
+    }
   }
 
   // helper that gets a document URL from a document ID
