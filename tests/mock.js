@@ -3,7 +3,7 @@
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
 import {EdvClient} from '..';
-import {MockStorage} from './MockStorage.js';
+import {MockStorage, BASE_URL} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
@@ -15,6 +15,8 @@ loader.addStatic(zcapConstants.ZCAP_CONTEXT_URL, zcapConstants.ZCAP_CONTEXT);
 const securityDocumentLoader = loader.build();
 
 const didKeyDriver = didMethodKey.driver();
+
+export {BASE_URL};
 
 export class TestMock {
   constructor(server = new MockServer()) {
@@ -70,7 +72,7 @@ export class TestMock {
       config.referenceId = referenceId;
     }
     config = await EdvClient.createEdv(
-      {config, url: 'http://localhost:9876/edvs'});
+      {config, url: `${BASE_URL}/edvs`});
     return new EdvClient({id: config.id, keyAgreementKey, hmac});
   }
 

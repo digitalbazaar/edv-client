@@ -1,8 +1,8 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import {EdvClient} from '..';
-import mock from './mock.js';
+import {default as mock, BASE_URL} from './mock.js';
 import {isRecipient} from './test-utils.js';
 
 describe('EdvClient', () => {
@@ -24,7 +24,7 @@ describe('EdvClient', () => {
     let err;
     try {
       result = await EdvClient.createEdv({
-        url: 'http://localhost:9876/edvs',
+        url: `${BASE_URL}/edvs`,
         config: {
           sequence: 0,
           controller: mock.accountId,
@@ -156,7 +156,7 @@ describe('EdvClient', () => {
   it('should not find document by index after update', async () => {
     const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
-      url: 'http://localhost:9876/edvs',
+      url: `${BASE_URL}/edvs`,
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -191,7 +191,7 @@ describe('EdvClient', () => {
   it('should create a new encrypted data vault', async () => {
     const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
-      url: 'http://localhost:9876/edvs',
+      url: `${BASE_URL}/edvs`,
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -209,7 +209,7 @@ describe('EdvClient', () => {
   it('should get an encrypted data vault config', async () => {
     const {hmac} = mock.keys;
     const {id} = await EdvClient.createEdv({
-      url: 'http://localhost:9876/edvs',
+      url: `${BASE_URL}/edvs`,
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -229,7 +229,7 @@ describe('EdvClient', () => {
   it('should create "primary" encrypted data vault', async () => {
     const {hmac} = mock.keys;
     const config = await EdvClient.createEdv({
-      url: 'http://localhost:9876/edvs',
+      url: `${BASE_URL}/edvs`,
       config: {
         sequence: 0,
         controller: mock.accountId,
@@ -251,7 +251,7 @@ describe('EdvClient', () => {
     // DuplicateError when running in a suite.
     try {
       await EdvClient.createEdv({
-        url: 'http://localhost:9876/edvs',
+        url: `${BASE_URL}/edvs`,
         config: {
           sequence: 0,
           controller: invocationSigner.id,
@@ -265,7 +265,7 @@ describe('EdvClient', () => {
     }
     const config = await EdvClient.findConfig({
       controller: mock.accountId, referenceId: 'primary',
-      url: 'http://localhost:9876/edvs'
+      url: `${BASE_URL}/edvs`
     });
     config.should.be.an('object');
     config.id.should.be.a('string');
