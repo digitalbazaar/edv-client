@@ -1,5 +1,17 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 11.1.0 - 2022-01-xx
+
+### Added
+- Add new underlying transport layer abstraction for EDV clients. This
+  exposes a new class `EdvClientCore` that relies on a `Transport`
+  interface to handle communicating with an EDV server / storage. This
+  class can be extended by derived classes that provide transport
+  implementations. `EdvClient` has been refactored to use an HTTPS
+  transport layer -- but in a backwards compatible fashion. A future
+  version may introduce breaking changes to further separate concerns
+  more cleanly.
+
 ## 11.0.0 - 2022-01-11
 
 ### Changed

@@ -10,51 +10,49 @@ const ZCAP_ROOT_PREFIX = 'urn:zcap:root:';
 
 export class HttpsTransport {
   /**
-   * Creates a transport layer for an EDV client to use to communicate
-   * with an EDV server over HTTPS.
-   *
-   * @typedef {object} httpsAgent
-   * @see https://nodejs.org/api/https.html#https_class_https_agent
+   * Creates a transport layer for an EDV client to use to perform an
+   * operation with an EDV server over HTTPS.
    *
    * @param {object} options - The options to use.
+   * @param {object|string} [options.capability] - The authorization capability
+   *   (zcap) to use to authorize the operation.
    * @param {object} [options.defaultHeaders] - Default headers to use with
    *   HTTP requests.
    * @param {string} [options.edvId] - The ID of the target EDV.
-   * @param {httpsAgent} [options.httpsAgent] - A node.js `https.Agent`
+   * @param {HttpsAgent} [options.httpsAgent] - A node.js `https.Agent`
    *   instance to use when making requests.
    * @param {object} [options.invocationSigner] - An object with an
    *   `id` property and a `sign` function for signing a capability invocation.
+   * @param {string} [options.url] - The url to use.
    *
    * @returns {HttpsTransport}.
    */
-  constructor({defaultHeaders, edvId, httpsAgent, invocationSigner} = {}) {
-    assertInvocationSigner(invocationSigner);
+  constructor({
+    capability, defaultHeaders, edvId, httpsAgent, invocationSigner, url
+  } = {}) {
+    if(url !== undefined) {
+      assert(url, 'url', 'string');
+    }
+    if(invocationSigner !== undefined) {
+      assertInvocationSigner(invocationSigner);
+    }
+    this.capability = capability;
     this.defaultHeaders = {...DEFAULT_HEADERS, ...defaultHeaders};
     this.edvId = edvId;
     this.httpsAgent = httpsAgent;
     this.invocationSigner = invocationSigner;
+    this.url = url;
     if(edvId) {
       this._rootZcapId = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(edvId)}`;
     }
   }
 
   /**
-   * Creates a new EDV using the given configuration.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.url - The url to post the configuration to.
-   * @param {string} options.config - The EDV's configuration.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the configuration for the newly
-   *   created EDV.
+   * @inheritdoc
    */
-  async createEdv({url, config, capability} = {}) {
-    if(url) {
-      assert(url, 'url', 'string');
-    } else {
+  async createEdv({config} = {}) {
+    let {capability, url} = this;
+    if(!url) {
       url = HttpsTransport._getInvocationTarget({capability}) ||
         _createAbsoluteUrl('/edvs');
     }
@@ -91,238 +89,19 @@ export class HttpsTransport {
   }
 
   /**
-   * Sends a new encrypted document to an EDV server. If the server reports
-   * that a document with a matching ID already exists, a `DuplicateError` is
-   * thrown.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.encrypted - The encrypted document to insert.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise} - Settles once the operation completes.
+   * @inheritdoc
    */
-  async insert({encrypted, capability} = {}) {
-    let url = this._getDocUrl(encrypted.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    // trim document ID and trailing slash, if present, to post to root
-    // collection
-    if(url.endsWith(encrypted.id)) {
-      url = url.slice(0, -(encrypted.id.length + 1));
-    }
-
-    try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-
-      // send request
-      await httpClient.post(url, {agent, json: encrypted, headers});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Duplicate error.');
-        err.name = 'DuplicateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  /**
-   * Sends an encrypted document to an EDV server. If the document does not
-   * already exist, it will be created. If the update is rejected because of a
-   * conflict, then an `InvalidStateError` will be thrown.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.encrypted - The encrypted document to insert.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise} - Settles once the operation completes.
-   */
-  async update({encrypted, capability} = {}) {
-    const url = this._getDocUrl(encrypted.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {agent, json: encrypted, headers});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  /**
-   * Sends an update for an index for the given document, without updating the
-   * document itself. If the index entry's sequence number does not match the
-   * document's current sequence number, update will be rejected with an
-   * `InvalidStateError`.
-   *
-   * Note: If the index does not exist or the document does not have an
-   * existing entry for the index, it will be added.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.docId - The ID of the document.
-   * @param {object} options.entry - The index entry to send.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise} - Settles once the operation completes.
-   */
-  async updateIndex({docId, entry, capability} = {}) {
-    const url = this._getDocUrl(docId, capability) + '/index';
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: entry, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {headers, json: entry, agent});
-    } catch(e) {
-      if(e.status === 409) {
-        const err = new Error('Conflict error.');
-        err.name = 'InvalidStateError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  /**
-   * Gets an encrypted document from an EDV server by its ID.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.id - The ID of the document to get.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the encrypted document.
-   */
-  async get({id, capability} = {}) {
-    assert(id, 'id', 'string');
-
-    const url = this._getDocUrl(id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: defaultHeaders,
-        capability, invocationSigner,
-        capabilityAction: 'read'
-      });
-      // send request
-      const response = await httpClient.get(url, {headers, agent});
-      return response.data;
-    } catch(e) {
-      if(e.status === 404) {
-        const err = new Error('Document not found.');
-        err.name = 'NotFoundError';
-        throw err;
-      }
-      throw e;
-    }
-  }
-
-  /**
-   * Sends a query to an EDV server to find encrypted documents based on their
-   * attributes.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.query - The query to send.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the matching encrypted documents:
-   *   `{documents: [...]}` or `{count: docCount}` if `query.count === true`.
-   */
-  async find({query, capability} = {}) {
-    let url = HttpsTransport._getInvocationTarget({capability}) ||
-      `${this.id}/query`;
-
-    // note: capability with a target of `/documents` can be used to query
-    // by augmenting with `/query`
-    if(url.endsWith('/documents')) {
-      url = `${url}/query`;
-    }
-
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    // sign HTTP header
-    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-    const headers = await signCapabilityInvocation({
-      url, method: 'post', headers: defaultHeaders,
-      json: query, capability, invocationSigner,
-      capabilityAction: 'read'
-    });
-    // send request
-    const response = await httpClient.post(url, {headers, json: query, agent});
-    if(query.count === true) {
-      return response.data;
-    }
-    const {data: {documents}} = response;
-    return {documents};
-  }
-
-  /**
-   * Gets the configuration for an EDV from the server.
-   *
-   * @param {object} options - The options to use.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the configuration for the EDV.
-   */
-  async getConfig({capability} = {}) {
-    const {edvId} = this;
-    if(!(edvId || capability)) {
-      throw new TypeError(
-        '"capability" is required if "edvId" was not provided ' +
-        'to the HttpsTransport constructor.');
+  async getConfig({id = this.edvId} = {}) {
+    let {capability} = this;
+    if(!(id || capability)) {
+      throw new TypeError('"capability" is required if "id" was not provided.');
     }
 
     let url;
     if(capability) {
       url = HttpsTransport._getInvocationTarget({capability});
     } else {
-      url = edvId;
+      url = id;
       capability = this._rootZcapId;
     }
 
@@ -349,31 +128,15 @@ export class HttpsTransport {
   }
 
   /**
-   * Sends an updated EDV configuration to the server. The new configuration
-   * `sequence` must be incremented by `1` over the previous configuration or
-   * the update will fail.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.config - The new EDV config.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<void>} - Settles once the operation completes.
+   * @inheritdoc
    */
-  async updateConfig({config, capability} = {}) {
-    if(!(config && typeof config === 'object')) {
-      throw new TypeError('"config" must be an object.');
-    }
-    if(!(config.controller && typeof config.controller === 'string')) {
-      throw new TypeError('"config.controller" must be a string.');
-    }
-
+  async updateConfig({config} = {}) {
     const {edvId} = this;
+    let {capability} = this;
     if(!(edvId || capability)) {
       throw new TypeError(
-        '"capability" is required if "id" was not provided ' +
-        'to the EdvClient constructor.');
+        '"capability" is required if "edvId" was not provided ' +
+        'to the HttpsTransport constructor.');
     }
 
     let url;
@@ -413,23 +176,10 @@ export class HttpsTransport {
   }
 
   /**
-   * Get all EDV configurations matching a query.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.url - The url to query.
-   * @param {string} options.controller - The EDV's controller.
-   * @param {string} [options.referenceId] - A controller-unique reference ID.
-   * @param {string} [options.after] - An EDV's ID.
-   * @param {number} [options.limit] - How many EDV configs to return.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<Array>} - Resolves to the matching EDV configurations.
+   * @inheritdoc
    */
-  async findConfigs({
-    url, controller, referenceId, after, limit, capability
-  } = {}) {
+  async findConfigs({controller, referenceId, after, limit} = {}) {
+    let {capability, url} = this;
     if(url) {
       assert(url, 'url', 'string');
     } else {
@@ -481,25 +231,183 @@ export class HttpsTransport {
   }
 
   /**
-   * Store a capability revocation.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.capabilityToRevoke - The capability to revoke.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} Resolves once the operation completes.
+   * @inheritdoc
    */
-  async revokeCapability({capabilityToRevoke, capability} = {}) {
+  async insert({encrypted} = {}) {
+    let url = this._getDocUrl(encrypted.id);
+    // FIXME: set capability to `this._rootZcapId` by default?
+    let {capability} = this;
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+
+    // trim document ID and trailing slash, if present, to post to root
+    // collection
+    if(url.endsWith(encrypted.id)) {
+      url = url.slice(0, -(encrypted.id.length + 1));
+    }
+
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: defaultHeaders,
+        json: encrypted, capability, invocationSigner,
+        capabilityAction: 'write'
+      });
+
+      // send request
+      await httpClient.post(url, {agent, json: encrypted, headers});
+    } catch(e) {
+      if(e.status === 409) {
+        const err = new Error('Duplicate error.');
+        err.name = 'DuplicateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async update({encrypted} = {}) {
+    let {capability} = this;
+    const url = this._getDocUrl(encrypted.id, capability);
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: defaultHeaders,
+        json: encrypted, capability, invocationSigner,
+        capabilityAction: 'write'
+      });
+      // send request
+      await httpClient.post(url, {agent, json: encrypted, headers});
+    } catch(e) {
+      if(e.status === 409) {
+        const err = new Error('Conflict error.');
+        err.name = 'InvalidStateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async updateIndex({docId, entry} = {}) {
+    let {capability} = this;
+    const url = this._getDocUrl(docId, capability) + '/index';
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'post', headers: defaultHeaders,
+        json: entry, capability, invocationSigner,
+        capabilityAction: 'write'
+      });
+      // send request
+      await httpClient.post(url, {headers, json: entry, agent});
+    } catch(e) {
+      if(e.status === 409) {
+        const err = new Error('Conflict error.');
+        err.name = 'InvalidStateError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async get({id} = {}) {
+    let {capability} = this;
+    const url = this._getDocUrl(id, capability);
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'get', headers: defaultHeaders,
+        capability, invocationSigner,
+        capabilityAction: 'read'
+      });
+      // send request
+      const response = await httpClient.get(url, {headers, agent});
+      return response.data;
+    } catch(e) {
+      if(e.status === 404) {
+        const err = new Error('Document not found.');
+        err.name = 'NotFoundError';
+        throw err;
+      }
+      throw e;
+    }
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async find({query} = {}) {
+    let {capability} = this;
+    let url = HttpsTransport._getInvocationTarget({capability});
+    if(!url) {
+      if(!this.edvId) {
+        throw new Error('Either "capability" or "edvId" must be given.');
+      }
+      url = `${this.edvId}/query`;
+    }
+
+    // note: capability with a target of `/documents` can be used to query
+    // by augmenting with `/query`
+    if(url.endsWith('/documents')) {
+      url = `${url}/query`;
+    }
+
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+
+    // sign HTTP header
+    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+    const headers = await signCapabilityInvocation({
+      url, method: 'post', headers: defaultHeaders,
+      json: query, capability, invocationSigner,
+      capabilityAction: 'read'
+    });
+    // send request
+    const response = await httpClient.post(url, {headers, json: query, agent});
+    if(query.count === true) {
+      return response.data;
+    }
+    const {data: {documents}} = response;
+    return {documents};
+  }
+
+  /**
+   * @inheritdoc
+   */
+  async revokeCapability({capabilityToRevoke} = {}) {
     assert(capabilityToRevoke, 'capabilityToRevoke', 'object');
 
-    let {id: edvId} = this;
+    let {edvId, capability} = this;
     if(!edvId && !(capability && typeof capability === 'object')) {
       // since no `edvId` was set and no `capability` with an invocation
       // target that can be parsed was given, get the EDV ID from the
       // capability that is to be revoked -- presuming it is a document (if
-      // revoking any other capability, the `keystoreId` must be set or a
+      // revoking any other capability, the `edvId` must be set or a
       // `capability` passed to invoke)
       const invocationTarget = HttpsTransport._getInvocationTarget(
         {capability: capabilityToRevoke});
@@ -537,18 +445,10 @@ export class HttpsTransport {
   }
 
   /**
-   * Sends an encrypted document chunk to an EDV server.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.docId - The document ID.
-   * @param {number} options.chunk - The encrypted chunk.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise} - Settles once the operation completes.
+   * @inheritdoc
    */
-  async storeChunk({docId, chunk, capability}) {
+  async storeChunk({docId, chunk}) {
+    let {capability} = this;
     let url = this._getDocUrl(docId, capability);
     if(!capability) {
       capability = this._rootZcapId;
@@ -579,18 +479,10 @@ export class HttpsTransport {
   }
 
   /**
-   * Gets an encrypted document chunk from an EDV server.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.docId - The document ID.
-   * @param {number} options.chunkIndex - The index of the chunk.
-   * @param {object|string} [options.capability] - The authorization capability
-   *   (zcap) to use to authorize this operation; defaults to using the root
-   *   zcap for the `url`.
-   *
-   * @returns {Promise<object>} - Resolves to the chunk data.
+   * @inheritdoc
    */
-  async getChunk({docId, chunkIndex, capability} = {}) {
+  async getChunk({docId, chunkIndex} = {}) {
+    let {capability} = this;
     let url = this._getDocUrl(docId, capability);
     if(!capability) {
       capability = this._rootZcapId;
@@ -629,7 +521,10 @@ export class HttpsTransport {
 
   // helper that gets a document URL from a document ID
   _getDocUrl(id, capability) {
-    if(capability && !this.id) {
+    if(!this.edvId) {
+      if(!capability) {
+        throw new Error('Either "capability" or "edvId" must be given.');
+      }
       const target = HttpsTransport._getInvocationTarget({capability});
       // target is the entire documents collection
       if(target.endsWith('/documents')) {
@@ -637,7 +532,7 @@ export class HttpsTransport {
       }
       return target;
     }
-    return `${this.id}/documents/${id}`;
+    return `${this.edvId}/documents/${id}`;
   }
 
   static _getInvocationTarget({capability}) {
@@ -679,3 +574,10 @@ function _createAbsoluteUrl(url) {
   }
   throw new Error('"url" must be an absolute URL.');
 }
+
+/**
+ * A node.js HTTPS agent.
+ *
+ * @typedef {object} HttpsAgent
+ * @see https://nodejs.org/api/https.html#https_class_https_agent
+ */
