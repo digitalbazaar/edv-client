@@ -11,6 +11,14 @@
   transport layer -- but in a backwards compatible fashion. A future
   version may introduce breaking changes to further separate concerns
   more cleanly.
+- Enable `capability` and `invocationSigner` to be passed to the
+  `EdvClient` constructor. If these are passed, then they do not
+  need to be passed when calling individual methods as the defaults
+  will be used. Take care to ensure that the capability passed is
+  usable in all methods that are to be called without passing in
+  a specific capability (this is not significantly different concern
+  from before, however, there is a subtle difference because of the
+  reliance on a default value.
 
 ## 11.0.0 - 2022-01-11
 
