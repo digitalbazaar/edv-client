@@ -11,8 +11,12 @@ export function assert(variable, name, types) {
   if(!types.includes(type) ||
     // an object must not falsey nor an array
     (type === 'object' && (!variable || Array.isArray(variable)))) {
+    let article;
+    if(types.length === 1) {
+      article = types[0] === 'object' ? 'an' : 'a';
+    }
     throw new TypeError(
-      `"${name}" must be ${types.length === 1 ? 'a' : 'one of'} ` +
+      `"${name}" must be ${types.length === 1 ? article : 'one of'} ` +
       `${types.join(', ')}.`);
   }
 }
