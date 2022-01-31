@@ -4,7 +4,7 @@
 import uuid from 'uuid-random';
 import {validateSchema} from './validator';
 
-export const BASE_URL = 'http://localhost:9876';
+export const BASE_URL = 'https://localhost:9876';
 
 export class MockStorage {
   constructor({server}) {
