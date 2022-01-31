@@ -42,9 +42,8 @@ export class EdvClient extends EdvClientCore {
    *   called method directly.
    * @param {object} [options.keyAgreementKey] - A default KeyAgreementKey
    *   API for deriving shared KEKs for wrapping content encryption keys.
-   * @param {Function} [options.keyResolver=this.keyResolver] - A default
-   *   function that returns a Promise that resolves a key ID to a DH public
-   *   key.
+   * @param {Function} [options.keyResolver] - A default function that returns
+   *   a Promise that resolves a key ID to a DH public key.
    *
    * @returns {EdvClient}.
    */
