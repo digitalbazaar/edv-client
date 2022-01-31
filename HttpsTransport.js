@@ -72,18 +72,9 @@ export class HttpsTransport {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
 
-    // sign HTTP header
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'post',
-      headers: defaultHeaders,
-      capability,
-      invocationSigner,
-      capabilityAction: 'write',
-      json: config,
-    });
-    const response = await httpClient.post(url, {
-      headers: signedHeaders, json: config, agent
+    // submit request w/signed zcap invocation
+    const response = await this._signedHttpPost({
+      url, json: config, capability
     });
     return response.data;
   }
@@ -116,14 +107,7 @@ export class HttpsTransport {
     }
 
     // send request w/ zcap invocation
-    const signedHeaders = await signCapabilityInvocation({
-      url, method: 'get',
-      headers: defaultHeaders,
-      capability,
-      invocationSigner,
-      capabilityAction: 'read'
-    });
-    const response = await httpClient.get(url, {agent, headers: signedHeaders});
+    const response = await this._signedHttpGet({url, capability});
     return response.data;
   }
 
@@ -158,21 +142,7 @@ export class HttpsTransport {
     }
 
     // send request w/ zcap invocation
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'post',
-      headers: defaultHeaders,
-      capability,
-      invocationSigner,
-      capabilityAction: 'write',
-      json: config
-    });
-    // send request w/o zcap invocation
-    await httpClient.post(url, {
-      headers: signedHeaders,
-      json: config,
-      agent
-    });
+    await this._signedHttpPost({url, json: config, capability});
   }
 
   /**
@@ -195,7 +165,7 @@ export class HttpsTransport {
       // undefined properties as the string literal 'undefined'
       Object.keys(searchParams).forEach(
         key => searchParams[key] === undefined && delete searchParams[key]);
-
+      // send request w/o signed zcap invocation
       const response = await httpClient.get(url, {
         searchParams,
         headers: defaultHeaders,
@@ -208,25 +178,13 @@ export class HttpsTransport {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
 
-    // sign HTTP header
+    // add params to URL
     const params = new URLSearchParams(Object.fromEntries(
       Object.entries({controller, referenceId, after, limit})
         // eslint-disable-next-line no-unused-vars
         .filter(([k, v]) => v !== undefined)));
     url += `?${params}`;
-    const signedHeaders = await signCapabilityInvocation({
-      url,
-      method: 'get',
-      headers: defaultHeaders,
-      capability,
-      invocationSigner,
-      capabilityAction: 'read'
-    });
-
-    const response = await httpClient.get(url, {
-      headers: signedHeaders,
-      agent
-    });
+    const response = await this._signedHttpGet({url, capability});
     return response.data;
   }
 
@@ -235,7 +193,6 @@ export class HttpsTransport {
    */
   async insert({encrypted} = {}) {
     let url = this._getDocUrl(encrypted.id);
-    // FIXME: set capability to `this._rootZcapId` by default?
     let {capability} = this;
     if(!capability) {
       capability = this._rootZcapId;
@@ -248,16 +205,7 @@ export class HttpsTransport {
     }
 
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-
-      // send request
-      await httpClient.post(url, {agent, json: encrypted, headers});
+      await this._signedHttpPost({url, json: encrypted, capability});
     } catch(e) {
       if(e.status === 409) {
         const err = new Error('Duplicate error.');
@@ -278,15 +226,7 @@ export class HttpsTransport {
       capability = this._rootZcapId;
     }
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: encrypted, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {agent, json: encrypted, headers});
+      await this._signedHttpPost({url, json: encrypted, capability});
     } catch(e) {
       if(e.status === 409) {
         const err = new Error('Conflict error.');
@@ -307,15 +247,7 @@ export class HttpsTransport {
       capability = this._rootZcapId;
     }
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: entry, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {headers, json: entry, agent});
+      await this._signedHttpPost({url, json: entry, capability});
     } catch(e) {
       if(e.status === 409) {
         const err = new Error('Conflict error.');
@@ -337,15 +269,7 @@ export class HttpsTransport {
     }
 
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: defaultHeaders,
-        capability, invocationSigner,
-        capabilityAction: 'read'
-      });
-      // send request
-      const response = await httpClient.get(url, {headers, agent});
+      const response = await this._signedHttpGet({url, capability});
       return response.data;
     } catch(e) {
       if(e.status === 404) {
@@ -380,15 +304,10 @@ export class HttpsTransport {
       capability = this._rootZcapId;
     }
 
-    // sign HTTP header
-    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-    const headers = await signCapabilityInvocation({
-      url, method: 'post', headers: defaultHeaders,
-      json: query, capability, invocationSigner,
-      capabilityAction: 'read'
+    // do signed HTTP post w/'read' action
+    const response = await this._signedHttpPost({
+      url, json: query, capability, capabilityAction: 'read'
     });
-    // send request
-    const response = await httpClient.post(url, {headers, json: query, agent});
     if(query.count === true) {
       return response.data;
     }
@@ -425,15 +344,7 @@ export class HttpsTransport {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: capabilityToRevoke, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {headers, json: capabilityToRevoke, agent});
+      await this._signedHttpPost({url, json: capabilityToRevoke, capability});
     } catch(e) {
       if(e.status === 409) {
         const err = new Error('Duplicate error.');
@@ -458,15 +369,7 @@ export class HttpsTransport {
     url += `/chunks/${index}`;
 
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'post', headers: defaultHeaders,
-        json: chunk, capability, invocationSigner,
-        capabilityAction: 'write'
-      });
-      // send request
-      await httpClient.post(url, {headers, json: chunk, agent});
+      await this._signedHttpPost({url, json: chunk, capability});
     } catch(e) {
       const {response = {}} = e;
       if(response.status === 409) {
@@ -492,15 +395,7 @@ export class HttpsTransport {
 
     let response;
     try {
-      // sign HTTP header
-      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-      const headers = await signCapabilityInvocation({
-        url, method: 'get', headers: defaultHeaders,
-        capability, invocationSigner,
-        capabilityAction: 'read'
-      });
-      // send request
-      response = await httpClient.get(url, {headers, agent});
+      response = await this._signedHttpGet({url, capability});
     } catch(e) {
       response = e.response || {};
       if(response.status === 404) {
@@ -518,6 +413,31 @@ export class HttpsTransport {
   }
 
   // FIXME: add _post() and _get() helpers to make code more DRY
+
+  async _signedHttpGet({url, capability}) {
+    // sign HTTP header
+    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+    const headers = await signCapabilityInvocation({
+      url, method: 'get', headers: defaultHeaders,
+      capability, invocationSigner,
+      capabilityAction: 'read'
+    });
+    // send request
+    return httpClient.get(url, {headers, agent});
+  }
+
+  async _signedHttpPost({url, json, capability, capabilityAction = 'write'}) {
+    // sign HTTP header
+    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+    const headers = await signCapabilityInvocation({
+      url, method: 'post', headers: defaultHeaders,
+      json, capability, invocationSigner,
+      capabilityAction
+    });
+
+    // send request
+    return httpClient.post(url, {agent, json, headers});
+  }
 
   // helper that gets a document URL from a document ID
   _getDocUrl(id, capability) {
