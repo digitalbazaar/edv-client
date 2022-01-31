@@ -83,18 +83,11 @@ export class HttpsTransport {
    * @inheritdoc
    */
   async getConfig({id = this.edvId} = {}) {
-    let {capability} = this;
+    const {capability} = this;
     if(!(id || capability)) {
       throw new TypeError('"capability" is required if "id" was not provided.');
     }
-
-    let url;
-    if(capability) {
-      url = HttpsTransport._getInvocationTarget({capability});
-    } else {
-      url = id;
-      capability = this._rootZcapId;
-    }
+    const url = HttpsTransport._getInvocationTarget({capability}) || id;
 
     const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
     if(!invocationSigner) {
@@ -107,7 +100,9 @@ export class HttpsTransport {
     }
 
     // send request w/ zcap invocation
-    const response = await this._signedHttpGet({url, capability});
+    const response = await this._signedHttpGet({
+      url, capability, notFoundMessage: 'Config not found.'
+    });
     return response.data;
   }
 
@@ -115,21 +110,13 @@ export class HttpsTransport {
    * @inheritdoc
    */
   async updateConfig({config} = {}) {
-    const {edvId} = this;
-    let {capability} = this;
+    const {capability, edvId} = this;
     if(!(edvId || capability)) {
       throw new TypeError(
         '"capability" is required if "edvId" was not provided ' +
         'to the HttpsTransport constructor.');
     }
-
-    let url;
-    if(capability) {
-      url = HttpsTransport._getInvocationTarget({capability});
-    } else {
-      url = edvId;
-      capability = this._rootZcapId;
-    }
+    const url = HttpsTransport._getInvocationTarget({capability}) || edvId;
 
     const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
     if(!invocationSigner) {
@@ -150,9 +137,7 @@ export class HttpsTransport {
    */
   async findConfigs({controller, referenceId, after, limit} = {}) {
     let {capability, url} = this;
-    if(url) {
-      assert(url, 'url', 'string');
-    } else {
+    if(!url) {
       url = HttpsTransport._getInvocationTarget({capability}) ||
         _createAbsoluteUrl('/edvs');
     }
@@ -192,94 +177,56 @@ export class HttpsTransport {
    * @inheritdoc
    */
   async insert({encrypted} = {}) {
+    // trim document ID and trailing slash to post to `/documents`
     let url = this._getDocUrl(encrypted.id);
-    let {capability} = this;
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    // trim document ID and trailing slash, if present, to post to root
-    // collection
     if(url.endsWith(encrypted.id)) {
       url = url.slice(0, -(encrypted.id.length + 1));
     }
-
-    await this._signedHttpPost({
-      url, json: encrypted, capability, insert: true
-    });
+    await this._signedHttpPost({url, json: encrypted, insert: true});
   }
 
   /**
    * @inheritdoc
    */
   async update({encrypted} = {}) {
-    let {capability} = this;
-    const url = this._getDocUrl(encrypted.id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    await this._signedHttpPost({
-      url, json: encrypted, capability, insert: false
-    });
+    const url = this._getDocUrl(encrypted.id, this.capability);
+    await this._signedHttpPost({url, json: encrypted, insert: false});
   }
 
   /**
    * @inheritdoc
    */
   async updateIndex({docId, entry} = {}) {
-    let {capability} = this;
-    const url = this._getDocUrl(docId, capability) + '/index';
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-    await this._signedHttpPost({url, json: entry, capability, insert: false});
+    const url = this._getDocUrl(docId, this.capability) + '/index';
+    await this._signedHttpPost({url, json: entry, insert: false});
   }
 
   /**
    * @inheritdoc
    */
   async get({id} = {}) {
-    let {capability} = this;
-    const url = this._getDocUrl(id, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
-
-    try {
-      const response = await this._signedHttpGet({url, capability});
-      return response.data;
-    } catch(e) {
-      if(e.status === 404) {
-        const err = new Error('Document not found.');
-        err.name = 'NotFoundError';
-        err.cause = e;
-        throw err;
-      }
-      throw e;
-    }
+    const url = this._getDocUrl(id, this.capability);
+    const response = await this._signedHttpGet({
+      url, notFoundMessage: 'Document not found.'
+    });
+    return response.data;
   }
 
   /**
    * @inheritdoc
    */
   async find({query} = {}) {
-    let {capability} = this;
+    const {capability, edvId} = this;
     let url = HttpsTransport._getInvocationTarget({capability});
     if(!url) {
-      if(!this.edvId) {
+      if(!edvId) {
         throw new Error('Either "capability" or "edvId" must be given.');
       }
-      url = `${this.edvId}/query`;
-    }
-
-    // note: capability with a target of `/documents` can be used to query
-    // by augmenting with `/query`
-    if(url.endsWith('/documents')) {
-      url = `${url}/query`;
-    }
-
-    if(!capability) {
-      capability = this._rootZcapId;
+      url = `${edvId}/query`;
+    } else if(url.endsWith('/documents')) {
+      // note: capability with a target of `/documents` can be used to query
+      // by augmenting with `/query`
+      url += '/query';
     }
 
     // do signed HTTP post w/'read' action
@@ -330,41 +277,22 @@ export class HttpsTransport {
    * @inheritdoc
    */
   async storeChunk({docId, chunk}) {
-    let {capability} = this;
-    let url = this._getDocUrl(docId, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
     // append `/chunks/<chunkIndex>`
     const {index} = chunk;
-    url += `/chunks/${index}`;
-    await this._signedHttpPost({url, json: chunk, capability, insert: false});
+    const url = this._getDocUrl(docId, this.capability) + `/chunks/${index}`;
+    await this._signedHttpPost({url, json: chunk, insert: false});
   }
 
   /**
    * @inheritdoc
    */
   async getChunk({docId, chunkIndex} = {}) {
-    let {capability} = this;
-    let url = this._getDocUrl(docId, capability);
-    if(!capability) {
-      capability = this._rootZcapId;
-    }
     // append `/chunks/<chunkIndex>`
-    url += `/chunks/${chunkIndex}`;
-
-    let response;
-    try {
-      response = await this._signedHttpGet({url, capability});
-    } catch(e) {
-      if(e.status === 404) {
-        const err = new Error('Document chunk not found.');
-        err.name = 'NotFoundError';
-        err.cause = e;
-        throw err;
-      }
-      throw e;
-    }
+    const url = this._getDocUrl(docId, this.capability) +
+      `/chunks/${chunkIndex}`;
+    const response = await this._signedHttpGet({
+      url, notFoundMessage: 'Document chunk not found.'
+    });
 
     // TODO: validate response.data
 
@@ -372,23 +300,40 @@ export class HttpsTransport {
     return response.data;
   }
 
-  // FIXME: add _post() and _get() helpers to make code more DRY
-
-  async _signedHttpGet({url, capability} = {}) {
-    // sign HTTP header
-    const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
-    const headers = await signCapabilityInvocation({
-      url, method: 'get', headers: defaultHeaders,
-      capability, invocationSigner,
-      capabilityAction: 'read'
-    });
-    // send request
-    return httpClient.get(url, {headers, agent});
+  async _signedHttpGet({
+    url, capability = this.capability, notFoundMessage
+  } = {}) {
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
+    try {
+      // sign HTTP header
+      const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
+      const headers = await signCapabilityInvocation({
+        url, method: 'get', headers: defaultHeaders,
+        capability, invocationSigner,
+        capabilityAction: 'read'
+      });
+      // send request
+      return await httpClient.get(url, {headers, agent});
+    } catch(e) {
+      // normalize not found errors
+      if(notFoundMessage && e.status === 404) {
+        const err = new Error(notFoundMessage);
+        err.name = 'NotFoundError';
+        err.cause = e;
+        throw err;
+      }
+      throw e;
+    }
   }
 
   async _signedHttpPost({
-    url, json, capability, capabilityAction = 'write', insert
+    url, json, capability = this.capability, capabilityAction = 'write', insert
   } = {}) {
+    if(!capability) {
+      capability = this._rootZcapId;
+    }
     try {
       // sign HTTP header
       const {defaultHeaders, httpsAgent: agent, invocationSigner} = this;
