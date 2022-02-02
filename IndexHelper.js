@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import base64url from 'base64url-universal';
 import canonicalize from 'canonicalize';
@@ -21,10 +21,17 @@ export class IndexHelper {
   }
 
   /**
-   * Ensures that future documents inserted or updated using this Edv
+   * Ensures that future documents inserted or updated using this client
    * instance will be indexed according to the given attribute, provided that
    * they contain that attribute. Compound indexes can be specified by
    * providing an array for `attribute`.
+   *
+   * Queries may be performed using compound indexes without specifying all
+   * attributes in the compound index so long as there is at least one value
+   * (or the attribute name for "has" queries) specified for consecutive
+   * attributes starting with the first. This allows for querying using only
+   * a prefix of a compound index. However, uniqueness will not be enforced
+   * unless all attributes in the compound index are present in a document.
    *
    * @param {object} options - The options to use.
    * @param {string|string[]} options.attribute - The attribute name or an
@@ -43,22 +50,9 @@ export class IndexHelper {
         '"attribute" must be a string or an array of strings.');
     }
 
-    // parse attributes to ensure validity and add a non-unique index for every
-    // attribute, taking care not to overwrite an existing unique index...
-    // ... this ensures that `has` queries will work on all attributes even
-    // if they are only participants in compound indexes
-    attributes.forEach(attr => {
-      this._parseAttribute(attr);
-      if(!this.indexes.has(attr)) {
-        this.indexes.set(attr, false);
-      }
-    });
-
     if(attributes.length === 1) {
-      // if index is not compound but unique, ensure it is marked as unique
-      if(unique) {
-        this.indexes.set(attributes[0], unique);
-      }
+      // add simple index
+      this.indexes.set(attributes[0], unique);
     } else {
       // add compound index
       const key = attributes.map(x => encodeURIComponent(x)).join('|');
@@ -80,76 +74,14 @@ export class IndexHelper {
    */
   async createEntry({hmac, doc}) {
     _assertHmac(hmac);
-
-    const {compoundIndexes, indexes} = this;
     const entry = {
       hmac: {
         id: hmac.id,
         type: hmac.type
-      }
+      },
+      sequence: doc.sequence,
+      attributes: await this._buildBlindAttributes({hmac, doc})
     };
-
-    // ensure current iteration/version matches doc's
-    entry.sequence = doc.sequence;
-
-    // build a map of attribute name to blinded attribute for all
-    // indexes (singular and compound)
-    const blindMap = new Map();
-
-    // blind all attributes that are part of any simple index
-    const blindOps = [];
-    for(const [attribute, unique] of indexes.entries()) {
-      let value = this._dereferenceAttribute({attribute, doc});
-      if(value === undefined) {
-        continue;
-      }
-      if(!Array.isArray(value)) {
-        value = [value];
-      }
-      for(const v of value) {
-        blindOps.push((async () => {
-          const blinded = await this._blindAttribute(
-            {hmac, key: attribute, value: v});
-          blindMap.set(attribute, blinded);
-          return {...blinded, unique};
-        })());
-      }
-    }
-
-    // get all blinded attribute and value pairs
-    entry.attributes = await Promise.all(blindOps);
-
-    // build compound attributes (for every attribute after the first in the
-    // compound index, hash attribute names and values together)
-    const compoundOps = [];
-    for(const {attributes, unique} of compoundIndexes.values()) {
-      // get blinded attributes involved in the compound index, noting that
-      // the document may not have every attribute, so it only participates
-      // in the index up until an "undefined" attribute is encountered
-      const blindAttributes = [];
-      for(const attr of attributes) {
-        const blinded = blindMap.get(attr);
-        if(blinded) {
-          blindAttributes.push(blinded);
-        } else {
-          break;
-        }
-      }
-      for(let i = 1; i < blindAttributes.length; ++i) {
-        compoundOps.push((async () => {
-          const attribute = await this._blindCompoundAttribute(
-            {hmac, blindAttributes, length: i + 1});
-          // intentionally check `attributes.length` here not
-          // `blindAttributes.length`, uniqueness is defined by the full
-          // compound index and will not be set if the document only has
-          // some attributes in the compound index, not all
-          attribute.unique = unique && (i === attributes.length - 1);
-          return attribute;
-        })());
-      }
-    }
-    entry.attributes.push(...await Promise.all(compoundOps));
-
     return entry;
   }
 
@@ -202,8 +134,8 @@ export class IndexHelper {
    * @param {object} options - The options to use.
    * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {object|Array} [options.equals] - An object with key-value attribute
-   *   pairs to match or an array of such objects.
+   * @param {object|Array} [options.equals] - An object with key-value
+   *   attribute pairs to match or an array of such objects.
    * @param {string|Array} [options.has] - A string with an attribute name to
    *   match or an array of such strings.
    *
@@ -244,70 +176,27 @@ export class IndexHelper {
     };
 
     if(equals) {
-      // blind `equals`
+      // normalize to array
       if(!Array.isArray(equals)) {
         equals = [equals];
       }
-      const {compoundIndexes} = this;
+      // blind all values in each `equal`
       query.equals = await Promise.all(equals.map(async equal => {
         const result = {};
-
-        // blind all attributes and then determine whether to submit them
-        // as compound attributes or not based on any compoound indexes set
-        const blindMap = new Map();
-        const blinded = await Promise.all(
-          Object.entries(equal).map(async ([key, value]) => {
-            const attribute = await this._blindAttribute({hmac, key, value});
-            blindMap.set(key, attribute);
-            return attribute;
-          }));
-
-        // build compound attributes and track which attributes were used
-        // in a compound index so they will not be used in a simple index
-        const used = new Set();
-        const compoundOps = [];
-        for(const {attributes} of compoundIndexes.values()) {
-          const blindAttributes = [];
-          for(const attr of attributes) {
-            const blindAttr = blindMap.get(attr);
-            if(blindAttr) {
-              blindAttributes.push(blindAttr);
-            } else {
-              break;
-            }
-          }
-          // if fewer than two attributes are present, then only a simple
-          // index can be used, skip
-          if(blindAttributes.length < 2) {
-            continue;
-          }
-          // mark all attributes in the compound index as used
-          blindAttributes.forEach(({name}) => used.add(name));
-          // create max length compound attribute
-          compoundOps.push((async () => {
-            const attribute = await this._blindCompoundAttribute(
-              {hmac, blindAttributes, length: blindAttributes.length});
-            result[attribute.name] = attribute.value;
-          })());
-        }
-        await Promise.all(compoundOps);
-
-        // add any blinded attributes not used in a compound index
+        const blinded = await this._buildBlindAttributes({hmac, equal});
         for(const {name, value} of blinded) {
-          if(!used.has(name)) {
-            result[name] = value;
-          }
+          result[name] = value;
         }
-
         return result;
       }));
     } else if(has !== undefined) {
-      // blind `has`
+      // normalize to array
       if(!Array.isArray(has)) {
         has = [has];
       }
-      query.has = await Promise.all(
-        has.map(key => this._blindString(hmac, key)));
+      // blind every attribute name in `has`
+      query.has = (await this._buildBlindAttributes({hmac, has}))
+        .map(({name}) => name);
     }
     return query;
   }
@@ -341,13 +230,17 @@ export class IndexHelper {
    *   properties.
    * @param {Array} options.blindAttributes - The blind attributes that
    *   comprise the compound index.
-   * @param {number} options.length - The number of blind attributes to go into
-   *   the compound attribute (<= `blindAttributes.length`).
+   * @param {number} [options.length=options.blindAttributes.length] - The
+   *   number of blind attributes to go into the compound attribute
+   *   (<= `blindAttributes.length`).
    *
    * @returns {Promise<string>} - Resolves to the blinded compound attribute.
    */
-  async _blindCompoundAttribute({hmac, blindAttributes, length}) {
-    const selection = blindAttributes.slice(0, length);
+  async _blindCompoundAttribute({
+    hmac, blindAttributes, length = blindAttributes.length
+  }) {
+    const selection = length === blindAttributes.length ?
+      blindAttributes : blindAttributes.slice(0, length);
     const nameInput = selection.map(x => x.name).join(':');
     const valueInput = selection.map(x => x.value).join(':');
     const [name, value] = await Promise.all([
@@ -376,6 +269,192 @@ export class IndexHelper {
     }
     // base64url-encode Uint8Array signature
     return base64url.encode(signature);
+  }
+
+  async _buildBlindAttributes({hmac, doc, equal, has}) {
+    const result = [];
+
+    // get all matching indexes and corresponding attribute values
+    const {simpleMatches, compoundMatches, attributeValues} =
+      this._getMatchingIndexes({doc, equal, has});
+
+    // compute and store all blinded attributes in parallel
+    const blindedAttributes = new Map();
+    const blindPromises = [];
+    for(const [attribute, valueSet] of attributeValues.entries()) {
+      // create a blinded set for each attribute name; it will hold the
+      // blinded attribute associated with each attribute+value pair
+      const blindedSet = new Set();
+      blindedAttributes.set(attribute, blindedSet);
+      for(const v of valueSet) {
+        // use an IIFE to push a promise onto `blindPromises` to await all
+        // promises in parallel and within IIFE add the resolved blinded
+        // attribute to the current attribute's `blindedSet`
+        blindPromises.push((async () => {
+          blindedSet.add(await this._blindAttribute(
+            {hmac, key: attribute, value: v}));
+        })());
+      }
+    }
+    await Promise.all(blindPromises);
+
+    // add all matching simple index blinded attributes and track simple
+    // attributes to avoid duplicating entries when processing compound
+    // indexes
+    const simpleAttributes = new Set();
+    for(const {attribute, unique} of simpleMatches) {
+      const blindedSet = blindedAttributes.get(attribute);
+      for(const blinded of blindedSet) {
+        result.push({...blinded, unique});
+      }
+      simpleAttributes.add(attribute);
+    }
+
+    // compute and add all matching compound index blinded attributes
+    const compoundPromises = [];
+    for(const {attributes, unique} of compoundMatches) {
+      /* Note: For each matching index, there are some number of matching
+      attributes that need to be combinatorially spread. For example, for this
+      index: `['content.a', 'content.b', 'content.c']`, there may be multiple
+      values for each attribute such as `A` values for `content.a`, `B` values
+      for `content.b`, and `C` values for `content.c`. Each combination these
+      values will produce a new blinded attribute to add to `entry`.
+      Combinations must also include partial ones, e.g., combinations of
+      values for `content.a` alone as well as values for `content.a` and
+      `content.b` without `content.c`. */
+      const combinations = [];
+      let previous = [[]];
+      for(const attribute of attributes) {
+        const blindedSet = blindedAttributes.get(attribute);
+        if(!blindedSet) {
+          // no values for current attribute, so no more entries to produce
+          break;
+        }
+        // produce a new combination for every `blinded` value and every
+        // combination from the previous attribute
+        const next = [];
+        for(const blinded of blindedSet) {
+          for(const combination of previous) {
+            next.push([...combination, blinded]);
+          }
+        }
+        combinations.push(...next);
+        previous = next;
+      }
+
+      // now generate entries from every combination
+      for(const combination of combinations) {
+        // skip generating an entry for this combination if it has just the
+        // first attribute and an entry for it was already added
+        if(combination.length === 1 && simpleAttributes.has(attributes[0])) {
+          continue;
+        }
+
+        // use an IIFE to push a promise onto `compoundPromises` to await all
+        // promises in parallel and within IIFE return blinded attribute to
+        // add to `entry` below
+        compoundPromises.push((async () => {
+          const attribute = await this._blindCompoundAttribute({
+            hmac, blindAttributes: combination
+          });
+          // an encrypted attribute is only unique for a compound index when
+          // it contains a value for every attribute in the index
+          attribute.unique = unique &&
+            (combination.length === attributes.length);
+          return attribute;
+        })());
+      }
+    }
+    result.push(...await Promise.all(compoundPromises));
+
+    return result;
+  }
+
+  _getMatchingIndexes({doc, equal, has} = {}) {
+    // build a map of `attribute name => set of values` whilst matching
+    const attributeValues = new Map();
+    let matchFn;
+    if(doc) {
+      // build a map of `attribute name => set of values` whilst matching
+      // against the document
+      matchFn = ({attribute}) => {
+        return this._matchDocument({attribute, attributeValues, doc});
+      };
+    } else {
+      // any attribute in `equal` or `has` entry is a match
+      let attributes;
+      if(equal) {
+        attributes = Object.keys(equal);
+        for(const [name, value] of Object.entries(equal)) {
+          attributeValues.set(name, new Set([value]));
+        }
+      } else {
+        attributes = has;
+        for(const name of has) {
+          // use dummy value of `true`; values will not be used in a `has`
+          // query; note that this could be optimized to avoid the unnecessary
+          // blinding of values in the future with more complex code
+          attributeValues.set(name, new Set([true]));
+        }
+      }
+      matchFn = ({attribute}) => attributes.includes(attribute);
+    }
+    const result = this._matchIndexes({matchFn});
+    return {...result, attributeValues};
+  }
+
+  _matchIndexes({matchFn} = {}) {
+    // any simple index that has a value defined for its attribute is a match
+    const simpleMatches = [];
+    for(const [attribute, unique] of this.indexes.entries()) {
+      if(matchFn({attribute})) {
+        simpleMatches.push({attribute, unique});
+      }
+    }
+
+    // any compound index that has a value defined for its first attribute is a
+    // match; continue to process consecutive attributes whilst at least one
+    // value per consecutive attribute is defined
+    const compoundMatches = [];
+    for(const index of this.compoundIndexes.values()) {
+      let first = true;
+      const {attributes} = index;
+      for(const attribute of attributes) {
+        if(!matchFn({attribute})) {
+          // consecutive value not defined
+          break;
+        }
+        if(first) {
+          first = false;
+          compoundMatches.push(index);
+        }
+      }
+    }
+
+    return {simpleMatches, compoundMatches};
+  }
+
+  _matchDocument({attribute, attributeValues, doc}) {
+    // get attribute value from document
+    const value = this._dereferenceAttribute({attribute, doc});
+    if(value === undefined) {
+      return false;
+    }
+
+    // get set of values
+    let valueSet = attributeValues.get(attribute);
+    if(!valueSet) {
+      attributeValues.set(attribute, valueSet = new Set());
+    }
+
+    // add each value in an array as a separate attribute value
+    if(Array.isArray(value)) {
+      value.forEach(valueSet.add, valueSet);
+    } else {
+      valueSet.add(value);
+    }
+
+    return true;
   }
 
   _parseAttribute(attribute) {
