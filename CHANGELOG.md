@@ -1,5 +1,14 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 11.1.2 - 2022-02-xx
+
+### Fixed
+- Fix bugs with compound indexes. Previously, when a document contained
+  multiple values for an attribute (e.g., an array value was used) that
+  participated in a compound index, it was possible for the earlier
+  values to be erroneously dropped from the index. This bug has now
+  been fixed.
+ 
 ## 11.1.1 - 2022-01-31
 
 ### Fixed
