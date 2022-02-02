@@ -276,15 +276,25 @@ describe('EdvClient', () => {
 
   // TODO: add more tests: getAll, update
 
-  it('should ensure two new indexes', async () => {
+  it('should ensure new simple index', async () => {
     const client = await mock.createEdv();
     const {indexHelper} = client;
     const indexCount = indexHelper.indexes.size;
-    client.ensureIndex({attribute: ['content', 'content.index1']});
+    client.ensureIndex({attribute: ['content.a']});
     indexHelper.indexes.should.be.a('Map');
-    indexHelper.indexes.size.should.equal(indexCount + 2);
-    indexHelper.indexes.has('content').should.equal(true);
-    indexHelper.indexes.has('content.index1').should.equal(true);
+    indexHelper.indexes.size.should.equal(indexCount + 1);
+    indexHelper.indexes.has('content.a').should.equal(true);
+  });
+
+  it('should ensure new compound index', async () => {
+    const client = await mock.createEdv();
+    const {indexHelper} = client;
+    const indexCount = indexHelper.compoundIndexes.size;
+    client.ensureIndex({attribute: ['content.a', 'content.b']});
+    indexHelper.compoundIndexes.should.be.a('Map');
+    indexHelper.compoundIndexes.size.should.equal(indexCount + 1);
+    indexHelper.compoundIndexes.has('content.a|content.b')
+      .should.equal(true);
   });
 
   it('should insert a document', async () => {
@@ -738,6 +748,73 @@ describe('EdvClient', () => {
     docs[0].content.should.deep.equal(expected.content);
   });
 
+  it('should find document that has both fields in a ' +
+    'compound index', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: ['content.a', 'content.b']});
+    const testId = await EdvClient.generateId();
+    const expected = {
+      id: testId,
+      content: {
+        a: 'value1',
+        b: 'value2'
+      }
+    };
+    await client.insert({doc: expected, invocationSigner, keyResolver});
+    const {documents: docs} = await client.find({
+      invocationSigner,
+      has: ['content.a', 'content.b']
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+  });
+
+  it('should find document when only first field in compound index ' +
+    'is specified in "has" query', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: ['content.a', 'content.b']});
+    const testId = await EdvClient.generateId();
+    const expected = {
+      id: testId,
+      content: {
+        a: 'value1',
+        b: 'value2'
+      }
+    };
+    await client.insert({doc: expected, invocationSigner, keyResolver});
+    const {documents: docs} = await client.find({
+      invocationSigner,
+      has: 'content.a'
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+  });
+
+  it('should not find document when only second field in compound index ' +
+    'is specified in "has" query', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: ['content.a', 'content.b']});
+    const testId = await EdvClient.generateId();
+    const expected = {
+      id: testId,
+      content: {
+        a: 'value1',
+        b: 'value2'
+      }
+    };
+    await client.insert({doc: expected, invocationSigner, keyResolver});
+    const {documents: docs} = await client.find({
+      invocationSigner,
+      has: 'content.b'
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(0);
+  });
+
   it('should find a document with a deep index on an array', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.nested.array.foo'});
@@ -746,11 +823,7 @@ describe('EdvClient', () => {
       id: testId,
       content: {
         nested: {
-          array: [{
-            foo: 'bar'
-          }, {
-            foo: 'baz'
-          }]
+          array: [{foo: 'bar'}, {foo: 'baz'}]
         }
       }
     };
@@ -779,6 +852,146 @@ describe('EdvClient', () => {
     docs2.length.should.equal(1);
     docs2[0].should.be.an('object');
     docs2[0].content.should.deep.equal(expected.content);
+  });
+
+  it('should find a document with a deep compound index ' +
+    'on an array', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({
+      attribute: ['content.nested.array.foo', 'content.second']
+    });
+    const testId = await EdvClient.generateId();
+    const expected = {
+      id: testId,
+      content: {
+        nested: {
+          array: [{foo: 'bar'}, {foo: 'baz'}]
+        },
+        second: '1'
+      }
+    };
+    await client.insert({doc: expected, keyResolver, invocationSigner});
+
+    // find with first value
+    const {documents: docs} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'bar'
+      }
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+
+    // find with second value
+    const {documents: docs2} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'baz'
+      }
+    });
+    docs2.should.be.an('array');
+    docs2.length.should.equal(1);
+    docs2[0].should.be.an('object');
+    docs2[0].content.should.deep.equal(expected.content);
+
+    // find with first value and second index value
+    const {documents: docs3} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'bar',
+        //'content.second': '1'
+      }
+    });
+    docs3.should.be.an('array');
+    docs3.length.should.equal(1);
+    docs3[0].should.be.an('object');
+    docs3[0].content.should.deep.equal(expected.content);
+
+    // find with second value and second index value
+    const {documents: docs4} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'baz',
+        'content.second': '1'
+      }
+    });
+    docs4.should.be.an('array');
+    docs4.length.should.equal(1);
+    docs4[0].should.be.an('object');
+    docs4[0].content.should.deep.equal(expected.content);
+  });
+
+  it('should find a document with a deep compound index ' +
+    'on arrays', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({
+      attribute: ['content.nested.array.foo', 'content.second.array.bar']
+    });
+    const testId = await EdvClient.generateId();
+    const expected = {
+      id: testId,
+      content: {
+        nested: {
+          array: [{foo: 'bar'}, {foo: 'baz'}]
+        },
+        second: {
+          array: [{bar: '1'}, {bar: '2'}]
+        }
+      }
+    };
+    await client.insert({doc: expected, keyResolver, invocationSigner});
+
+    // find with first value
+    const {documents: docs} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'bar'
+      }
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal(expected.content);
+
+    // find with second value
+    const {documents: docs2} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'baz'
+      }
+    });
+    docs2.should.be.an('array');
+    docs2.length.should.equal(1);
+    docs2[0].should.be.an('object');
+    docs2[0].content.should.deep.equal(expected.content);
+
+    // find with first value and second index value
+    const {documents: docs3} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'bar',
+        'content.second.array.bar': '1'
+      }
+    });
+    docs3.should.be.an('array');
+    docs3.length.should.equal(1);
+    docs3[0].should.be.an('object');
+    docs3[0].content.should.deep.equal(expected.content);
+
+    // find with second value and second index value
+    const {documents: docs4} = await client.find({
+      invocationSigner,
+      equals: {
+        'content.nested.array.foo': 'baz',
+        'content.second.array.bar': '1'
+      }
+    });
+    docs4.should.be.an('array');
+    docs4.length.should.equal(1);
+    docs4[0].should.be.an('object');
+    docs4[0].content.should.deep.equal(expected.content);
   });
 
   it('should find two documents with attribute values', async () => {
