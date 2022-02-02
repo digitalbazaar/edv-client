@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 11.1.2 - 2022-02-xx
+## 11.1.2 - 2022-02-02
 
 ### Fixed
 - Fix bugs with compound indexes. Previously, when a document contained
