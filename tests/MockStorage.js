@@ -214,7 +214,16 @@ export class MockStorage {
       if(query.count === true) {
         return [200, undefined, {count: results.length}];
       }
-      return [200, undefined, {documents: results}];
+
+      const {limit} = query;
+      const result = {documents: results};
+      if(limit !== undefined) {
+        result.hasMore = results.length > limit;
+        if(result.hasMore) {
+          result.documents.length = limit;
+        }
+      }
+      return [200, undefined, result];
     });
   }
 

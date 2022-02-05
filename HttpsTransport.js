@@ -233,8 +233,12 @@ export class HttpsTransport {
     if(query.count === true) {
       return response.data;
     }
-    const {data: {documents}} = response;
-    return {documents};
+    const {data: {documents, hasMore}} = response;
+    const result = {documents};
+    if(hasMore !== undefined) {
+      result.hasMore = hasMore;
+    }
+    return result;
   }
 
   /**

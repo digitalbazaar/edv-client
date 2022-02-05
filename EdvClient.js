@@ -334,6 +334,8 @@ export class EdvClient extends EdvClientCore {
    *   invocation.
    * @param {boolean} [options.count] - Set to `false` to find all documents
    *   that match a query or to `true` to give a count of documents.
+   * @param {number} [options.limit] - Set to limit the number of documents
+   *   to be returned from a query (min=1, max=1000).
    *
    * @returns {Promise<object>} - Resolves to the matching documents:
    *   {documents: [...]}.
@@ -341,14 +343,16 @@ export class EdvClient extends EdvClientCore {
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
     capability = this.capability, invocationSigner = this.invocationSigner,
-    count = false
+    count = false, limit
   } = {}) {
     assertInvocationSigner(invocationSigner);
     const {defaultHeaders, httpsAgent, id: edvId} = this;
     const transport = new HttpsTransport({
       capability, defaultHeaders, edvId, httpsAgent, invocationSigner
     });
-    return super.find({keyAgreementKey, hmac, equals, has, count, transport});
+    return super.find({
+      keyAgreementKey, hmac, equals, has, count, limit, transport
+    });
   }
 
   /**

@@ -1,5 +1,16 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 11.2.0 - 2022-02-xx
+
+### Added
+- Support `limit` option in `query`. If `limit` is passed, it must be
+  an integer >= 1 and <= 1000. An EDV server that understands it will
+  limit the results to the given value and report back a boolean,
+  `hasMore`, to indicate whether there are more results that match
+  the query. There is presently no cursor value that can be passed
+  in a future query to continue / skip previous results, this is
+  deferred to a future version.
+
 ## 11.1.2 - 2022-02-02
 
 ### Fixed

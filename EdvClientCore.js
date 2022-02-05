@@ -405,6 +405,8 @@ export class EdvClientCore {
    *   match or an array of such strings.
    * @param {boolean} [options.count] - Set to `false` to find all documents
    *   that match a query or to `true` to give a count of documents.
+   * @param {number} [options.limit] - Set to limit the number of documents
+   *   to be returned from a query (min=1, max=1000).
    * @param {object} options.transport - The Transport instance to use.
    *
    * @returns {Promise<object>} - Resolves to the matching documents:
@@ -412,14 +414,23 @@ export class EdvClientCore {
    */
   async find({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
-    count = false, transport
+    count = false, limit, transport
   } = {}) {
     assertTransport(transport);
     _checkIndexing(hmac);
+    if(limit !== undefined &&
+      !(Number.isSafeInteger(limit) && limit >= 1 && limit <= 1000)) {
+      throw new Error('"limit" must be an integer >= 1 and <= 1000.');
+    }
+
     const query = await this.indexHelper.buildQuery({hmac, equals, has});
 
     if(count) {
       query.count = true;
+    }
+
+    if(limit !== undefined) {
+      query.limit = limit;
     }
 
     // find results
@@ -430,10 +441,14 @@ export class EdvClientCore {
     }
 
     // decrypt documents
-    const {documents} = result;
+    const {documents, hasMore} = result;
     const decryptedDocs = await Promise.all(documents.map(
       encryptedDoc => this._decrypt({encryptedDoc, keyAgreementKey})));
-    return {documents: decryptedDocs};
+    const rval = {documents: decryptedDocs};
+    if(hasMore !== undefined) {
+      rval.hasMore = hasMore;
+    }
+    return rval;
   }
 
   /**

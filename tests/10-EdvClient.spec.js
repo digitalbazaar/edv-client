@@ -690,6 +690,52 @@ describe('EdvClient', () => {
     docs[1].content.should.deep.equal({indexedKey: 'value2'});
   });
 
+  it('should find one documents with an attribute w/limit', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
+    const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
+    await client.insert({doc: doc2, invocationSigner, keyResolver});
+    const {documents: docs, hasMore} = await client.find({
+      invocationSigner,
+      has: 'content.indexedKey',
+      limit: 1
+    });
+    docs.should.be.an('array');
+    docs.length.should.equal(1);
+    docs[0].should.be.an('object');
+    docs[0].content.should.deep.equal({indexedKey: 'value1'});
+    should.exist(hasMore);
+    hasMore.should.equal(true);
+  });
+
+  it('should fail with invalid limit', async () => {
+    const client = await mock.createEdv();
+    client.ensureIndex({attribute: 'content.indexedKey'});
+    const doc1ID = await EdvClient.generateId();
+    const doc2ID = await EdvClient.generateId();
+    const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+    const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
+    await client.insert({doc: doc1, invocationSigner, keyResolver});
+    await client.insert({doc: doc2, invocationSigner, keyResolver});
+    let err;
+    try {
+      await client.find({
+        invocationSigner,
+        has: 'content.indexedKey',
+        limit: 0
+      });
+    } catch(e) {
+      err = e;
+    }
+    should.exist(err);
+    err.name.should.equal('Error');
+    err.message.should.equal('"limit" must be an integer >= 1 and <= 1000.');
+  });
+
   it('should count two documents with an attribute', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.indexedKey'});
