@@ -1,5 +1,10 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 11.3.0 - 2022-02-xx
+
+### Added
+- Expose `generateId` on EdvClientCore instances as well as statically.
+
 ## 11.2.0 - 2022-02-05
 
 ### Added

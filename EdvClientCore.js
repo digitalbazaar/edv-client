@@ -506,6 +506,11 @@ export class EdvClientCore {
     return 'z' + base58.encode(buf);
   }
 
+  // expose `generateId` on instance as well
+  async generateId() {
+    return EdvClientCore.generateId();
+  }
+
   // helper to create default recipients
   _createDefaultRecipients(keyAgreementKey) {
     return keyAgreementKey ? [{
