@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 11.3.1 - 2022-02-xx
+## 11.3.1 - 2022-02-16
 
 ### Fixed
 - Fix use of zcap with EDV ID as its target in `find`.
