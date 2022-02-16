@@ -220,9 +220,9 @@ export class HttpsTransport {
         throw new Error('Either "capability" or "edvId" must be given.');
       }
       url = `${edvId}/query`;
-    } else if(url.endsWith('/documents')) {
-      // note: capability with a target of `/documents` can be used to query
-      // by augmenting with `/query`
+    } else if(!url.endsWith('/query')) {
+      // note: capability with a target of `/documents` or the EDV ID,
+      // then it can be used to query by augmenting with `/query`
       url += '/query';
     }
 
