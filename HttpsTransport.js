@@ -175,7 +175,7 @@ export class HttpsTransport {
    */
   async insert({encrypted} = {}) {
     // trim document ID and trailing slash to post to `/documents`
-    let url = this._getDocUrl(encrypted.id);
+    let url = this._getDocUrl(encrypted.id, this.capability);
     if(url.endsWith(encrypted.id)) {
       url = url.slice(0, -(encrypted.id.length + 1));
     }
