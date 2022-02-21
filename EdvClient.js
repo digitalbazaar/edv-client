@@ -304,7 +304,7 @@ export class EdvClient extends EdvClientCore {
   */
   async count({
     keyAgreementKey = this.keyAgreementKey, hmac = this.hmac, equals, has,
-    capability, invocationSigner
+    capability = this.capability, invocationSigner = this.invocationSigner
   } = {}) {
     assertInvocationSigner(invocationSigner);
     const {defaultHeaders, httpsAgent, id: edvId} = this;

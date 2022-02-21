@@ -1,5 +1,10 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 11.3.2 - 2022-02-xx
+
+### Fixed
+- Fix missing param defaults for `count`.
+
 ## 11.3.1 - 2022-02-16
 
 ### Fixed
