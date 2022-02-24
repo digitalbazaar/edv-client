@@ -1,5 +1,10 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 12.0.1 - 2022-02-23
+
+### Fixed
+- Add missing `capability` param.
+
 ## 12.0.0 - 2022-02-23
 
 ### Changed
