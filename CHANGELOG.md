@@ -1,5 +1,14 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 12.0.0 - 2022-02-xx
+
+### Changed
+- **BREAKING**: Locally digest all values used to produce encrypted
+  indexes by using sha-256 prior to HMAC'ing them. This increases
+  privacy when using a WebKMS system. This approach to producing
+  encrypted indexes will be incompatible with previously generated
+  attributes.
+
 ## 11.3.2 - 2022-02-20
 
 ### Fixed

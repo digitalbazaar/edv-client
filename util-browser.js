@@ -24,3 +24,7 @@ const crypto = (self.crypto || self.msCrypto);
 export async function getRandomBytes(buf) {
   return crypto.getRandomValues(buf);
 }
+
+export async function sha256(buf) {
+  return new Uint8Array(await crypto.subtle.digest('SHA-256', buf));
+}

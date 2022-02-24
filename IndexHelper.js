@@ -4,7 +4,7 @@
 import base64url from 'base64url-universal';
 import canonicalize from 'canonicalize';
 import split from 'split-string';
-import {TextEncoder} from './util.js';
+import {sha256, TextEncoder} from './util.js';
 
 const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
@@ -260,8 +260,8 @@ export class IndexHelper {
    * @returns {Promise<string>} - Resolves to the blinded value.
    */
   async _blindString(hmac, value) {
-    // convert value to Uint8Array
-    const data = new TextEncoder().encode(value);
+    // convert value to Uint8Array and hash it
+    const data = await sha256(new TextEncoder().encode(value));
     const signature = await hmac.sign({data});
     if(typeof signature === 'string') {
       // presume base64url-encoded
