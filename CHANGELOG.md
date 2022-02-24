@@ -1,5 +1,10 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 12.0.2 - 2022-02-xx
+
+### Fixed
+- Ensure EDV ID is parsed from `capability` param.
+
 ## 12.0.1 - 2022-02-23
 
 ### Fixed

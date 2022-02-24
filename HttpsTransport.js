@@ -254,14 +254,7 @@ export class HttpsTransport {
       // capability that is to be revoked -- presuming it is a document (if
       // revoking any other capability, the `edvId` must be set or a
       // `capability` passed to invoke)
-      const invocationTarget = HttpsTransport._getInvocationTarget(
-        {capability: capabilityToRevoke});
-      const idx = invocationTarget.lastIndexOf('/documents');
-      if(idx === -1) {
-        throw new Error(
-          `Invalid EDV invocation target (${invocationTarget}).`);
-      }
-      edvId = invocationTarget.slice(0, idx);
+      edvId = this.parseEdvId({capability: capabilityToRevoke});
     }
 
     const url = HttpsTransport._getInvocationTarget({capability}) ||

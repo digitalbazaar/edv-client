@@ -53,6 +53,10 @@ export class EdvClient extends EdvClientCore {
   } = {}) {
     if(capability !== undefined) {
       assert(capability, 'capability', 'object');
+      if(!id) {
+        // parse EDV ID from `capability`
+        id = EdvClient._parseEdvId({capability});
+      }
     }
     if(invocationSigner !== undefined) {
       assertInvocationSigner(invocationSigner);
@@ -435,6 +439,19 @@ export class EdvClient extends EdvClientCore {
   }
 
   /**
+   * Parses an EDV ID from a capability's invocation target.
+   *
+   * @param {object} options - The options to use.
+   * @param {object|string} options.capability - The authorization capability
+   *   (zcap) to parse the EDV ID from.
+   *
+   * @returns {string} - The ID of the EDV.
+   */
+  parseEdvId({capability} = {}) {
+    return EdvClient._parseEdvId({capability});
+  }
+
+  /**
    * Creates a new EDV using the given configuration.
    *
    * @param {object} options - The options to use.
@@ -535,6 +552,30 @@ export class EdvClient extends EdvClientCore {
   // helper
   _getDocUrl(id, capability) {
     return new HttpsTransport({edvId: this.id})._getDocUrl(id, capability);
+  }
+
+  /**
+   * Parses an EDV ID from a capability's invocation target.
+   *
+   * @param {object} options - The options to use.
+   * @param {object|string} options.capability - The authorization capability
+   *   (zcap) to parse the EDV ID from.
+   *
+   * @returns {string} - The ID of the EDV.
+   */
+  static _parseEdvId({capability} = {}) {
+    const invocationTarget = EdvClient._getInvocationTarget({capability});
+    const start = invocationTarget.lastIndexOf('/edvs/');
+    if(start === -1) {
+      throw new Error(`Invalid EDV invocation target (${invocationTarget}).`);
+    }
+    const end = invocationTarget.indexOf('/', start + '/edvs/'.length + 1);
+    if(end === -1) {
+      // form: https://example.com/edvs/z1238121237
+      return invocationTarget;
+    }
+    // form: https://example.com/edvs/z1238121237/...
+    return invocationTarget.slice(0, end);
   }
 
   // provided temporarily for backwards compatibility; should be moved to
