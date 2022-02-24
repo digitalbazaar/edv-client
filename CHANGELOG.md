@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 12.0.0 - 2022-02-xx
+## 12.0.0 - 2022-02-23
 
 ### Changed
 - **BREAKING**: Locally digest all values used to produce encrypted
