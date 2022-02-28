@@ -257,8 +257,9 @@ export class HttpsTransport {
       edvId = this.parseEdvId({capability: capabilityToRevoke});
     }
 
+    const revokePath = `${edvId}/zcaps/revocations`;
     const url = HttpsTransport._getInvocationTarget({capability}) ||
-      `${edvId}/revocations/${encodeURIComponent(capabilityToRevoke.id)}`;
+      `${revokePath}/${encodeURIComponent(capabilityToRevoke.id)}`;
     if(!capability) {
       capability = `${ZCAP_ROOT_PREFIX}${encodeURIComponent(url)}`;
     }

@@ -22,7 +22,7 @@ export class MockStorage {
       edv: `${baseUrl}${root}/:edvId`,
       documents: `${baseUrl}${root}/:edvId/documents`,
       query: `${baseUrl}${root}/:edvId/query`,
-      revocations: `${baseUrl}${root}/:edvId/revocations/:zcapId`,
+      revocations: `${baseUrl}${root}/:edvId/zcaps/revocations/:zcapId`,
       chunk: `${baseUrl}${root}/:edvId/documents/:id/chunks/:chunkIndex`,
     };
 
