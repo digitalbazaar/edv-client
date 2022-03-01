@@ -1,5 +1,11 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 13.0.0 - 2022-03-xx
+
+### Changed
+- **BREAKING**: Better future proof zcap endpoints by posting zcap
+  revocations to `/zcaps/revocations` instead of just `/revocations`.
+
 ## 12.0.2 - 2022-02-24
 
 ### Fixed
