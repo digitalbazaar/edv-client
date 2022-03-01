@@ -1,6 +1,6 @@
 {
   "name": "@digitalbazaar/edv-client",
-  "version": "13.0.0",
+  "version": "13.0.1-0",
   "description": "JavaScript Encrypted Data Vault",
   "license": "BSD-3-Clause",
   "main": "index.js",
