@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 13.0.0 - 2022-03-xx
+## 13.0.0 - 2022-03-01
 
 ### Changed
 - **BREAKING**: Better future proof zcap endpoints by posting zcap
