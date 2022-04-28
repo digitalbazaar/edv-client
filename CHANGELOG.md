@@ -90,7 +90,7 @@
 ### Changed
 - **BREAKING**: Use http-signature-zcap-invoke@5. These changes
   include major breaking simplifications to ZCAP (zcap@7).
-- **BREAKING*: Renamed package to `@digitalbazaar/edv-client`.
+- **BREAKING**: Renamed package to `@digitalbazaar/edv-client`.
 
 ## 10.0.0 - 2021-09-01
 
