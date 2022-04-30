@@ -1,5 +1,13 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 15.0.0 - 2022-xx-xx
+
+### Changed
+- **BREAKING**: Convert to module (ESM).
+- **BREAKING**: Require Node.js >=14.
+- Update dependencies.
+- Lint module.
+
 ## 14.1.1 - 2022-05-06
 
 ### Fixed

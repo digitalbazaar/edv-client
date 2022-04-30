@@ -1,3 +1,3 @@
 // WebCrypto
 /* eslint-env browser */
-export default (self.crypto || self.msCrypto);
+export default (globalThis.crypto || globalThis.msCrypto);

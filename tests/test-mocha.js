@@ -1,2 +1,2 @@
-const chai = require('chai');
+import chai from 'chai';
 global.should = chai.should();
