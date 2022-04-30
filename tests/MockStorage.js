@@ -1,8 +1,8 @@
 /*!
  * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import uuid from 'uuid-random';
-import {validateSchema} from './validator';
+import {v4 as uuid} from 'uuid';
+import {validateSchema} from './validator.js';
 
 export const BASE_URL = 'https://localhost:9876';
 
@@ -23,7 +23,7 @@ export class MockStorage {
       documents: `${baseUrl}${root}/:edvId/documents`,
       query: `${baseUrl}${root}/:edvId/query`,
       revocations: `${baseUrl}${root}/:edvId/zcaps/revocations/:zcapId`,
-      chunk: `${baseUrl}${root}/:edvId/documents/:id/chunks/:chunkIndex`,
+      chunk: `${baseUrl}${root}/:edvId/documents/:id/chunks/:chunkIndex`
     };
 
     // this handles revokeCapability post requests.

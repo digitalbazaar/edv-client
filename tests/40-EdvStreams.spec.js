@@ -1,10 +1,10 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import {EdvDocument, EdvClient} from '..';
+import {EdvDocument, EdvClient} from '../lib/index.js';
 import mock from './mock.js';
 import {isRecipient, isNewEDV} from './test-utils.js';
-import {ReadableStream} from '../util';
+import {ReadableStream} from '../lib/util.js';
 
 function getRandomUint8({size = 50} = {}) {
   return new Uint8Array(size).map(

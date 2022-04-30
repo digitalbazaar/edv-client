@@ -2,7 +2,7 @@
  * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
-import {EdvClient} from '..';
+import {EdvClient} from '../lib/index.js';
 import {MockStorage, BASE_URL} from './MockStorage.js';
 import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';

@@ -1,7 +1,7 @@
 /*
  * Copyright (c) 2019-2020 Digital Bazaar, Inc. All rights reserved.
  */
-import {edvConfig} from './ConfigSchema';
+import {edvConfig} from './ConfigSchema.js';
 import Ajv from 'ajv';
 
 const ajv = new Ajv({verbose: true, removeAdditional: false});

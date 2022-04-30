@@ -2,11 +2,11 @@
 * Copyright (c) 2020-2022 Digital Bazaar, Inc. All rights reserved.
 */
 import jsigs from 'jsonld-signatures';
-import uuid from 'uuid-random';
+import {v4 as uuid} from 'uuid';
 import {
   CapabilityDelegation, constants as zcapConstants
 } from '@digitalbazaar/zcap';
-import {EdvClient, EdvDocument} from '..';
+import {EdvClient, EdvDocument} from '../lib/index.js';
 import mock from './mock.js';
 import {isRecipient, createRecipient, JWE_ALG} from './test-utils.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
