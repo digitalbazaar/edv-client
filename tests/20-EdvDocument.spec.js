@@ -1,7 +1,7 @@
 /*!
  * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
  */
-import {EdvDocument, EdvClient} from '..';
+import {EdvDocument, EdvClient} from '../lib/index.js';
 import mock from './mock.js';
 
 describe('EdvDocument', () => {

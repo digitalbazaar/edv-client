@@ -1,5 +1,5 @@
 /*
- * Copyright (c) 2019-2021 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2019-2022 Digital Bazaar, Inc. All rights reserved.
  */
 const webpack = require('webpack');
 
@@ -24,47 +24,15 @@ module.exports = function(config) {
     },
 
     webpack: {
-      //mode: 'production',
       mode: 'development',
       devtool: 'inline-source-map',
-      module: {
-        rules: [
-          {
-            test: /\.js$/,
-            exclude: [
-              /bin/,
-              /node_modules\/(?!jsonld|crypto-ld)/
-            ],
-            use: {
-              loader: 'babel-loader',
-              options: {
-                presets: ['@babel/preset-env'],
-                plugins: [
-                  '@babel/plugin-transform-modules-commonjs',
-                  '@babel/plugin-transform-runtime',
-                  '@babel/plugin-proposal-object-rest-spread'
-                ]
-              }
-            }
-          }
-        ]
-      },
       plugins: [
+        // for testing:
+        // route-params > pathname-match > assert > util > process
         new webpack.ProvidePlugin({
-          process: 'process/browser',
-        }),
-      ],
-      node: {
-        global: true,
-      },
-      resolve: {
-        fallback: {
-          url: false,
-        }
-      },
-      externals: {
-        'bitcore-message': '\'bitcore-message\''
-      }
+          process: 'process'
+        })
+      ]
     },
     // test results reporter to use
     // possible values: 'dots', 'progress'
@@ -92,20 +60,8 @@ module.exports = function(config) {
     //browsers: ['ChromeHeadless', 'Chrome', 'Firefox', 'Safari'],
     browsers: ['ChromeHeadless'],
 
-    customLaunchers: {
-      IE9: {
-        base: 'IE',
-        'x-ua-compatible': 'IE=EmulateIE9'
-      },
-      IE8: {
-        base: 'IE',
-        'x-ua-compatible': 'IE=EmulateIE8'
-      }
-    },
-
     // Continuous Integration mode
     // if true, Karma captures browsers, runs the tests and exits
     singleRun: true,
-
   });
 };

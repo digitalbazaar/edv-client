@@ -6,11 +6,11 @@ import {
   constants as zcapConstants
 } from '@digitalbazaar/zcap';
 import {createRecipient, JWE_ALG} from './test-utils.js';
-import {EdvClient} from '..';
+import {EdvClient} from '../lib/index.js';
 import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
 import jsigs from 'jsonld-signatures';
 import mock from './mock.js';
-import uuid from 'uuid-random';
+import {v4 as uuid} from 'uuid';
 
 const {ZCAP_CONTEXT_URL, ZCAP_ROOT_PREFIX} = zcapConstants;
 

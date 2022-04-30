@@ -1,10 +1,12 @@
 // eslint-disable-next-line no-undef
-let ReadableStream = window.ReadableStream;
+let ReadableStream = globalThis.ReadableStream;
 // eslint-disable-next-line no-undef
-let TransformStream = window.TransformStream;
+let TransformStream = globalThis.TransformStream;
 
-import {ReadableStream as Readable, TransformStream as Transform}
-  from 'web-streams-polyfill/ponyfill';
+import {
+  ReadableStream as Readable,
+  TransformStream as Transform
+} from 'web-streams-polyfill/dist/ponyfill.mjs';
 if(!ReadableStream) {
   ReadableStream = Readable;
 }
