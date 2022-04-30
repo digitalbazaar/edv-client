@@ -57,9 +57,16 @@ export class MockServer {
      * @returns {object} - The result of the callback.
      */
     return function(path, callback) {
-      const pathRegex = pathToRegexp(path);
+      // routes are full URLs
+      const url = new URL(path);
+      const pathRegex = pathToRegexp(url.pathname);
       return stub
-        .withArgs(sinon.match(value => pathRegex.test(value)))
+        .withArgs(sinon.match(value => {
+          // match origin and pathname regex
+          const valueUrl = new URL(value);
+          return valueUrl.origin === url.origin &&
+            pathRegex.test(valueUrl.pathname);
+        }))
         .callsFake(async function(route, body) {
           const params = routeParams(path, route);
           const queryParams = (body && body.searchParams) ?
@@ -83,8 +90,10 @@ export class MockServer {
             error.response = {
               headers: new Map([['content-type', 'application/json']]),
               json: async () => ({}),
+              data: {},
               status,
             };
+            error.status = status;
             switch(status) {
               case 404:
                 error.name = 'NotFoundError';
@@ -103,9 +112,11 @@ export class MockServer {
           // this might look weird, but express really does
           // reserve the last argument from a handler for the data.
           // this formats that data into a http response
+          const data = result[result.length - 1];
           return {
             headers: responseHeaders,
-            json: async () => result[result.length - 1],
+            json: async () => data,
+            data,
             status,
           };
         });
