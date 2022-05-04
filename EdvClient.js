@@ -586,7 +586,7 @@ export class EdvClient extends EdvClientCore {
 
     const {documents: docs} = await from.find({equals, has, limit: 1000});
     if(docs.length >= 1000) {
-      throw new Error('Too many documents to migrate; limit is 1000.');
+      throw new Error('Too many documents to migrate; limit is 999.');
     }
 
     // update docs in parallel chunks
