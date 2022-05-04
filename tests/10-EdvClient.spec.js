@@ -770,8 +770,8 @@ describe('EdvClient', () => {
     docs[0].content.should.deep.equal(expected.content);
   });
 
-  it('should find a document that equals the value of a' +
-    ' URL attribute', async () => {
+  it('should find a document that equals the value of a ' +
+    'URL attribute', async () => {
     const client = await mock.createEdv();
     client.ensureIndex({attribute: 'content.https://schema\\.org/'});
     const testId = await EdvClient.generateId();
@@ -1063,4 +1063,476 @@ describe('EdvClient', () => {
     docs[0].content.should.deep.equal({indexedKey: 'value1'});
     docs[1].content.should.deep.equal({indexedKey: 'value2'});
   });
+
+  describe('migrate version 1 blinded attributes to version 2', () => {
+    it('should find a document that equals an attribute value', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({attribute: 'content.indexedKey'});
+      const testId = await EdvClient.generateId();
+      const expected = {id: testId, content: {indexedKey: 'value1'}};
+      await client.insert({doc: expected, invocationSigner, keyResolver});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        const {documents: docs} = await client.find({
+          equals: {'content.indexedKey': 'value1'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({attribute: 'content.indexedKey'});
+      {
+        const {documents: docs} = await client2.find({
+          equals: {'content.indexedKey': 'value1'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.indexedKey'
+      });
+      await assertIndexing(client2);
+    });
+
+    it('should find document that has both fields in a ' +
+      'compound index', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({attribute: ['content.a', 'content.b']});
+      const testId = await EdvClient.generateId();
+      const expected = {
+        id: testId,
+        content: {
+          a: 'value1',
+          b: 'value2'
+        }
+      };
+      await client.insert({doc: expected, invocationSigner, keyResolver});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        const {documents: docs} = await client.find({
+          has: ['content.a', 'content.b']
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({attribute: ['content.a', 'content.b']});
+      {
+        const {documents: docs} = await client2.find({
+          has: ['content.a', 'content.b']
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.a'
+      });
+      await assertIndexing(client2);
+    });
+
+    it('should find document when only first field in compound index ' +
+      'is specified in "has" query', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({attribute: ['content.a', 'content.b']});
+      const testId = await EdvClient.generateId();
+      const expected = {
+        id: testId,
+        content: {
+          a: 'value1',
+          b: 'value2'
+        }
+      };
+      await client.insert({doc: expected, invocationSigner, keyResolver});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        const {documents: docs} = await client.find({
+          has: 'content.a'
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({attribute: ['content.a', 'content.b']});
+      {
+        const {documents: docs} = await client2.find({has: 'content.a'});
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.a'
+      });
+      await assertIndexing(client2);
+    });
+
+    it('should find a document with a deep index on an array', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({attribute: 'content.nested.array.foo'});
+      const testId = await EdvClient.generateId();
+      const expected = {
+        id: testId,
+        content: {
+          nested: {
+            array: [{foo: 'bar'}, {foo: 'baz'}]
+          }
+        }
+      };
+      await client.insert({doc: expected, keyResolver, invocationSigner});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        // find with first value
+        const {documents: docs} = await client.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+
+        // find with second value
+        const {documents: docs2} = await client.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(1);
+        docs2[0].should.be.an('object');
+        docs2[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({attribute: 'content.nested.array.foo'});
+      {
+        // find with first value
+        const {documents: docs} = await client2.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+
+        // find with second value
+        const {documents: docs2} = await client2.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.nested.array.foo'
+      });
+      assertIndexing(client2);
+    });
+
+    it('should find a document with a deep compound index ' +
+      'on an array', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({
+        attribute: ['content.nested.array.foo', 'content.second']
+      });
+      const testId = await EdvClient.generateId();
+      const expected = {
+        id: testId,
+        content: {
+          nested: {
+            array: [{foo: 'bar'}, {foo: 'baz'}]
+          },
+          second: '1'
+        }
+      };
+      await client.insert({doc: expected, keyResolver, invocationSigner});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        // find with first value
+        const {documents: docs} = await client.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+
+        // find with second value
+        const {documents: docs2} = await client.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(1);
+        docs2[0].should.be.an('object');
+        docs2[0].content.should.deep.equal(expected.content);
+
+        // find with first value and second index value
+        const {documents: docs3} = await client.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs3.should.be.an('array');
+        docs3.length.should.equal(1);
+        docs3[0].should.be.an('object');
+        docs3[0].content.should.deep.equal(expected.content);
+
+        // find with second value and second index value
+        const {documents: docs4} = await client.find({
+          equals: {
+            'content.nested.array.foo': 'baz',
+            'content.second': '1'
+          }
+        });
+        docs4.should.be.an('array');
+        docs4.length.should.equal(1);
+        docs4[0].should.be.an('object');
+        docs4[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({
+        attribute: ['content.nested.array.foo', 'content.second']
+      });
+      {
+        // find with first value
+        const {documents: docs} = await client2.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+
+        // find with second value
+        const {documents: docs2} = await client2.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(0);
+
+        // find with first value and second index value
+        const {documents: docs3} = await client2.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs3.should.be.an('array');
+        docs3.length.should.equal(0);
+
+        // find with second value and second index value
+        const {documents: docs4} = await client2.find({
+          equals: {
+            'content.nested.array.foo': 'baz',
+            'content.second': '1'
+          }
+        });
+        docs4.should.be.an('array');
+        docs4.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.nested.array.foo'
+      });
+      assertIndexing(client2);
+    });
+
+    it('should find a document with a deep compound index ' +
+      'on arrays', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({
+        attribute: ['content.nested.array.foo', 'content.second.array.bar']
+      });
+      const testId = await EdvClient.generateId();
+      const expected = {
+        id: testId,
+        content: {
+          nested: {
+            array: [{foo: 'bar'}, {foo: 'baz'}]
+          },
+          second: {
+            array: [{bar: '1'}, {bar: '2'}]
+          }
+        }
+      };
+      await client.insert({doc: expected, keyResolver, invocationSigner});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        // find with first value
+        const {documents: docs} = await client.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+        docs[0].should.be.an('object');
+        docs[0].content.should.deep.equal(expected.content);
+
+        // find with second value
+        const {documents: docs2} = await client.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(1);
+        docs2[0].should.be.an('object');
+        docs2[0].content.should.deep.equal(expected.content);
+
+        // find with first value and second index value
+        const {documents: docs3} = await client.find({
+          equals: {
+            'content.nested.array.foo': 'bar',
+            'content.second.array.bar': '1'
+          }
+        });
+        docs3.should.be.an('array');
+        docs3.length.should.equal(1);
+        docs3[0].should.be.an('object');
+        docs3[0].content.should.deep.equal(expected.content);
+
+        // find with second value and second index value
+        const {documents: docs4} = await client.find({
+          equals: {
+            'content.nested.array.foo': 'baz',
+            'content.second.array.bar': '1'
+          }
+        });
+        docs4.should.be.an('array');
+        docs4.length.should.equal(1);
+        docs4[0].should.be.an('object');
+        docs4[0].content.should.deep.equal(expected.content);
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({
+        attribute: ['content.nested.array.foo', 'content.second.array.bar']
+      });
+      {
+        // find with first value
+        const {documents: docs} = await client2.find({
+          equals: {'content.nested.array.foo': 'bar'}
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+
+        // find with second value
+        const {documents: docs2} = await client2.find({
+          equals: {'content.nested.array.foo': 'baz'}
+        });
+        docs2.should.be.an('array');
+        docs2.length.should.equal(0);
+
+        // find with first value and second index value
+        const {documents: docs3} = await client2.find({
+          equals: {
+            'content.nested.array.foo': 'bar',
+            'content.second.array.bar': '1'
+          }
+        });
+        docs3.should.be.an('array');
+        docs3.length.should.equal(0);
+
+        // find with second value and second index value
+        const {documents: docs4} = await client2.find({
+          equals: {
+            'content.nested.array.foo': 'baz',
+            'content.second.array.bar': '1'
+          }
+        });
+        docs4.should.be.an('array');
+        docs4.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.nested.array.foo'
+      });
+      await assertIndexing(client2);
+    });
+
+    it('should find two documents with attribute values', async () => {
+      // create docs using version 1 attributes
+      const client = await mock.createEdv({
+        invocationSigner, keyResolver, _attributeVersion: 1
+      });
+      client.ensureIndex({attribute: 'content.indexedKey'});
+      const doc1ID = await EdvClient.generateId();
+      const doc2ID = await EdvClient.generateId();
+      const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+      const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
+      await client.insert({doc: doc1, invocationSigner, keyResolver});
+      await client.insert({doc: doc2, invocationSigner, keyResolver});
+      await assertIndexing(client);
+      async function assertIndexing(client) {
+        const {documents: docs} = await client.find({
+          equals: [
+            {'content.indexedKey': 'value1'},
+            {'content.indexedKey': 'value2'}
+          ]
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(2);
+        docs[0].should.be.an('object');
+        docs[1].should.be.an('object');
+        docs[0].content.should.deep.equal({indexedKey: 'value1'});
+        docs[1].content.should.deep.equal({indexedKey: 'value2'});
+      }
+
+      // should fail to find docs via version 2 attributes (the default)
+      const client2 = _createAttributeVersion2EdvClient({client});
+      client2.ensureIndex({attribute: 'content.indexedKey'});
+      {
+        const {documents: docs} = await client2.find({
+          equals: [
+            {'content.indexedKey': 'value1'},
+            {'content.indexedKey': 'value2'}
+          ]
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(0);
+      }
+
+      // now migrate, then try again
+      await EdvClient._migrate({
+        from: client, to: client2, has: 'content.indexedKey'
+      });
+      await assertIndexing(client2);
+    });
+  });
 });
+
+function _createAttributeVersion2EdvClient({client}) {
+  return new EdvClient({
+    id: client.id,
+    keyAgreementKey: client.keyAgreementKey,
+    hmac: client.hmac,
+    invocationSigner: client.invocationSigner,
+    keyResolver: client.keyResolver
+  });
+}

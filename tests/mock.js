@@ -60,7 +60,9 @@ export class TestMock {
       this.delegate = await this.createCapabilityAgent();
     }
   }
-  async createEdv({controller, referenceId} = {}) {
+  async createEdv({
+    controller, referenceId, invocationSigner, keyResolver, _attributeVersion
+  } = {}) {
     const {keyAgreementKey, hmac} = this.keys;
     let config = {
       sequence: 0,
@@ -73,7 +75,10 @@ export class TestMock {
     }
     config = await EdvClient.createEdv(
       {config, url: `${BASE_URL}/edvs`});
-    return new EdvClient({id: config.id, keyAgreementKey, hmac});
+    return new EdvClient({
+      id: config.id, keyAgreementKey, hmac,
+      invocationSigner, keyResolver, _attributeVersion
+    });
   }
 
   async createCapabilityAgent() {
