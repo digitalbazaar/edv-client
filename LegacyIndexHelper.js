@@ -202,16 +202,66 @@ export class IndexHelper {
   }
 
   /**
-   * Blinds a Uint8Array of bytes using the given HMAC API.
+   * Blinds a single attribute using the given HMAC API.
+   *
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {string} options.key - A key associated with a value.
+   * @param {any} options.value - The value associated with the key for the
+   *   attribute.
+   *
+   * @returns {Promise<object>} - Resolves to an object `{name, value}`.
+   */
+  async _blindAttribute({hmac, key, value}) {
+    // salt values with key to prevent cross-key leakage
+    value = canonicalize({key: value});
+    const [blindedName, blindedValue] = await Promise.all(
+      [this._blindString(hmac, key), this._blindString(hmac, value)]);
+    return {name: blindedName, value: blindedValue};
+  }
+
+  /**
+   * Builds a blind compound attribute from an array of blind attributes
+   * via the given HMAC API.
+   *
+   * @param {object} options - The options to use.
+   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
+   *   properties.
+   * @param {Array} options.blindAttributes - The blind attributes that
+   *   comprise the compound index.
+   * @param {number} [options.length=options.blindAttributes.length] - The
+   *   number of blind attributes to go into the compound attribute
+   *   (<= `blindAttributes.length`).
+   *
+   * @returns {Promise<string>} - Resolves to the blinded compound attribute.
+   */
+  async _blindCompoundAttribute({
+    hmac, blindAttributes, length = blindAttributes.length
+  }) {
+    const selection = length === blindAttributes.length ?
+      blindAttributes : blindAttributes.slice(0, length);
+    const nameInput = selection.map(x => x.name).join(':');
+    const valueInput = selection.map(x => x.value).join(':');
+    const [name, value] = await Promise.all([
+      this._blindString(hmac, nameInput),
+      this._blindString(hmac, valueInput)
+    ]);
+    return {name, value};
+  }
+
+  /**
+   * Blinds a string using the given HMAC API.
    *
    * @param {object} hmac - An HMAC API with `id`, `sign`, and `verify`
    *   properties.
-   * @param {Uint8Array} data - The value to blind.
+   * @param {string} value - The value to blind.
    *
    * @returns {Promise<string>} - Resolves to the blinded value.
    */
-  async _blindData(hmac, data) {
+  async _blindString(hmac, value) {
     // convert value to Uint8Array and hash it
+    const data = await sha256(new TextEncoder().encode(value));
     const signature = await hmac.sign({data});
     if(typeof signature === 'string') {
       // presume base64url-encoded
@@ -221,98 +271,71 @@ export class IndexHelper {
     return base64url.encode(signature);
   }
 
-  /**
-   * Blinds a hashed attribute (compound or simple) using the given HMAC API.
-   *
-   * @param {object} options - The options to use.
-   * @param {object} options.hmac - An HMAC API with `id`, `sign`, and `verify`
-   *   properties.
-   * @param {object} options.hashedAttribute - The attribute with `name`,
-   *   `value`, and optional `unique` property; `name` and `value` MUST be
-   *   Uint8Arrays.
-   *
-   * @returns {Promise<object>} - Resolves to an object
-   *   `{name, value, unique?}`.
-   */
-  async _blindHashedAttribute({hmac, hashedAttribute}) {
-    // salt values with key to prevent cross-key leakage
-    const saltedValue = await sha256(
-      _joinHashes([hashedAttribute.name, hashedAttribute.value]));
-    const [name, value] = await Promise.all([
-      this._blindData(hmac, hashedAttribute.name),
-      this._blindData(hmac, saltedValue)
-    ]);
-    const blindAttribute = {name, value};
-    if(hashedAttribute.unique) {
-      blindAttribute.unique = true;
-    }
-    return blindAttribute;
-  }
-
   async _buildBlindAttributes({hmac, doc, equal, has}) {
-    const hashedAttributes = [];
+    const result = [];
 
     // get all matching indexes and corresponding attribute values
     const {simpleMatches, compoundMatches, attributeValues} =
       this._getMatchingIndexes({doc, equal, has});
 
-    // compute and store all hashed attributes in parallel
-    const hashedAttributeMap = new Map();
-    const hashPromises = [];
-    for(const [name, valueSet] of attributeValues.entries()) {
-      // create a hashed set for each attribute name; it will hold the
-      // hashed attribute associated with each name+value pair
-      const hashedSet = new Set();
-      hashedAttributeMap.set(name, hashedSet);
-      for(const value of valueSet) {
-        // use an IIFE to push a promise onto `hashPromises` to await all
-        // promises in parallel and within IIFE add the resolved hashed
-        // attribute to the current attribute's `hashedSet`
-        hashPromises.push((async () => {
-          hashedSet.add(await this._hashAttribute({hmac, name, value}));
+    // compute and store all blinded attributes in parallel
+    const blindedAttributes = new Map();
+    const blindPromises = [];
+    for(const [attribute, valueSet] of attributeValues.entries()) {
+      // create a blinded set for each attribute name; it will hold the
+      // blinded attribute associated with each attribute+value pair
+      const blindedSet = new Set();
+      blindedAttributes.set(attribute, blindedSet);
+      for(const v of valueSet) {
+        // use an IIFE to push a promise onto `blindPromises` to await all
+        // promises in parallel and within IIFE add the resolved blinded
+        // attribute to the current attribute's `blindedSet`
+        blindPromises.push((async () => {
+          blindedSet.add(await this._blindAttribute(
+            {hmac, key: attribute, value: v}));
         })());
       }
     }
-    await Promise.all(hashPromises);
+    await Promise.all(blindPromises);
 
-    // add all matching simple index hashed attributes and track simple
+    // add all matching simple index blinded attributes and track simple
     // attributes to avoid duplicating entries when processing compound
     // indexes
     const simpleAttributes = new Set();
-    for(const {attribute: name, unique} of simpleMatches) {
-      const hashedSet = hashedAttributeMap.get(name);
-      for(const hashed of hashedSet) {
-        hashedAttributes.push({...hashed, unique});
+    for(const {attribute, unique} of simpleMatches) {
+      const blindedSet = blindedAttributes.get(attribute);
+      for(const blinded of blindedSet) {
+        result.push({...blinded, unique});
       }
-      simpleAttributes.add(name);
+      simpleAttributes.add(attribute);
     }
 
-    // compute and add all matching compound index hashed attributes
+    // compute and add all matching compound index blinded attributes
     const compoundPromises = [];
-    for(const {attributes: names, unique} of compoundMatches) {
+    for(const {attributes, unique} of compoundMatches) {
       /* Note: For each matching index, there are some number of matching
       attributes that need to be combinatorially spread. For example, for this
       index: `['content.a', 'content.b', 'content.c']`, there may be multiple
       values for each attribute such as `A` values for `content.a`, `B` values
       for `content.b`, and `C` values for `content.c`. Each combination these
-      values will ultimately produce a new blinded attribute to add to `entry`.
+      values will produce a new blinded attribute to add to `entry`.
       Combinations must also include partial ones, e.g., combinations of
       values for `content.a` alone as well as values for `content.a` and
       `content.b` without `content.c`. */
       const combinations = [];
       let previous = [[]];
-      for(const name of names) {
-        const hashedSet = hashedAttributeMap.get(name);
-        if(!hashedSet) {
-          // no values for current attribute name; no more entries to produce
+      for(const attribute of attributes) {
+        const blindedSet = blindedAttributes.get(attribute);
+        if(!blindedSet) {
+          // no values for current attribute, so no more entries to produce
           break;
         }
-        // produce a new combination for every `hashed` value and every
+        // produce a new combination for every `blinded` value and every
         // combination from the previous attribute
         const next = [];
-        for(const hashed of hashedSet) {
+        for(const blinded of blindedSet) {
           for(const combination of previous) {
-            next.push([...combination, hashed]);
+            next.push([...combination, blinded]);
           }
         }
         combinations.push(...next);
@@ -323,30 +346,28 @@ export class IndexHelper {
       for(const combination of combinations) {
         // skip generating an entry for this combination if it has just the
         // first attribute and an entry for it was already added
-        if(combination.length === 1 && simpleAttributes.has(names[0])) {
+        if(combination.length === 1 && simpleAttributes.has(attributes[0])) {
           continue;
         }
 
         // use an IIFE to push a promise onto `compoundPromises` to await all
-        // promises in parallel and within IIFE return hashed attribute to
-        // blind and add to `entry` below
+        // promises in parallel and within IIFE return blinded attribute to
+        // add to `entry` below
         compoundPromises.push((async () => {
-          const attribute = await this._hashCompoundAttribute({
-            hashedAttributes: combination
+          const attribute = await this._blindCompoundAttribute({
+            hmac, blindAttributes: combination
           });
           // an encrypted attribute is only unique for a compound index when
           // it contains a value for every attribute in the index
           attribute.unique = unique &&
-            (combination.length === names.length);
+            (combination.length === attributes.length);
           return attribute;
         })());
       }
     }
-    hashedAttributes.push(...await Promise.all(compoundPromises));
+    result.push(...await Promise.all(compoundPromises));
 
-    // blind all hashed attributes and return them
-    return Promise.all(hashedAttributes.map(async hashedAttribute =>
-      this._blindHashedAttribute({hmac, hashedAttribute})));
+    return result;
   }
 
   _getMatchingIndexes({doc, equal, has} = {}) {
@@ -380,50 +401,6 @@ export class IndexHelper {
     }
     const result = this._matchIndexes({matchFn});
     return {...result, attributeValues};
-  }
-
-  /**
-   * Hashes a single attribute, converting its name and value into a hashed
-   * name and hashed value.
-   *
-   * @param {object} options - The options to use.
-   * @param {string} options.name - A name associated with a value.
-   * @param {any} options.value - The value associated with the name for the
-   *   attribute.
-   *
-   * @returns {Promise<object>} - Resolves to an object `{name, value}`.
-   */
-  async _hashAttribute({name, value}) {
-    // canonicalize value to get consistent representation and hash
-    value = canonicalize(value);
-    const [hashedName, hashedValue] = await Promise.all(
-      [_hashString(name), _hashString(value)]);
-    return {name: hashedName, value: hashedValue};
-  }
-
-  /**
-   * Builds a hashed compound attribute from an array of hashed attributes
-   * via the given HMAC API.
-   *
-   * @param {object} options - The options to use.
-   * @param {Array} options.hashedAttributes - The hashed attributes that
-   *   comprise the compound index.
-   * @param {number} [options.length=options.hashedAttributes.length] - The
-   *   number of hashed attributes to go into the compound attribute
-   *   (<= `hashedAttributes.length`).
-   *
-   * @returns {Promise<string>} - Resolves to the hashed compound attribute.
-   */
-  async _hashCompoundAttribute({
-    hashedAttributes, length = hashedAttributes.length
-  }) {
-    const selection = length === hashedAttributes.length ?
-      hashedAttributes : hashedAttributes.slice(0, length);
-    const nameInput = _joinHashes(selection.map(x => x.name));
-    const valueInput = _joinHashes(selection.map(x => x.value));
-    const [name, value] = await Promise.all(
-      [sha256(nameInput), sha256(valueInput)]);
-    return {name, value};
   }
 
   _matchIndexes({matchFn} = {}) {
@@ -522,24 +499,4 @@ function _assertHmac(hmac) {
     throw new TypeError(
       '"hmac" must be an object with "id", "sign", and "verify" properties.');
   }
-}
-
-async function _hashString(str) {
-  return sha256(new TextEncoder().encode(str));
-}
-
-// `hashes` is an array of Uint8Arrays, each MUST have the same length
-function _joinHashes(hashes) {
-  if(hashes.length === 0) {
-    return new Uint8Array(0);
-  }
-
-  const joined = new Uint8Array(hashes.length * hashes[0].length);
-  let offset = 0;
-  for(const hash of hashes) {
-    joined.set(hash, offset);
-    offset += hash.length;
-  }
-
-  return joined;
 }
