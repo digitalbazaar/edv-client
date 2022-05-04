@@ -8,12 +8,15 @@ import {sha256, TextEncoder} from './util.js';
 
 const ATTRIBUTE_PREFIXES = ['content', 'meta'];
 
-export class IndexHelper {
+export class LegacyIndexHelperVersion1 {
   /**
-   * Creates a new IndexHelper instance that can be used to blind EDV
-   * document attributes to enable indexing.
+   * Creates a new LegacyIndexHelperVersion1 instance that can be used to blind
+   * EDV document attributes to enable indexing.
    *
-   * @returns {IndexHelper}.
+   * This is a legacy version that builds version 1 blinded attributes; it
+   * should only be used when migrating old blinded attributes.
+   *
+   * @returns {LegacyIndexHelperVersion1}.
    */
   constructor() {
     this.indexes = new Map();

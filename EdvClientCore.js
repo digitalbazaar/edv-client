@@ -7,6 +7,7 @@ import {
 } from './assert.js';
 import {Cipher} from '@digitalbazaar/minimal-cipher';
 import {IndexHelper} from './IndexHelper.js';
+import {LegacyIndexHelperVersion1} from './LegacyIndexHelperVersion1.js';
 import {ReadableStream, getRandomBytes} from './util.js';
 
 // 1 MiB = 1048576
@@ -25,10 +26,14 @@ export class EdvClientCore {
    *   API for deriving shared KEKs for wrapping content encryption keys.
    * @param {Function} [options.keyResolver] - A default function that returns
    *   a Promise that resolves a key ID to a DH public key.
+   * @param {string} [options._attributeVersion=2] - Sets the blinded attribute
+   *   version to use; for internal use only.
    *
    * @returns {EdvClientCore}.
    */
-  constructor({hmac, id, keyAgreementKey, keyResolver} = {}) {
+  constructor({
+    hmac, id, keyAgreementKey, keyResolver, _attributeVersion = 2
+  } = {}) {
     if(id !== undefined) {
       assert(id, 'id', 'string');
     }
@@ -37,7 +42,14 @@ export class EdvClientCore {
     this.keyAgreementKey = keyAgreementKey;
     this.keyResolver = keyResolver;
     this.cipher = new Cipher();
-    this.indexHelper = new IndexHelper();
+    if(_attributeVersion === 2) {
+      this.indexHelper = new IndexHelper();
+    } else if(_attributeVersion === 1) {
+      this.indexHelper = new LegacyIndexHelperVersion1();
+    } else {
+      throw new Error(
+        `Unsupported "_attributeVersion" "${_attributeVersion}".`);
+    }
   }
 
   /**

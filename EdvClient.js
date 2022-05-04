@@ -44,12 +44,14 @@ export class EdvClient extends EdvClientCore {
    *   API for deriving shared KEKs for wrapping content encryption keys.
    * @param {Function} [options.keyResolver] - A default function that returns
    *   a Promise that resolves a key ID to a DH public key.
+   * @param {string} [options._attributeVersion] - Sets the blinded attribute
+   *   version to use; for internal use only.
    *
    * @returns {EdvClient}.
    */
   constructor({
     capability, defaultHeaders, hmac, id, invocationSigner, httpsAgent,
-    keyAgreementKey, keyResolver
+    keyAgreementKey, keyResolver, _attributeVersion
   } = {}) {
     if(capability !== undefined) {
       assert(capability, 'capability', 'object');
@@ -62,7 +64,7 @@ export class EdvClient extends EdvClientCore {
       assertInvocationSigner(invocationSigner);
     }
 
-    super({hmac, id, keyAgreementKey, keyResolver});
+    super({hmac, id, keyAgreementKey, keyResolver, _attributeVersion});
 
     // a future version could set a default transport here to wrap this, but
     // it would be a breaking change
@@ -546,6 +548,53 @@ export class EdvClient extends EdvClientCore {
    */
   static async generateId() {
     return EdvClientCore.generateId();
+  }
+
+  /**
+   * Migrates all documents that match the given `equals` or `has` query
+   * from the attribute version configured for the `from` EdvClient instance
+   * to the attribute version configured for the `to` EdvClient instance.
+   *
+   * This method should be used with caution. It is not exposed as a public
+   * API (it is marked private by `_` convention).
+   *
+   * WARNING: Concurrent writes to an EDV store should be prevented while it is
+   * running if the operating environment cannot guarantee that uniqueness
+   * constraints will not be violated.
+   *
+   * WARNING: At present, this method will fail if the number of documents to
+   * be migrated exceeds a maximum of `999`.
+   *
+   * A more robust implementation may be provided in the future if further
+   * migrations are needed.
+   *
+   * @param {object} options - The options to use.
+   * @param {EdvClient} options.from - The EDV client instance configured to
+   *   use the attribute version to convert from.
+   * @param {EdvClient} options.to - The EDV client instance configured to
+   *   use the attribute version to convert to.
+   * @param {object|Array} [options.equals] - An object with key-value
+   *   attribute pairs to match or an array of such objects.
+   * @param {string|Array} [options.has] - A string with an attribute name to
+   *   match or an array of such strings.
+   *
+   * @returns {Promise} Resolves once the operation completes.
+   */
+  static async _migrate({from, to, equals, has} = {}) {
+    assert(from, 'from', 'object');
+    assert(to, 'to', 'object');
+
+    const {documents: docs} = await from.find({equals, has, limit: 1000});
+    if(docs.length >= 1000) {
+      throw new Error('Too many documents to migrate; limit is 1000.');
+    }
+
+    // update docs in parallel chunks
+    const chunkSize = 5;
+    while(docs.length > 0) {
+      const chunk = docs.splice(0, chunkSize);
+      await Promise.all(chunk.map(async doc => to.update({doc})));
+    }
   }
 
   // not used internally, but provided as a temporary backwards compatibility
