@@ -1,5 +1,17 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 14.0.0 - 2022-05-xx
+
+### Changed
+- **BREAKING**: Blinded attributes (aka encrypted attributes/indexes) are
+  now calculated differently and are incompatible with previous versions. A
+  private `_migrate()` tool has been provided on `EdvClient` that can do
+  basic migration from the old version to the new version, but is very
+  limited to small queries (< 1000 docs) and must be run in a context that
+  ensures unique constraints are not violated but concurrent writes that
+  are external to the migration process. A more robust tool will only be
+  written if it is found to be necessary.
+
 ## 13.0.0 - 2022-03-01
 
 ### Changed
