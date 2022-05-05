@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 14.0.0 - 2022-05-xx
+## 14.0.0 - 2022-05-05
 
 ### Changed
 - **BREAKING**: Blinded attributes (aka encrypted attributes/indexes) are
