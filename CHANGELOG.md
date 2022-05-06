@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 14.1.0 - 2022-05-xx
+## 14.1.0 - 2022-05-06
 
 ### Added
 - Added cache for blinding attributes and code to prewarm it.
