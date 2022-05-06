@@ -65,7 +65,7 @@ export class EdvClientCore {
    *   considered unique, `false` if not.
    */
   ensureIndex({attribute, unique = false} = {}) {
-    this.indexHelper.ensureIndex({attribute, unique});
+    this.indexHelper.ensureIndex({attribute, unique, hmac: this.hmac});
   }
 
   /**

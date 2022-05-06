@@ -3,6 +3,7 @@
  */
 import base64url from 'base64url-universal';
 import canonicalize from 'canonicalize';
+import {LruCache} from '@digitalbazaar/lru-memoize';
 import split from 'split-string';
 import {sha256, TextEncoder} from './util.js';
 
@@ -18,6 +19,10 @@ export class IndexHelper {
   constructor() {
     this.indexes = new Map();
     this.compoundIndexes = new Map();
+    this._cache = new LruCache({
+      // each entry size ~64 bytes, 1000 entries ~= 64KiB
+      max: 1000
+    });
   }
 
   /**
@@ -38,8 +43,10 @@ export class IndexHelper {
    *   array of attribute names to create a unique compound index.
    * @param {boolean} [options.unique=false] - Set to `true` if the index
    *   should be considered unique, `false` if not.
+   * @param {object} [options.hmac] - An optional HMAC API with `id`, `sign`,
+   *   and `verify` properties for prewarming caches.
    */
-  ensureIndex({attribute, unique = false} = {}) {
+  ensureIndex({attribute, unique = false, hmac} = {}) {
     let attributes = attribute;
     if(!Array.isArray(attribute)) {
       attributes = [attribute];
@@ -57,6 +64,12 @@ export class IndexHelper {
       // add compound index
       const key = attributes.map(x => encodeURIComponent(x)).join('|');
       this.compoundIndexes.set(key, {attributes, unique});
+    }
+
+    if(hmac) {
+      _assertHmac(hmac);
+      // ignore errors during prewarm; they are not fatal
+      this._prewarmCache({attributes, hmac}).catch(() => {});
     }
   }
 
@@ -212,7 +225,7 @@ export class IndexHelper {
    */
   async _blindData(hmac, data) {
     // convert value to Uint8Array and hash it
-    const signature = await hmac.sign({data});
+    const signature = await this._cachedHmac({hmac, data});
     if(typeof signature === 'string') {
       // presume base64url-encoded
       return signature;
@@ -513,6 +526,32 @@ export class IndexHelper {
       }
     }
     return value;
+  }
+
+  async _prewarmCache({attributes, hmac}) {
+    const promises = [];
+    const compound = [];
+    for(const [i, name] of attributes.entries()) {
+      const hashed = await _hashString(name);
+      if(i === 0) {
+        promises.push(this._cachedHmac({hmac, data: hashed}));
+        compound.push(hashed);
+        continue;
+      }
+
+      compound.push(hashed);
+      const joined = await sha256(_joinHashes(compound));
+      promises.push(this._cachedHmac({hmac, data: joined}));
+    }
+
+    return Promise.all(promises);
+  }
+
+  async _cachedHmac({hmac, data}) {
+    return this._cache.memoize({
+      key: `${encodeURIComponent(hmac.id)}:${base64url.encode(data)}`,
+      fn: () => hmac.sign({data})
+    });
   }
 }
 
