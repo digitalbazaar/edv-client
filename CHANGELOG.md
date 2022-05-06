@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 14.1.1 - 2022-05-xx
+## 14.1.1 - 2022-05-06
 
 ### Fixed
 - Simplify prewarm cache algorithm.
