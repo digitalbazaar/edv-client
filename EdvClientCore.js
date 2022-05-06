@@ -709,16 +709,13 @@ function _findRecipient(recipients, recipient) {
 }
 
 function _createCachedKeyResolver(keyResolver) {
-  const cache = {};
+  const cache = new Map();
   return async ({id}) => {
-    let key = cache[id];
-    if(key) {
-      return key;
+    let promise = cache.get(id);
+    if(promise) {
+      return promise;
     }
-    key = await keyResolver({id});
-    if(key) {
-      cache[id] = key;
-    }
-    return key;
+    cache.set(id, promise = keyResolver({id}));
+    return promise;
   };
 }
