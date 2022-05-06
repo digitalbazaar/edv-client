@@ -31,6 +31,7 @@
   "dependencies": {
     "@digitalbazaar/http-client": "^2.0.1",
     "@digitalbazaar/http-signature-zcap-invoke": "^5.0.1",
+    "@digitalbazaar/lru-memoize": "^2.2.0",
     "@digitalbazaar/minimal-cipher": "^4.0.1",
     "@digitalbazaar/security-document-loader": "^1.0.0",
     "base58-universal": "^1.0.0",
