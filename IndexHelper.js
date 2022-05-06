@@ -533,17 +533,10 @@ export class IndexHelper {
     const compound = [];
     for(const [i, name] of attributes.entries()) {
       const hashed = await _hashString(name);
-      if(i === 0) {
-        promises.push(this._cachedHmac({hmac, data: hashed}));
-        compound.push(hashed);
-        continue;
-      }
-
       compound.push(hashed);
-      const joined = await sha256(_joinHashes(compound));
-      promises.push(this._cachedHmac({hmac, data: joined}));
+      const data = i === 0 ? hashed : await sha256(_joinHashes(compound));
+      promises.push(this._cachedHmac({hmac, data}));
     }
-
     return Promise.all(promises);
   }
 
