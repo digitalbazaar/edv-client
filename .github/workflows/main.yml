@@ -19,9 +19,9 @@ jobs:
     - name: Run eslint
       run: npm run lint
   test-node:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [lint]
     strategy:
       matrix:
         node-version: [14.x, 16.x, 18.x]
@@ -35,9 +35,9 @@ jobs:
     - name: Run test with Node.js ${{ matrix.node-version }}
       run: npm run test-node
   test-karma:
+    needs: [lint]
     runs-on: ubuntu-latest
     timeout-minutes: 10
-    needs: [lint]
     strategy:
       matrix:
         node-version: [16.x]
