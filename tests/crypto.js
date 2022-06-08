@@ -1,2 +1,3 @@
-// WebCrypto polyfill
-export {default} from 'isomorphic-webcrypto';
+// WebCrypto
+import crypto from 'node:crypto';
+export default crypto.webcrypto;
