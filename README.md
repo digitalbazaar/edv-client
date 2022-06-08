@@ -30,6 +30,14 @@ It consists of one main class:
 
 ## Install
 
+- Browsers and Node.js 14+ are supported.
+
+To install from NPM:
+
+```
+npm install @digitalbazaar/edv-client
+```
+
 To install locally (for development):
 
 ```
