@@ -31,6 +31,8 @@ It consists of one main class:
 ## Install
 
 - Browsers and Node.js 14+ are supported.
+- [Streams API][] required. Older browsers and Node.js <18 must use a polyfill.
+- [Web Crypto API][] required. Older browsers and Node.js 14 must use a polyfill.
 
 To install from NPM:
 
@@ -225,3 +227,6 @@ Digital Bazaar: support@digitalbazaar.com
 ## License
 
 [BSD-3-Clause](LICENSE.md) © Digital Bazaar
+
+[Streams API]: https://developer.mozilla.org/en-US/docs/Web/API/Streams_API
+[Web Crypto API]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API

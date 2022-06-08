@@ -5,6 +5,11 @@
 ### Changed
 - **BREAKING**: Convert to module (ESM).
 - **BREAKING**: Require Node.js >=14.
+- **BREAKING**: Use `globalThis` for browser crypto and streams.
+- **BREAKING**: Require Web Crypto API. Older browsers and Node.js 14 users
+  need to install an appropriate polyfill.
+- **BREAKING**: Require Streams API. Older browsers and Node.js <18 users need
+  to install an appropriate polyfill.
 - Update dependencies.
 - Lint module.
 
@@ -93,7 +98,7 @@
   participated in a compound index, it was possible for the earlier
   values to be erroneously dropped from the index. This bug has now
   been fixed.
- 
+
 ## 11.1.1 - 2022-01-31
 
 ### Fixed
