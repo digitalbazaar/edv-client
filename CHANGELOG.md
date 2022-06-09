@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 15.0.0 - 2022-xx-xx
+## 15.0.0 - 2022-06-09
 
 ### Changed
 - **BREAKING**: Convert to module (ESM).
