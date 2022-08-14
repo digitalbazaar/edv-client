@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 15.0.1 - 2022-08-xx
+## 15.0.1 - 2022-08-14
 
 ### Fixed
 - Use `@digitalbazaar/minimal-cipher@5.1.1` to get chacha bug fix.
