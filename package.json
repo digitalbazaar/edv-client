@@ -26,7 +26,7 @@
     "@digitalbazaar/http-client": "^3.2.0",
     "@digitalbazaar/http-signature-zcap-invoke": "^6.0.0",
     "@digitalbazaar/lru-memoize": "^3.0.0",
-    "@digitalbazaar/minimal-cipher": "^5.0.0",
+    "@digitalbazaar/minimal-cipher": "^5.1.1",
     "@digitalbazaar/security-document-loader": "^2.0.0",
     "base58-universal": "^2.0.0",
     "canonicalize": "^1.0.8",
