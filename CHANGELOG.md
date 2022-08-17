@@ -2,7 +2,7 @@
 
 ## 15.0.2 -
 
-###Fixed
+### Fixed
 - Move `base64url-universal` to deps from devDeps.
 
 ## 15.0.1 - 2022-08-14
