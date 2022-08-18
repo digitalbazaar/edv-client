@@ -1,9 +1,9 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 15.0.2 -
+## 15.0.2 - 2022-08-xx
 
 ### Fixed
-- Move `base64url-universal` to deps from devDeps.
+- Move `base64url-universal` from `devDependencies` to `dependencies`.
 
 ## 15.0.1 - 2022-08-14
 
