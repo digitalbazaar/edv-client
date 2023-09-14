@@ -30,9 +30,9 @@ It consists of one main class:
 
 ## Install
 
-- Browsers and Node.js 14+ are supported.
-- [Streams API][] required. Older browsers and Node.js <18 must use a polyfill.
-- [Web Crypto API][] required. Older browsers and Node.js 14 must use a polyfill.
+- Browsers and Node.js 18+ are supported.
+- [Streams API][] required. Older browsers must use a polyfill.
+- [Web Crypto API][] required. Older browsers must use a polyfill.
 
 To install from NPM:
 
