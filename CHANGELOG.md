@@ -1,6 +1,12 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 15.0.2 - 2022-08-xx
+## 16.0.0 - 2023-09-xx
+
+### Changed
+- **BREAKING**: Drop support for Node.js < 18.
+- Use `@digitalbazaar/http-client@4` which requires Node.js 18+.
+
+## 15.0.2 - 2022-08-18
 
 ### Fixed
 - Move `base64url-universal` from `devDependencies` to `dependencies`.
