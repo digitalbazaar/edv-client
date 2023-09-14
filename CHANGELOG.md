@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 16.0.0 - 2023-09-xx
+## 16.0.0 - 2023-09-14
 
 ### Changed
 - **BREAKING**: Drop support for Node.js < 18.
