@@ -30,7 +30,7 @@
     "@digitalbazaar/security-document-loader": "^2.0.0",
     "base58-universal": "^2.0.0",
     "base64url-universal": "^2.0.0",
-    "canonicalize": "^1.0.8",
+    "canonicalize": "^2.0.0",
     "split-string": "^6.1.0"
   },
   "devDependencies": {

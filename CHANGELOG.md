@@ -5,6 +5,8 @@
 ### Changed
 - **BREAKING**: Drop support for Node.js < 18.
 - Use `@digitalbazaar/http-client@4` which requires Node.js 18+.
+- Use `canonicalize@2`. This version adds error handling for illegal numeric
+  values: Infinite and NaN.
 
 ## 15.0.2 - 2022-08-18
 
