@@ -5,6 +5,9 @@
 ### Added
 - Add support for using fips-compliant algorithms for key agreement via
   `@digitalbazaar/minimal-cipher@6`.
+- Add new `cipherVersion` parameter to control whether the cipher version
+  is "recommended" or "fips". The default (and previous only option)
+  remains "recommended".
 
 ## 16.0.1 - 2023-11-05
 
