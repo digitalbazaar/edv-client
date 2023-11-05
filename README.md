@@ -127,6 +127,9 @@ const remoteConfig = await EdvClient.createEdv({config});
 
 // connect to the new EDV via a `EdvClient`
 const client = new EdvClient({id: remoteConfig.id, keyAgreementKey, hmac});
+// to only use fips-compliant key agreement and encryption algorithms:
+const client = new EdvClient(
+  {id: remoteConfig.id, keyAgreementKey, hmac, cipherVersion: 'fips'});
 ```
 
 You can specify a url when you create and register a new EDV configuration:
