@@ -1,5 +1,11 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 16.1.0 - 2023-11-dd
+
+### Added
+- Add support for using fips-compliant algorithms for key agreement via
+  `@digitalbazaar/minimal-cipher@6`.
+
 ## 16.0.1 - 2023-11-05
 
 ### Changed
