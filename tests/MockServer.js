@@ -1,10 +1,10 @@
 /*!
- * Copyright (c) 2018-2020 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2023 Digital Bazaar, Inc. All rights reserved.
  */
 import {httpClient} from '@digitalbazaar/http-client';
-import sinon from 'sinon';
 import {pathToRegexp} from 'path-to-regexp';
 import routeParams from 'route-params';
+import sinon from 'sinon';
 
 /**
  * This is the sinon stub mock server.
