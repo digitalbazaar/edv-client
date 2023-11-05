@@ -68,7 +68,8 @@ export class TestMock {
     }
   }
   async createEdv({
-    controller, referenceId, invocationSigner, keyResolver, _attributeVersion
+    controller, referenceId, invocationSigner, keyResolver,
+    cipherVersion, _attributeVersion
   } = {}) {
     const {keyAgreementKey, hmac} = this.keys;
     let config = {
@@ -84,7 +85,7 @@ export class TestMock {
       {config, url: `${BASE_URL}/edvs`});
     return new EdvClient({
       id: config.id, keyAgreementKey, hmac,
-      invocationSigner, keyResolver, _attributeVersion
+      invocationSigner, keyResolver, cipherVersion, _attributeVersion
     });
   }
 
