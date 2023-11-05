@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 16.0.1 - 2023-11-dd
+## 16.0.1 - 2023-11-05
 
 ### Changed
 - Fix linting errors and update test dependencies. No API changes.
