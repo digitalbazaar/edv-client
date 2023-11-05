@@ -1,13 +1,16 @@
 /*!
- * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2023 Digital Bazaar, Inc. All rights reserved.
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
+import {BASE_URL, MockStorage} from './MockStorage.js';
+import {Ed25519VerificationKey2020} from
+  '@digitalbazaar/ed25519-verification-key-2020';
 import {EdvClient} from '../lib/index.js';
-import {MockStorage, BASE_URL} from './MockStorage.js';
-import {MockServer} from './MockServer.js';
 import {MockHmac} from './MockHmac.js';
-import {Ed25519Signature2020} from '@digitalbazaar/ed25519-signature-2020';
+import {MockServer} from './MockServer.js';
 import {securityLoader} from '@digitalbazaar/security-document-loader';
+import {X25519KeyAgreementKey2020} from
+  '@digitalbazaar/x25519-key-agreement-key-2020';
 import {constants as zcapConstants} from '@digitalbazaar/zcap';
 
 const loader = securityLoader();
@@ -15,6 +18,10 @@ loader.addStatic(zcapConstants.ZCAP_CONTEXT_URL, zcapConstants.ZCAP_CONTEXT);
 const securityDocumentLoader = loader.build();
 
 const didKeyDriver = didMethodKey.driver();
+didKeyDriver.use({
+  multibaseMultikeyHeader: 'z6Mk',
+  fromMultibase: Ed25519VerificationKey2020.from
+});
 
 export {BASE_URL};
 
@@ -82,13 +89,25 @@ export class TestMock {
   }
 
   async createCapabilityAgent() {
-    const {methodFor} = await didKeyDriver.generate();
-    const capabilityInvocationKeyPair =
-      methodFor({purpose: 'capabilityInvocation'});
-    const capabilityAgent = new Ed25519Signature2020(
-      {key: capabilityInvocationKeyPair});
+    // create capability agent for signing zcaps
+    const verificationKeyPair = await Ed25519VerificationKey2020.generate();
+    const {methodFor} = await didKeyDriver.fromKeyPair({verificationKeyPair});
+    const capabilityInvocationKeyPair = methodFor(
+      {purpose: 'capabilityInvocation'});
+    const signer = verificationKeyPair.signer();
+    signer.id = capabilityInvocationKeyPair.id;
+    const capabilityAgent = {
+      id: capabilityInvocationKeyPair.controller,
+      signer
+    };
 
-    const keyAgreementPair = methodFor({purpose: 'keyAgreement'});
+    // get matching key agreement key pair
+    const keyAgreementPublicKey = methodFor({purpose: 'keyAgreement'});
+    const keyAgreementPair =
+      X25519KeyAgreementKey2020.fromEd25519VerificationKey2020(
+        {keyPair: verificationKeyPair});
+    keyAgreementPair.id = keyAgreementPublicKey.id;
+    keyAgreementPair.controller = keyAgreementPublicKey.controller;
     this.keyStorage.set(
       keyAgreementPair.id, keyAgreementPair.export({
         publicKey: true, includeContext: true}));

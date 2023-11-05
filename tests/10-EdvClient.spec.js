@@ -1,8 +1,8 @@
 /*!
- * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2023 Digital Bazaar, Inc. All rights reserved.
  */
+import {BASE_URL, default as mock} from './mock.js';
 import {EdvClient} from '../lib/index.js';
-import {default as mock, BASE_URL} from './mock.js';
 import {isRecipient} from './test-utils.js';
 
 describe('EdvClient', () => {
