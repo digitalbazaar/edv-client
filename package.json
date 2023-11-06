@@ -35,6 +35,7 @@
   },
   "devDependencies": {
     "@digitalbazaar/did-method-key": "^5.1.0",
+    "@digitalbazaar/ecdsa-multikey": "^1.5.0",
     "@digitalbazaar/ed25519-signature-2020": "^5.2.0",
     "@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
     "@digitalbazaar/x25519-key-agreement-key-2020": "^3.0.1",
