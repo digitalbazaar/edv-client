@@ -26,7 +26,7 @@ describe('EdvClient', () => {
         mock.keys.fips.keyAgreementKey : mock.keys.keyAgreementKey;
     });
 
-    describe(`"${cipherVersion}" cipher version`, function() {
+    describe(`"${cipherVersion}" cipher version`, () => {
       it('should throw an error when config is invalid', async () => {
         let result;
         let err;
