@@ -2,6 +2,7 @@
  * Copyright (c) 2018-2023 Digital Bazaar, Inc. All rights reserved.
  */
 import * as didMethodKey from '@digitalbazaar/did-method-key';
+import * as EcdsaMultikey from '@digitalbazaar/ecdsa-multikey';
 import {BASE_URL, MockStorage} from './MockStorage.js';
 import {Ed25519VerificationKey2020} from
   '@digitalbazaar/ed25519-verification-key-2020';
@@ -22,8 +23,22 @@ didKeyDriver.use({
   multibaseMultikeyHeader: 'z6Mk',
   fromMultibase: Ed25519VerificationKey2020.from
 });
+didKeyDriver.use({
+  multibaseMultikeyHeader: 'zDna',
+  fromMultibase: EcdsaMultikey.from
+});
 
 export {BASE_URL};
+
+const FIPS_KAK = {
+  '@context': 'https://w3id.org/security/multikey/v1',
+  id: 'did:key:zDnaey9HdsvnNjAn2PaCXXJihjNsiXWzCvRS9HgEbcjPqvPNY#' +
+    'zDnaey9HdsvnNjAn2PaCXXJihjNsiXWzCvRS9HgEbcjPqvPNY',
+  type: 'Multikey',
+  controller: 'did:key:zDnaey9HdsvnNjAn2PaCXXJihjNsiXWzCvRS9HgEbcjPqvPNY',
+  publicKeyMultibase: 'zDnaey9HdsvnNjAn2PaCXXJihjNsiXWzCvRS9HgEbcjPqvPNY',
+  secretKeyMultibase: 'z42tqAhAsKYYJ3RnqzYKMzFvExVNK3NPNHgRHihqJjDAUzx6'
+};
 
 export class TestMock {
   constructor(server = new MockServer()) {
@@ -62,6 +77,12 @@ export class TestMock {
         }
         throw new Error(`Key ${id} not found`);
       };
+      const keyAgreement = true;
+      const fipsKak = await EcdsaMultikey.from(FIPS_KAK, keyAgreement);
+      fipsKak.type = FIPS_KAK.type;
+      this.keys.fips = {keyAgreementKey: fipsKak};
+      this.keyStorage.set(
+        this.keys.fips.keyAgreementKey.id, this.keys.fips.keyAgreementKey);
       this.documentLoader = securityDocumentLoader;
       // store delegate for zcap delegation tests
       this.delegate = await this.createCapabilityAgent();
@@ -71,7 +92,9 @@ export class TestMock {
     controller, referenceId, invocationSigner, keyResolver,
     cipherVersion, _attributeVersion
   } = {}) {
-    const {keyAgreementKey, hmac} = this.keys;
+    const {hmac} = this.keys;
+    const {keyAgreementKey} = cipherVersion === 'fips' ?
+      this.keys.fips : this.keys;
     let config = {
       sequence: 0,
       controller: controller || this.invocationSigner.id,

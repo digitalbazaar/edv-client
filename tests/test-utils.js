@@ -33,13 +33,23 @@ export function isNewEDV({inserted, testId, hmac, sequence = 0}) {
 
 // recipient should be JOSE
 // @see https://tools.ietf.org/html/rfc8037
-export function isRecipient({recipient}) {
-  const expected = {
-    kid: mock.keys.keyAgreementKey.id,
-    alg: JWE_ALG,
-    crv: 'X25519',
-    kty: 'OKP'
-  };
+export function isRecipient({recipient, cipherVersion = 'recommended'}) {
+  let expected;
+  if(cipherVersion === 'fips') {
+    expected = {
+      kid: mock.keys.fips.keyAgreementKey.id,
+      alg: JWE_ALG,
+      crv: 'P-256',
+      kty: 'EC'
+    };
+  } else {
+    expected = {
+      kid: mock.keys.keyAgreementKey.id,
+      alg: JWE_ALG,
+      crv: 'X25519',
+      kty: 'OKP'
+    };
+  }
   const {kid, alg, crv, kty} = expected;
   expect(recipient, 'Expected recipient to be an object').to.be.an('object');
 
