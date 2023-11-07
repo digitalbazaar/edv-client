@@ -1,6 +1,6 @@
 # @digitalbazaar/edv-client ChangeLog
 
-## 16.1.0 - 2023-11-dd
+## 16.1.0 - 2023-11-07
 
 ### Added
 - Add support for using fips-compliant algorithms for key agreement via
