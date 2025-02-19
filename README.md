@@ -19,11 +19,15 @@ with remote Encrypted Data Vault (EDV) servers.
 
 It consists of one main class:
 
-1. `EdvClient` - instances provide a CRUD (+ find) interface to a specific
+* **`EdvClient`** - instances provide a CRUD (+ find) interface to a specific
   configured Encrypted Data Vault server and ensure appropriate database
   indexes are set up. Static methods allow for the creation of EDVs with a
   remote storage service, e.g.
-    [Encrypted Data Vault storage server](https://github.com/digitalbazaar/bedrock-data-hub-storage).
+  Encrypted Data Vault storage servers.
+
+#### Encrypted Data Vault storage servers:
+* MongoDB-based - https://github.com/digitalbazaar/bedrock-edv-storage
+* PouchDB-based - https://github.com/digitalbazaar/bedrock-web-pouch-edv
 
 ## Install
 
