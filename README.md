@@ -1,6 +1,4 @@
-# JavaScript Encrypted Data Vault Client _(edv-client)_
-
-[![Build Status](https://travis-ci.org/digitalbazaar/edv-client.png?branch=master)](https://travis-ci.org/digitalbazaar/edv-client)
+# JavaScript Encrypted Data Vault Client _(@digitalbazaar/edv-client)_
 
 > A JavaScript library for Web and node.js apps for interfacing with a remote
 > Encrypted Data Vault server
@@ -12,7 +10,6 @@
 - [Usage](#usage)
 - [API](#api)
 - [Contribute](#contribute)
-- [Commercial Support](#commercial-support)
 - [License](#license)
 
 ## Background
@@ -36,13 +33,13 @@ It consists of one main class:
 
 To install from NPM:
 
-```
+```sh
 npm install @digitalbazaar/edv-client
 ```
 
 To install locally (for development):
 
-```
+```sh
 git clone https://github.com/digitalbazaar/edv-client.git
 cd edv-client
 npm install
@@ -61,7 +58,6 @@ locally or via a KMS system. The current example shows using a KMS system
 ```js
 import {CapabilityAgent, KeystoreAgent, KmsClient} from 'webkms-client';
 import {EdvClient} from 'edv-client';
-
 ```
 Although Encrypted Data Vaults are not bound to any particular key management
 system, we recommend that you set up a Key Management Service using an
@@ -222,14 +218,12 @@ PRs accepted.
 If editing the Readme, please conform to the
 [standard-readme](https://github.com/RichardLitt/standard-readme) specification.
 
-## Commercial Support
-
-Commercial support for this library is available upon request from
-Digital Bazaar: support@digitalbazaar.com
-
 ## License
 
-[BSD-3-Clause](LICENSE.md) © Digital Bazaar
+[BSD-3-Clause](LICENSE) Copyright 2019-2025 Digital Bazaar, Inc.
+
+Commercial support is available by contacting
+[Digital Bazaar](https://digitalbazaar.com/) <support@digitalbazaar.com>.
 
 [Streams API]: https://developer.mozilla.org/en-US/docs/Web/API/Streams_API
 [Web Crypto API]: https://developer.mozilla.org/en-US/docs/Web/API/Web_Crypto_API
