@@ -25,9 +25,8 @@
   "dependencies": {
     "@digitalbazaar/http-client": "^4.0.0",
     "@digitalbazaar/http-signature-zcap-invoke": "^6.0.0",
-    "@digitalbazaar/lru-memoize": "^3.0.0",
+    "@digitalbazaar/lru-memoize": "^4.0.0",
     "@digitalbazaar/minimal-cipher": "^6.0.0",
-    "@digitalbazaar/security-document-loader": "^2.0.0",
     "base58-universal": "^2.0.0",
     "base64url-universal": "^2.0.0",
     "canonicalize": "^2.0.0",
@@ -39,6 +38,7 @@
     "@digitalbazaar/ed25519-signature-2020": "^5.2.0",
     "@digitalbazaar/ed25519-verification-key-2020": "^4.1.0",
     "@digitalbazaar/x25519-key-agreement-key-2020": "^3.0.1",
+    "@digitalbazaar/security-document-loader": "^3.0.1",
     "@digitalbazaar/zcap": "^9.0.0",
     "ajv": "^8.11.0",
     "assert": "^2.0.0",

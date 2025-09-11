@@ -1,5 +1,12 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 16.2.0 - 2025-mm-dd
+
+### Changed
+- Update dependencies:
+  - `@digitalbazaar/lru-memoize@4`.
+- Move `@digitalbazaar/security-document-loader` to dev dependencies.
+
 ## 16.1.0 - 2023-11-07
 
 ### Added
