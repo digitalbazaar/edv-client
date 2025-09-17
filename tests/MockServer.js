@@ -72,6 +72,10 @@ export class MockServer {
           const queryParams = (body && body.searchParams) ?
             body.searchParams : {};
           const {headers} = body ? body : {headers: {}};
+          const parsedSearchParams = (new URL(route)).searchParams;
+          for(const [key, value] of parsedSearchParams) {
+            queryParams[key] = String(value);
+          }
           for(const [key, value] of Object.entries(queryParams)) {
             queryParams[key] = String(value);
           }

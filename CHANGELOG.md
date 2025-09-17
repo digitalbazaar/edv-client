@@ -1,5 +1,13 @@
 # @digitalbazaar/edv-client ChangeLog
 
+## 16.3.0 - 2025-mm-dd
+
+### Changed
+- Add `returnDocuments` query option for `/documents/query`. This option
+  allows document IDs (only) to be returned in the results, which allows
+  clients to implement more efficient behavior, especially if the server
+  also supports caching of EDV documents.
+
 ## 16.2.0 - 2025-09-11
 
 ### Changed

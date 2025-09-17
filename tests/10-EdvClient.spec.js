@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2023 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2025 Digital Bazaar, Inc. All rights reserved.
  */
 import {BASE_URL, default as mock} from './mock.js';
 import {EdvClient} from '../lib/index.js';
@@ -96,6 +96,54 @@ describe('EdvClient', () => {
         docs.length.should.equal(1);
       });
 
+      it('should find document IDs by index after updates', async () => {
+        const client = await mock.createEdv({cipherVersion});
+        client.ensureIndex({attribute: 'content.indexedKey'});
+        const testId = await EdvClient.generateId();
+        const doc = {
+          id: testId,
+          content: {someKey: '111111', indexedKey: 'value1'}
+        };
+        let version1 = await client.insert({
+          doc,
+          invocationSigner,
+          keyResolver
+        });
+        version1 = await client.get({id: doc.id, invocationSigner});
+
+        await client.update({
+          doc: {
+            ...version1,
+            content: {
+              ...version1.content,
+              someKey: '22222'
+            }
+          },
+          invocationSigner,
+          keyResolver
+        });
+        const version2 = await client.get({id: doc.id, invocationSigner});
+        await client.update({
+          doc: {
+            ...version2,
+            content: {
+              ...version2.content,
+              someKey: '33333'
+            }
+          },
+          invocationSigner,
+          keyResolver
+        });
+
+        const {documentIds: docs} = await client.find({
+          returnDocuments: false,
+          has: 'content.indexedKey',
+          invocationSigner
+        });
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+      });
+
       it('find a document using a multi property query', async () => {
         const client = await mock.createEdv({cipherVersion});
         client.ensureIndex({attribute: 'content.someKey'});
@@ -149,6 +197,75 @@ describe('EdvClient', () => {
         // no results when attempting to find a document when
         // property keys have values that do not match the stored document.
         const {documents: docs3} = await client.find({
+          equals: {
+            'content.someKey': {
+              b: 11111,
+              a: 22222
+            }
+          },
+          invocationSigner
+        });
+
+        docs3.should.be.an('array');
+        docs3.length.should.equal(0);
+      });
+
+      it('find a document ID using a multi property query', async () => {
+        const client = await mock.createEdv({cipherVersion});
+        client.ensureIndex({attribute: 'content.someKey'});
+
+        const testId = await EdvClient.generateId();
+        const doc = {
+          id: testId,
+          content: {
+            someKey: {
+              b: 5,
+              a: 4
+            }
+          }
+        };
+
+        await client.insert({
+          doc,
+          invocationSigner,
+          keyResolver
+        });
+
+        // it should find the document when property keys are in same order.
+        const {documentIds: docs} = await client.find({
+          returnDocuments: false,
+          equals: {
+            'content.someKey': {
+              b: 5,
+              a: 4
+            }
+          },
+          invocationSigner
+        });
+
+        docs.should.be.an('array');
+        docs.length.should.equal(1);
+
+        // it should find the document when property keys are in a different
+        // order
+        const {documentIds: docs2} = await client.find({
+          returnDocuments: false,
+          equals: {
+            'content.someKey': {
+              a: 4,
+              b: 5
+            }
+          },
+          invocationSigner
+        });
+
+        docs2.should.be.an('array');
+        docs2.length.should.equal(1);
+
+        // no results when attempting to find a document when
+        // property keys have values that do not match the stored document.
+        const {documentIds: docs3} = await client.find({
+          returnDocuments: false,
           equals: {
             'content.someKey': {
               b: 11111,
@@ -695,6 +812,26 @@ describe('EdvClient', () => {
         docs[1].should.be.an('object');
         docs[0].content.should.deep.equal({indexedKey: 'value1'});
         docs[1].content.should.deep.equal({indexedKey: 'value2'});
+      });
+
+      it('should find two document IDs with an attribute', async () => {
+        const client = await mock.createEdv({cipherVersion});
+        client.ensureIndex({attribute: 'content.indexedKey'});
+        const doc1ID = await EdvClient.generateId();
+        const doc2ID = await EdvClient.generateId();
+        const doc1 = {id: doc1ID, content: {indexedKey: 'value1'}};
+        const doc2 = {id: doc2ID, content: {indexedKey: 'value2'}};
+        await client.insert({doc: doc1, invocationSigner, keyResolver});
+        await client.insert({doc: doc2, invocationSigner, keyResolver});
+        const {documentIds} = await client.find({
+          returnDocuments: false,
+          invocationSigner,
+          has: 'content.indexedKey'
+        });
+        documentIds.should.be.an('array');
+        documentIds.length.should.equal(2);
+        documentIds[0].should.equal(doc1ID);
+        documentIds[1].should.equal(doc2ID);
       });
 
       it('should find one documents with an attribute w/limit', async () => {

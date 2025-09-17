@@ -1,5 +1,5 @@
 /*!
- * Copyright (c) 2018-2022 Digital Bazaar, Inc. All rights reserved.
+ * Copyright (c) 2018-2025 Digital Bazaar, Inc. All rights reserved.
  */
 import {v4 as uuid} from 'uuid';
 import {validateSchema} from './validator.js';
@@ -159,6 +159,10 @@ export class MockStorage {
         return [404, undefined];
       }
 
+      // default to returning full documents
+      const returnDocuments =
+        request.queryParams.returnDocuments !== 'false';
+
       const {json: query} = JSON.parse(request.requestBody);
       const index = edv.indexes.get(query.index);
       if(!index) {
@@ -167,7 +171,7 @@ export class MockStorage {
       }
 
       // build results
-      const results = [];
+      let results = [];
       if(query.equals) {
         for(const equals of query.equals) {
           let matches = null;
@@ -215,14 +219,21 @@ export class MockStorage {
         return [200, undefined, {count: results.length}];
       }
 
+      const result = {};
+      if(returnDocuments) {
+        result.documents = results;
+      } else {
+        result.documentIds = results = results.map(d => d.id);
+      }
+
       const {limit} = query;
-      const result = {documents: results};
       if(limit !== undefined) {
         result.hasMore = results.length > limit;
         if(result.hasMore) {
-          result.documents.length = limit;
+          results.length = limit;
         }
       }
+
       return [200, undefined, result];
     });
   }
